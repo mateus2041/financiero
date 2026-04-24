@@ -1,0 +1,90 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(to right, #0a0f2c, #0d1b3d);
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.form-box {
+  width: 350px;
+  color: white;
+}
+
+h1 {
+  text-align: center;
+  color: #f5c542;
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  margin-top: 10px;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 10px;
+  padding-right: 50px; /* espacio para el ojo */
+  border-radius: 10px;
+  border: 1px solid #555;
+  background-color: #1e2a4a;
+  color: white;
+  outline: none;
+}
+
+.input-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.eye-btn {
+  position: absolute;
+  right: 5px;
+  width: 40px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background-color: #0f1a35;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn {
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px;
+  background-color: black;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.terms {
+  font-size: 12px;
+  margin-top: 15px;
+}
+
+.login {
+  font-size: 13px;
+  margin-top: 10px;
+}
+
+.login a {
+  color: #3b82f6;
+  text-decoration: none;
+}
