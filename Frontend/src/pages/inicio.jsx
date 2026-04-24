@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import "../styles/inicio.css";
 
 function Inicio() {
@@ -11,8 +12,12 @@ function Inicio() {
           <li>Cuenta</li>
           <li>Certificado</li>
           <li>Bre-be</li>
-          <li>Inicio</li>
-              {/* 🔥 CORREGIDO: Link con clase para que tome el estilo */}
+          <li>
+            <Link to="/login" className="btn-nav">
+              inicio
+            </Link>
+          </li>
+
           <li>
             <Link to="/registro" className="btn-nav">
               Registro
