@@ -8,6 +8,7 @@ function Login() {
   const [documento, setDocumento] = useState("");
   const [password, setPassword] = useState("");
   const [mostrarPass, setMostrarPass] = useState(false);
+  const [mensaje, setMensaje] = useState("");
 
   const irRegistro = () => {
     navigate("/registro");
@@ -17,17 +18,51 @@ function Login() {
     navigate("/recuperar");
   };
 
-  const manejarSubmit = (e) => {
+  const manejarSubmit = async (e) => {
     e.preventDefault();
 
     if (!documento || !password) {
-      alert("Completa todos los campos");
+      setMensaje("Completa todos los campos");
       return;
     }
 
-    console.log({ documento, password });
+    try {
+      const res = await fetch("http://127.0.0.1:8000/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          documento,
+          password
+        })
+      });
 
-    navigate("/cuenta");
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMensaje(data.detail);
+        return;
+      }
+
+      // ✅ LOGIN OK
+      setMensaje("Login exitoso ✅");
+
+      // 🔥 GUARDAR SOLO LO QUE REALMENTE EXISTE
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("documento", documento);
+
+      // ⚠️ IMPORTANTE: el backend NO devuelve usuario.nombre
+      // el nombre se obtiene en cuenta.jsx desde el backend
+
+      setTimeout(() => {
+        navigate("/cuenta");
+      }, 800);
+
+    } catch (error) {
+      console.error(error);
+      setMensaje("Error conectando con el servidor");
+    }
   };
 
   return (
@@ -35,23 +70,19 @@ function Login() {
       <form className="form-box" onSubmit={manejarSubmit}>
         <h1>Inicio</h1>
 
-        {/* DOCUMENTO */}
         <label>Documento</label>
         <div className="input-icon">
           <input
             type="text"
-            placeholder="XXX.XXX.XXX"
             value={documento}
             onChange={(e) => setDocumento(e.target.value)}
           />
         </div>
 
-        {/* PASSWORD */}
         <label>Contraseña</label>
         <div className="input-icon">
           <input
             type={mostrarPass ? "text" : "password"}
-            placeholder="********"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -65,25 +96,26 @@ function Login() {
           </button>
         </div>
 
-        {/* BOTÓN */}
         <button type="submit" className="btn">
           Iniciar sesión
         </button>
 
-        {/* LINKS */}
+        {mensaje && (
+          <p style={{ marginTop: "10px", color: "green" }}>
+            {mensaje}
+          </p>
+        )}
+
         <p className="login">
           ¿No tienes cuenta?{" "}
-          <a href="#" onClick={irRegistro}>
-            Regístrate aquí
-          </a>
+          <a href="#" onClick={irRegistro}>Regístrate aquí</a>
         </p>
 
         <p className="login">
           ¿Olvidaste tu contraseña?{" "}
-          <a href="#" onClick={irRecuperar}>
-            Recupérala aquí
-          </a>
+          <a href="#" onClick={irRecuperar}>Recupérala aquí</a>
         </p>
+
       </form>
     </div>
   );

@@ -1,22 +1,58 @@
 import React, { useEffect, useState } from "react";
 import Chart from "chart.js/auto";
+import { useNavigate } from "react-router-dom";
 import "../styles/cuenta.css";
 
-const PanelFinanciero = ({ usuario }) => {
+const PanelFinanciero = () => {
+  const navigate = useNavigate();
+
+  const [usuario, setUsuario] = useState("");
+  const [documento, setDocumento] = useState("");
   const [totalIngresos, setTotalIngresos] = useState(0);
   const [totalGastos, setTotalGastos] = useState(0);
 
+  // 🔥 TRAER USUARIO DESDE BACKEND POR DOCUMENTO
   useEffect(() => {
-    const ingresos = 1200;
-    const gastos = 500;
+    const doc = localStorage.getItem("documento");
 
-    setTotalIngresos(ingresos);
-    setTotalGastos(gastos);
+    if (!doc) {
+      navigate("/inicio");
+      return;
+    }
+
+    setDocumento(doc);
+
+    const obtenerUsuario = async () => {
+      try {
+        const res = await fetch(
+          `http://127.0.0.1:8000/usuario-documento/${doc}`
+        );
+
+        const data = await res.json();
+
+        if (res.ok) {
+          setUsuario(data.nombre);
+        } else {
+          setUsuario("Usuario");
+        }
+
+      } catch (error) {
+        console.error(error);
+        setUsuario("Usuario");
+      }
+    };
+
+    obtenerUsuario();
+  }, []);
+
+  // 🔥 GRAFICA
+  useEffect(() => {
+    setTotalIngresos(1200);
+    setTotalGastos(500);
 
     const canvas = document.getElementById("salesChart");
     if (!canvas) return;
 
-    // 🔥 evitar duplicación
     if (window.chart) {
       window.chart.destroy();
     }
@@ -49,42 +85,40 @@ const PanelFinanciero = ({ usuario }) => {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: "top",
-            labels: {
-              color: "#a8b3cf",
-            },
-          },
-        },
-        scales: {
-          x: {
-            ticks: { color: "#a8b3cf" },
-            grid: { color: "rgba(255,255,255,0.05)" },
-          },
-          y: {
-            ticks: { color: "#a8b3cf" },
-            grid: { color: "rgba(255,255,255,0.05)" },
-          },
-        },
       },
     });
 
     return () => {
-      if (window.chart) {
-        window.chart.destroy();
-      }
+      if (window.chart) window.chart.destroy();
     };
   }, []);
 
+  // 🔥 BLOQUEO FLECHAS
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+
+    const blockBack = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+
+    window.addEventListener("popstate", blockBack);
+
+    return () => {
+      window.removeEventListener("popstate", blockBack);
+    };
+  }, []);
+
+  // 🔥 LOGOUT
   const handleLogout = () => {
-    console.log("Cerrar sesión");
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("documento");
+    navigate("/inicio");
   };
 
   return (
     <div className="panel-financiero">
 
-      {/* SIDEBAR */}
       <aside className="sidebar">
         <ul>
           <li><a href="#cuenta" className="active">💳 Cuenta</a></li>
@@ -98,16 +132,12 @@ const PanelFinanciero = ({ usuario }) => {
         </button>
       </aside>
 
-      {/* MAIN */}
       <main className="main">
 
-        {/* HEADER */}
         <header className="main-header">
-          <div>
-            <h1>
-              Bienvenido <span>{usuario}</span>
-            </h1>
-          </div>
+          <h1>
+            Bienvenido
+          </h1>
 
           <div className="profile">
             <img
@@ -117,7 +147,6 @@ const PanelFinanciero = ({ usuario }) => {
           </div>
         </header>
 
-        {/* TARJETAS */}
         <section className="stats">
           <div className="card">
             <h3>Ingresos</h3>
@@ -125,9 +154,8 @@ const PanelFinanciero = ({ usuario }) => {
           </div>
 
           <div className="card">
-            <h3>monto</h3>
+            <h3>Cuenta</h3>
             <span>${totalIngresos}</span>
-            <h3>XXXXXXXXXX302</h3>
           </div>
 
           <div className="card">
@@ -136,10 +164,8 @@ const PanelFinanciero = ({ usuario }) => {
           </div>
         </section>
 
-        {/* 🔥 GRÁFICA */}
         <section className="chart-card">
           <h3>Porcentaje de dinero</h3>
-
           <div className="chart-container">
             <canvas id="salesChart"></canvas>
           </div>
