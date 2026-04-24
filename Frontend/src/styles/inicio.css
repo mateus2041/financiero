@@ -1,0 +1,157 @@
+/* RESET */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: sans-serif;
+}
+
+/* CONTAINER */
+.container {
+  min-height: 100vh;
+  width: 100%;
+  background: linear-gradient(180deg, #0a192f, #0f2747);
+  color: white;
+
+  display: flex;
+  flex-direction: column; /* 🔥 CLAVE */
+}
+
+/* NAVBAR */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 60px;
+}
+
+.logo {
+  color: #f5b841;
+  font-weight: bold;
+}
+
+.menu {
+  display: flex;
+  gap: 25px;
+  list-style: none;
+  align-items: center;
+}
+
+.menu li {
+  cursor: pointer;
+}
+
+.btn-registro {
+  background: #f5b841;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: black;
+  font-weight: bold;
+}
+
+/* HERO */
+.hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 60px;
+  gap: 40px;
+}
+
+.hero-text {
+  max-width: 500px;
+}
+
+.hero-text h1 {
+  color: #f5b841;
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.hero-text p {
+  margin-bottom: 25px;
+  line-height: 1.6;
+  color: #cbd5e1;
+}
+
+.btn {
+  background: black;
+  border: none;
+  padding: 14px 25px;
+  border-radius: 10px;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* CÍRCULO */
+.hero-img {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hero-img .circle {
+  width: 260px;
+  height: 260px;
+  border: 4px solid #f5b841;
+  border-radius: 50%;
+}
+
+/* GARANTIAS */
+.garantias {
+  padding: 60px;
+  text-align: center;
+}
+
+.garantias h2 {
+  color: #f5b841;
+  margin-bottom: 40px;
+  font-size: 24px;
+}
+
+/* CARDS */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+}
+
+/* CARD */
+.card {
+  background: #13294b;
+  padding: 20px;
+  border-radius: 15px;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  text-align: left;
+  transition: 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+/* ICONO */
+.icon {
+  background: #1e3a5f;
+  padding: 15px;
+  border-radius: 10px;
+  font-size: 20px;
+  min-width: 50px;
+  text-align: center;
+}
+
+/* TEXTO CARD */
+.card h3 {
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.card p {
+  font-size: 13px;
+  color: #cbd5e1;
+}

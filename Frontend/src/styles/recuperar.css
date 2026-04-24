@@ -1,0 +1,180 @@
+/* 🎨 PALETA DE COLORES */
+:root {
+  --dorado: #f2c94c;
+  --azul-oscuro: #0a0f2c;
+  --gris-suave: rgba(255, 255, 255, 0.1);
+  --blanco: #f5f5f5;
+}
+
+/* 🌌 FONDO Y FUENTE GLOBAL */
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(145deg, #0e111a, #1b2238);
+  color: var(--blanco);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  margin: 0;
+}
+
+/* 🧩 CONTENEDOR PRINCIPAL */
+.login-container {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 45px;
+  border-radius: 40px;
+  width: 380px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  text-align: left;
+  backdrop-filter: blur(12px);
+  transition: all 0.3s ease;
+}
+
+.login-container:hover {
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* 🏷️ TÍTULOS */
+.titulo {
+  text-align: center;
+  color: var(--dorado);
+  font-size: 30px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.subtitulo {
+  font-size: 14px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 28px;
+}
+
+/* 📝 ETIQUETAS */
+label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* 💬 CAMPOS DE ENTRADA */
+.input-box {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  margin-bottom: 18px;
+  padding: 10px 12px;
+  transition: 0.3s;
+}
+
+.input-box:hover {
+  border-color: var(--dorado);
+}
+
+.input-box input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--blanco);
+  width: 100%;
+  font-size: 14px;
+  margin-left: 10px;
+}
+
+.input-box .icon {
+  font-size: 18px;
+  color: var(--dorado);
+}
+
+/* 👁️ OJO PARA CONTRASEÑA */
+.eye {
+  cursor: pointer;
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.7);
+  transition: 0.3s;
+}
+
+.eye:hover {
+  color: var(--dorado);
+}
+
+/* 🚀 BOTÓN PRINCIPAL */
+.btn {
+  width: 100%;
+  background: #000;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background 0.3s, transform 0.2s;
+}
+
+.btn:hover {
+  background: var(--dorado);
+  color: #000;
+  transform: scale(1.03);
+}
+
+/* ⚠️ MENSAJE DE ERROR */
+.mensaje-error {
+  display: none;
+  background-color: rgba(255, 0, 0, 0.1);
+  border: 1px solid rgba(255, 0, 0, 0.3);
+  color: #ff6b6b;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+/* ✅ MENSAJE DE ÉXITO */
+.mensaje-exito {
+  display: none;
+  background-color: rgba(0, 255, 0, 0.1);
+  border: 1px solid rgba(0, 255, 0, 0.3);
+  color: #a3ffb3;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+/* 📜 TÉRMINOS Y REGISTRO */
+.terminos {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 18px;
+  text-align: center;
+}
+
+.terminos a {
+  color: var(--dorado);
+  text-decoration: none;
+}
+
+.registro {
+  text-align: center;
+  font-size: 13px;
+  color: rgb(255, 255, 255);
+  margin-top: 12px;
+}
+
+.registro a {
+  color: var(--dorado);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.registro a:hover {
+  text-decoration: underline;
+}
