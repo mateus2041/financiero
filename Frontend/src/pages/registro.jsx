@@ -12,6 +12,9 @@ function Registro() {
   const [telefono, setTelefono] = useState("");
   const [password, setPassword] = useState("");
 
+  // 🔥 NUEVO STATE MENSAJE
+  const [mensaje, setMensaje] = useState("");
+
   const navigate = useNavigate();
 
   // 🔥 FUNCIÓN PARA ENVIAR
@@ -27,23 +30,29 @@ function Registro() {
           email,
           documento,
           password,
-          telefono
+          telefono,
+          tipo_documento: tipo   // 🔥 IMPORTANTE (lo que faltaba del backend)
         })
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.detail);
+        setMensaje(data.detail);
         return;
       }
 
-      alert("Usuario creado ✅");
-      navigate("/login");
+      // ✅ MENSAJE DE ÉXITO
+      setMensaje("Usuario creado ✅");
+
+      // opcional: redirigir después de 1.5s
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
 
     } catch (error) {
       console.error(error);
-      alert("Error conectando con el servidor");
+      setMensaje("Error conectando con el servidor");
     }
   };
 
@@ -77,10 +86,16 @@ function Registro() {
         <label>Contraseña</label>
         <input type="password" onChange={(e) => setPassword(e.target.value)} />
 
-        {/* 🔥 CAMBIO AQUÍ */}
         <button className="btn" onClick={registrar}>
           Registrar
         </button>
+
+        {/* 🔥 MENSAJE EN PANTALLA */}
+        {mensaje && (
+          <p style={{ marginTop: "10px", color: "green" }}>
+            {mensaje}
+          </p>
+        )}
 
       </div>
     </div>
