@@ -6,6 +6,7 @@ import Login from "./pages/login";
 import Registro from "./pages/registro";
 import Recuperar from "./pages/recuperar";
 import Cuenta from "./pages/cuenta";
+import Transferencias from "./pages/Transferencias"; // 👈 IMPORTANTE
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="/registro" element={<Registro />} />
         <Route path="/recuperar" element={<Recuperar />} />
         <Route path="/cuenta" element={<Cuenta />} />
+        <Route path="/transferencias" element={<Transferencias />} />
       </Routes>
     </BrowserRouter>
   );
