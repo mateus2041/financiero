@@ -1,0 +1,35 @@
+.transferencias-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #0a0f2c;
+}
+
+.transferencias-box {
+  width: 350px;
+  padding: 30px;
+  background: #111a3a;
+  color: white;
+  border-radius: 10px;
+}
+
+.transferencias-box input,
+.transferencias-box select {
+  width: 100%;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  padding: 8px;
+}
+
+.transferencias-box button {
+  width: 100%;
+  padding: 10px;
+  background: #355dff;
+  color: white;
+  border: none;
+}
+
+.saldo {
+  color: yellow;
+}

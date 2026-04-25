@@ -117,36 +117,66 @@ def get_user(id: int, db: Session = Depends(get_db)):
 # =======================
 # TRANSACCIONES
 # =======================
+# 🔥 OBTENER TRANSACCIONES
 @financiero.get("/transacciones")
 def get_transacciones(
     current_user: int = Depends(token_required),
     db: Session = Depends(get_db)
 ):
-    data = db.query(Transaccion).filter_by(usuario_id=current_user).all()
-    return data
+    try:
+        data = (
+            db.query(Transaccion)
+            .filter_by(usuario_id=current_user)
+            .order_by(Transaccion.id.desc())
+            .all()
+        )
+        return data
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Error al obtener transacciones")
 
 
+# 🔥 CREAR TRANSACCIÓN
 @financiero.post("/transacciones")
 def add_transaccion(
     data: dict,
     current_user: int = Depends(token_required),
     db: Session = Depends(get_db)
 ):
-    if "tipo" not in data or "monto" not in data:
+    # ✅ VALIDACIONES
+    if "tipo" not in data or "monto" not in data or "tipo_cuenta" not in data:
         raise HTTPException(status_code=400, detail="Faltan campos")
 
-    nueva = Transaccion(
-        usuario_id=current_user,
-        tipo=data["tipo"],
-        monto=data["monto"],
-        descripcion=data.get("descripcion", "")
-    )
+    if data["tipo"] not in ["ingreso", "gasto"]:
+        raise HTTPException(status_code=400, detail="Tipo inválido")
 
-    db.add(nueva)
-    db.commit()
-    db.refresh(nueva)
+    if data["tipo_cuenta"] not in ["ahorros", "corriente"]:
+        raise HTTPException(status_code=400, detail="Tipo de cuenta inválido")
 
-    return nueva
+    if float(data["monto"]) <= 0:
+        raise HTTPException(status_code=400, detail="Monto inválido")
+
+    try:
+        nueva = Transaccion(
+            usuario_id=current_user,
+            tipo=data["tipo"],
+            monto=float(data["monto"]),
+            tipo_cuenta=data["tipo_cuenta"],  # 👈 CLAVE PARA EL TRIGGER
+            descripcion=data.get("descripcion", "")
+        )
+
+        db.add(nueva)
+        db.commit()  # 🔥 AQUÍ SE DISPARA EL TRIGGER
+        db.refresh(nueva)
+
+        return {
+            "msg": "Transacción creada correctamente",
+            "transaccion": nueva
+        }
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error al guardar la transacción")
 
 
 # =======================

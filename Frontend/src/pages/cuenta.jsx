@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Chart from "chart.js/auto";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import "../styles/cuenta.css";
 
 const PanelFinanciero = () => {
@@ -10,8 +10,9 @@ const PanelFinanciero = () => {
   const [documento, setDocumento] = useState("");
   const [totalIngresos, setTotalIngresos] = useState(0);
   const [totalGastos, setTotalGastos] = useState(0);
+  const [openTransfer, setOpenTransfer] = useState(false); // 🔥 MENU
 
-  // 🔥 TRAER USUARIO DESDE BACKEND POR DOCUMENTO
+  // 🔥 TRAER USUARIO
   useEffect(() => {
     const doc = localStorage.getItem("documento");
 
@@ -43,7 +44,7 @@ const PanelFinanciero = () => {
     };
 
     obtenerUsuario();
-  }, []);
+  }, [navigate]);
 
   // 🔥 GRAFICA
   useEffect(() => {
@@ -93,7 +94,7 @@ const PanelFinanciero = () => {
     };
   }, []);
 
-  // 🔥 BLOQUEO FLECHAS
+  // 🔥 BLOQUEO ATRÁS
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
 
@@ -119,12 +120,40 @@ const PanelFinanciero = () => {
   return (
     <div className="panel-financiero">
 
+      {/* SIDEBAR */}
       <aside className="sidebar">
         <ul>
-          <li><a href="#cuenta" className="active">💳 Cuenta</a></li>
-          <li><a href="#historial">📜 Historial Monetario</a></li>
+
+          <li>
+            <Link to="/cuenta" className="active">💷 Cuenta</Link>
+          </li>
+
+          <li>
+            <Link to="/historial">📜 Historial Monetario</Link>
+          </li>
+
+          {/* 🔥 MENU DESPLEGABLE */}
+          <li>
+            <div
+              className="menu-item"
+              onClick={() => setOpenTransfer(!openTransfer)}
+            >
+              💳 otros {openTransfer ? "▲" : "▼"}
+            </div>
+
+            {openTransfer && (
+              <ul className="submenu">
+                <li><Link to="/transferencias">➡ Enviar dinero</Link></li>
+                <li><Link to="/cuentas">🧾 transferir</Link></li>
+                <li><Link to=""></Link></li>
+                <li><Link to=""></Link></li>
+              </ul>
+            )}
+          </li>
+
           <li><a href="#certificado">📄 Certificado Bancario</a></li>
           <li><a href="#ajustes">⚙️ Ajustes</a></li>
+
         </ul>
 
         <button className="logout" onClick={handleLogout}>
@@ -132,12 +161,11 @@ const PanelFinanciero = () => {
         </button>
       </aside>
 
+      {/* MAIN */}
       <main className="main">
 
         <header className="main-header">
-          <h1>
-            Bienvenido
-          </h1>
+          <h1>Bienvenido {usuario}</h1>
 
           <div className="profile">
             <img
