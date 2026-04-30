@@ -1,0 +1,208 @@
+.certificado-page {
+  display: flex;
+  justify-content: center;
+  padding: 40px;
+  background: #f4f6fb;
+}
+
+.certificado-real {
+  width: 850px;
+  min-height: 1100px;
+  background: white;
+  padding: 70px;
+  font-family: Arial, sans-serif;
+  color: #222;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  position: relative;
+}
+
+/* ENCABEZADO */
+.certificado-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 70px;
+}
+
+.logo-section h1 {
+  color: #005baa;
+  font-size: 48px;
+  margin: 0;
+  font-weight: bold;
+}
+
+.logo-section p {
+  color: #005baa;
+  margin-top: 8px;
+  font-size: 18px;
+}
+
+.empresa-box {
+  border-left: 3px solid #005baa;
+  padding-left: 20px;
+  text-align: left;
+}
+
+.empresa-box p {
+  margin: 0;
+  font-size: 14px;
+  color: #555;
+}
+
+.empresa-box h3 {
+  margin-top: 5px;
+  color: #005baa;
+  font-size: 20px;
+}
+
+/* TITULO */
+.titulo-certificado {
+  text-align: center;
+  font-size: 34px;
+  font-weight: bold;
+  margin-bottom: 60px;
+}
+
+/* CLIENTE */
+.cliente-info p {
+  font-size: 26px;
+  line-height: 1.7;
+}
+
+.cliente-line {
+  display: flex;
+  justify-content: space-between;
+  margin: 30px 0;
+  font-size: 28px;
+  flex-wrap: wrap;
+}
+
+.nombre-cliente {
+  font-weight: bold;
+}
+
+.documento-cliente {
+  font-weight: bold;
+}
+
+/* TABLA */
+.tabla-datos {
+  margin-top: 50px;
+  margin-bottom: 60px;
+}
+
+.tabla-datos h3 {
+  text-align: center;
+  font-size: 30px;
+  margin-bottom: 35px;
+}
+
+.fila {
+  display: flex;
+  margin-bottom: 22px;
+  font-size: 26px;
+}
+
+.fila strong {
+  width: 280px;
+}
+
+/* FINAL */
+.texto-final p {
+  font-size: 24px;
+  line-height: 1.8;
+}
+
+.cordialmente {
+  margin-top: 70px;
+}
+
+.texto-final h3 {
+  margin-top: 90px;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+/* FIRMA */
+.certificado-footer {
+  margin-top: 80px;
+  text-align: center;
+}
+
+.firma-linea {
+  width: 320px;
+  height: 2px;
+  background: #000;
+  margin: 0 auto 15px;
+}
+
+.certificado-footer p {
+  font-size: 20px;
+  margin: 5px 0;
+}
+
+/* BOTÓN PDF */
+.pdf-btn-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 35px;
+  margin-bottom: 30px;
+}
+
+.descargar-btn {
+  background: linear-gradient(135deg, #0a2a66, #1546a0);
+  color: white;
+  border: none;
+  padding: 16px 38px;
+  font-size: 17px;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(10, 42, 102, 0.25);
+  transition: all 0.3s ease;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.descargar-btn:hover {
+  background: linear-gradient(135deg, #1546a0, #0a2a66);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(10, 42, 102, 0.35);
+}
+
+.descargar-btn:active {
+  transform: scale(0.98);
+}
+
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+  .certificado-real {
+    width: 95%;
+    padding: 40px;
+  }
+
+  .cliente-info p,
+  .fila,
+  .texto-final p {
+    font-size: 20px;
+  }
+
+  .titulo-certificado {
+    font-size: 28px;
+  }
+
+  .logo-section h1 {
+    font-size: 36px;
+  }
+
+  .descargar-btn {
+    width: 90%;
+    justify-content: center;
+    font-size: 15px;
+    padding: 14px 20px;
+  }
+}
