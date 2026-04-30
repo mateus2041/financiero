@@ -1,16 +1,17 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import Inicio from "./pages/inicio";
 import Login from "./pages/login";
 import Registro from "./pages/registro";
 import Recuperar from "./pages/recuperar";
 import Cuenta from "./pages/cuenta";
-import Transferencias from "./pages/Transferencias"; // 👈 IMPORTANTE
+import Transferencias from "./pages/Transferencias";
+import Certificado from "./pages/certificado";
 
 function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
         <Route path="/" element={<Inicio />} />
         <Route path="/login" element={<Login />} />
@@ -18,8 +19,9 @@ function App() {
         <Route path="/recuperar" element={<Recuperar />} />
         <Route path="/cuenta" element={<Cuenta />} />
         <Route path="/transferencias" element={<Transferencias />} />
+        <Route path="/certificado" element={<Certificado />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
 

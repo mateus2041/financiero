@@ -125,11 +125,11 @@ const PanelFinanciero = () => {
         <ul>
 
           <li>
-            <Link to="/cuenta" className="active">💷 Cuenta</Link>
+            <Link to="#" className="active">💷 Cuenta</Link>
           </li>
 
           <li>
-            <Link to="/historial">📜 Historial Monetario</Link>
+            <Link to="#">📜 Historial Monetario</Link>
           </li>
 
           {/* 🔥 MENU DESPLEGABLE */}
@@ -150,8 +150,11 @@ const PanelFinanciero = () => {
               </ul>
             )}
           </li>
-
-          <li><a href="#certificado">📄 Certificado Bancario</a></li>
+          <li>
+            <Link to="/Certificado" className="btn-nav">
+              📄 Certificado Bancario
+            </Link>
+          </li>
           <li><a href="#ajustes">⚙️ Ajustes</a></li>
 
         </ul>
