@@ -1,13 +1,16 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom"; // ✅ FALTABA
+import { Link } from "react-router-dom";
 import "../styles/recuperar.css";
+
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "../firebase";
 
 function RecuperarPassword() {
   const [email, setEmail] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!email.trim()) {
@@ -16,16 +19,39 @@ function RecuperarPassword() {
       return;
     }
 
-    // Simulación de envío de correo
-    setMensaje("");
-    setSubmitted(true);
+    try {
+      // ✅ Enviar correo real
+      await sendPasswordResetEmail(auth, email);
 
-    console.log("Se envió correo de recuperación a:", email);
+      setMensaje("");
+      setSubmitted(true);
+
+      console.log("Correo enviado a:", email);
+
+    } catch (error) {
+      console.error(error);
+
+      switch (error.code) {
+        case "auth/user-not-found":
+          setMensaje("❌ No existe una cuenta con ese correo.");
+          break;
+
+        case "auth/invalid-email":
+          setMensaje("❌ Correo electrónico inválido.");
+          break;
+
+        default:
+          setMensaje("❌ Error al enviar el correo.");
+      }
+
+      setSubmitted(false);
+    }
   };
 
   return (
     <div className="recuperar-container">
       <h2 className="titulo">Recuperar Contraseña</h2>
+
       <p className="subtitulo">
         Ingresa tu correo electrónico para restablecer tu contraseña.
       </p>
@@ -35,6 +61,7 @@ function RecuperarPassword() {
 
         <div className="input-box">
           <span className="icon">📧</span>
+
           <input
             type="email"
             id="email"
@@ -42,17 +69,19 @@ function RecuperarPassword() {
             value={email}
             onChange={(e) => {
               setEmail(e.target.value);
-              setMensaje(""); // ✅ limpia error al escribir
+              setMensaje("");
             }}
             required
           />
         </div>
 
-        {mensaje && <p className="mensaje-error">{mensaje}</p>}
+        {mensaje && (
+          <p className="mensaje-error">{mensaje}</p>
+        )}
 
         {submitted && (
           <p className="mensaje-exito">
-            ✔️ Correo de recuperación enviado
+            ✔️ Correo de recuperación enviado correctamente
           </p>
         )}
 
@@ -62,7 +91,9 @@ function RecuperarPassword() {
 
         <p className="texto-sec">
           ¿Ya recuperaste tu contraseña?{" "}
-          <Link to="/login">Inicia sesión aquí</Link>
+          <Link to="/login">
+            Inicia sesión aquí
+          </Link>
         </p>
       </form>
     </div>
