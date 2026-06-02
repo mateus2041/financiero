@@ -10,9 +10,9 @@ const PanelFinanciero = () => {
   const [documento, setDocumento] = useState("");
   const [totalIngresos, setTotalIngresos] = useState(0);
   const [totalGastos, setTotalGastos] = useState(0);
-  const [openTransfer, setOpenTransfer] = useState(false); // 🔥 MENU
+  const [openTransfer, setOpenTransfer] = useState(false);
 
-  // 🔥 TRAER USUARIO
+  // 🔥 OBTENER DOCUMENTO DEL LOCALSTORAGE
   useEffect(() => {
     const doc = localStorage.getItem("documento");
 
@@ -22,29 +22,33 @@ const PanelFinanciero = () => {
     }
 
     setDocumento(doc);
+  }, [navigate]);
+
+  // 🔥 TRAER USUARIO DESDE BASE DE DATOS
+  useEffect(() => {
+    if (!documento) return;
 
     const obtenerUsuario = async () => {
       try {
         const res = await fetch(
-          `http://127.0.0.1:8000/usuario-documento/${doc}`
+          `http://127.0.0.1:8000/usuario-documento/${documento}`
         );
 
         const data = await res.json();
 
-        if (res.ok) {
+        if (res.ok && data?.nombre) {
           setUsuario(data.nombre);
         } else {
           setUsuario("Usuario");
         }
-
       } catch (error) {
-        console.error(error);
+        console.error("Error al obtener usuario:", error);
         setUsuario("Usuario");
       }
     };
 
     obtenerUsuario();
-  }, [navigate]);
+  }, [documento]);
 
   // 🔥 GRAFICA
   useEffect(() => {
@@ -123,7 +127,6 @@ const PanelFinanciero = () => {
       {/* SIDEBAR */}
       <aside className="sidebar">
         <ul>
-
           <li>
             <Link to="#" className="active">💷 Cuenta</Link>
           </li>
@@ -132,7 +135,6 @@ const PanelFinanciero = () => {
             <Link to="#">📜 Historial Monetario</Link>
           </li>
 
-          {/* 🔥 MENU DESPLEGABLE */}
           <li>
             <div
               className="menu-item"
@@ -145,18 +147,17 @@ const PanelFinanciero = () => {
               <ul className="submenu">
                 <li><Link to="/transferencias">➡ Enviar dinero</Link></li>
                 <li><Link to="/cuentas">🧾 transferir</Link></li>
-                <li><Link to=""></Link></li>
-                <li><Link to=""></Link></li>
               </ul>
             )}
           </li>
+
           <li>
             <Link to="/Certificado" className="btn-nav">
               📄 Certificado Bancario
             </Link>
           </li>
-          <li><a href="#ajustes">⚙️ Ajustes</a></li>
 
+          <li><a href="#ajustes">⚙️ Ajustes</a></li>
         </ul>
 
         <button className="logout" onClick={handleLogout}>

@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 # 🔹 IMPORTS
-from Backend.database import Usuario, Transaccion
+from Backend.models import Usuario, Transaccion, Cuenta
 from Backend.security import (
     hash_password,
     check_password,
@@ -50,28 +50,18 @@ def register(data: dict, db: Session = Depends(get_db)):
         if not all(field in data for field in required_fields):
             raise HTTPException(status_code=400, detail="Faltan campos")
 
-        # 🔥 VALIDACIÓN PASSWORD
         if len(data["password"]) < 6:
-            raise HTTPException(
-                status_code=400,
-                detail="Contraseña muy corta"
-            )
+            raise HTTPException(status_code=400, detail="Contraseña muy corta")
 
         if len(data["password"]) > 72:
-            raise HTTPException(
-                status_code=400,
-                detail="Contraseña demasiado larga"
-            )
+            raise HTTPException(status_code=400, detail="Contraseña demasiado larga")
 
         existe = db.query(Usuario).filter(
             Usuario.documento == data["documento"]
         ).first()
 
         if existe:
-            raise HTTPException(
-                status_code=409,
-                detail="Usuario ya existe"
-            )
+            raise HTTPException(status_code=409, detail="Usuario ya existe")
 
         hashed = hash_password(data["password"])
 
@@ -106,36 +96,27 @@ def register(data: dict, db: Session = Depends(get_db)):
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error interno: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=str(e))
 
 
+# =======================
+# LOGIN
+# =======================
 @financiero.post("/login")
 def login(data: dict, db: Session = Depends(get_db)):
 
     if "documento" not in data or "password" not in data:
-        raise HTTPException(
-            status_code=400,
-            detail="Faltan campos"
-        )
+        raise HTTPException(status_code=400, detail="Faltan campos")
 
     usuario = db.query(Usuario).filter(
         Usuario.documento == data["documento"]
     ).first()
 
     if not usuario:
-        raise HTTPException(
-            status_code=404,
-            detail="Usuario no encontrado"
-        )
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
     if not check_password(data["password"], usuario.password):
-        raise HTTPException(
-            status_code=401,
-            detail="Credenciales inválidas"
-        )
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
 
     token = generate_token(identity=usuario.id_usuario)
 
@@ -152,7 +133,7 @@ def login(data: dict, db: Session = Depends(get_db)):
 
 
 # =======================
-# USUARIO POR ID
+# USUARIO
 # =======================
 @financiero.get("/usuario/{id}")
 def get_user(id: int, db: Session = Depends(get_db)):
@@ -161,10 +142,7 @@ def get_user(id: int, db: Session = Depends(get_db)):
     ).first()
 
     if not usuario:
-        raise HTTPException(
-            status_code=404,
-            detail="Usuario no encontrado"
-        )
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
     return {
         "id": usuario.id_usuario,
@@ -173,43 +151,11 @@ def get_user(id: int, db: Session = Depends(get_db)):
         "email": usuario.email,
         "telefono": usuario.telefono,
         "direccion": usuario.direccion,
-        "numero_cuenta": getattr(usuario, "numero_cuenta", "9800456721"),
-        "tipo_cuenta": getattr(usuario, "tipo_cuenta", "Ahorros Digital"),
-        "saldo": getattr(usuario, "saldo", 0),
     }
 
 
 # =======================
-# USUARIO POR DOCUMENTO
-# =======================
-@financiero.get("/usuario-documento/{documento}")
-def obtener_usuario(documento: str, db: Session = Depends(get_db)):
-    usuario = db.query(Usuario).filter(
-        Usuario.documento == documento
-    ).first()
-
-    if not usuario:
-        raise HTTPException(
-            status_code=404,
-            detail="Usuario no encontrado"
-        )
-
-    return {
-        "id": usuario.id_usuario,
-        "nombre": usuario.nombre,
-        "documento": usuario.documento,
-        "email": usuario.email,
-        "telefono": usuario.telefono,
-        "direccion": usuario.direccion,
-        "numero_cuenta": getattr(usuario, "numero_cuenta", "9800456721"),
-        "tipo_cuenta": getattr(usuario, "tipo_cuenta", "Ahorros Digital"),
-        "estado": "Activa",
-        "saldo": getattr(usuario, "saldo", 0),
-    }
-
-
-# =======================
-# TRANSACCIONES
+# TRANSACCIONES (FIX IMPORTANTE)
 # =======================
 @financiero.get("/transacciones")
 def get_transacciones(
@@ -219,18 +165,15 @@ def get_transacciones(
     try:
         transacciones = (
             db.query(Transaccion)
-            .filter(Transaccion.usuario_id == current_user)
-            .order_by(Transaccion.id.desc())
+            .filter(Transaccion.id_cuenta == current_user)  # 🔥 FIX
+            .order_by(Transaccion.id_transaccion.desc())    # 🔥 FIX
             .all()
         )
 
         return transacciones
 
-    except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail="Error al obtener transacciones"
-        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @financiero.post("/transacciones")
@@ -239,36 +182,21 @@ def add_transaccion(
     current_user: int = Depends(token_required),
     db: Session = Depends(get_db),
 ):
-    if "tipo" not in data or "monto" not in data or "tipo_cuenta" not in data:
-        raise HTTPException(
-            status_code=400,
-            detail="Faltan campos"
-        )
 
-    if data["tipo"] not in ["ingreso", "gasto"]:
-        raise HTTPException(
-            status_code=400,
-            detail="Tipo inválido"
-        )
+    if "tipo" not in data or "monto" not in data:
+        raise HTTPException(status_code=400, detail="Faltan campos")
 
-    if data["tipo_cuenta"] not in ["ahorros", "corriente"]:
-        raise HTTPException(
-            status_code=400,
-            detail="Tipo de cuenta inválido"
-        )
+    if data["tipo"] not in ["Ingreso", "Gasto", "Transferencia"]:
+        raise HTTPException(status_code=400, detail="Tipo inválido")
 
     if float(data["monto"]) <= 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Monto inválido"
-        )
+        raise HTTPException(status_code=400, detail="Monto inválido")
 
     try:
         nueva = Transaccion(
-            usuario_id=current_user,
+            id_cuenta=current_user,   # 🔥 FIX
             tipo=data["tipo"],
             monto=float(data["monto"]),
-            tipo_cuenta=data["tipo_cuenta"],
             descripcion=data.get("descripcion", ""),
         )
 
@@ -278,15 +206,16 @@ def add_transaccion(
 
         return {
             "message": "Transacción creada correctamente",
-            "transaccion": nueva,
+            "transaccion": {
+                "id": nueva.id_transaccion,
+                "tipo": nueva.tipo,
+                "monto": float(nueva.monto),
+            },
         }
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al guardar transacción: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # =======================
