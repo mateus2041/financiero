@@ -5,20 +5,29 @@ import "../styles/registro.css";
 function Registro() {
   const [tipo, setTipo] = useState("");
 
-  // 🔥 NUEVOS STATES
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [documento, setDocumento] = useState("");
   const [telefono, setTelefono] = useState("");
   const [password, setPassword] = useState("");
 
-  // 🔥 NUEVO STATE MENSAJE
   const [mensaje, setMensaje] = useState("");
 
   const navigate = useNavigate();
 
-  // 🔥 FUNCIÓN PARA ENVIAR
   const registrar = async () => {
+    if (
+      !nombre ||
+      !email ||
+      !tipo ||
+      !documento ||
+      !telefono ||
+      !password
+    ) {
+      setMensaje("Completa todos los campos");
+      return;
+    }
+
     try {
       const res = await fetch("http://127.0.0.1:8000/register", {
         method: "POST",
@@ -31,7 +40,7 @@ function Registro() {
           documento,
           password,
           telefono,
-          tipo_documento: tipo   // 🔥 IMPORTANTE (lo que faltaba del backend)
+          tipo_documento: tipo
         })
       });
 
@@ -42,10 +51,8 @@ function Registro() {
         return;
       }
 
-      // ✅ MENSAJE DE ÉXITO
       setMensaje("Usuario creado ✅");
 
-      // opcional: redirigir después de 1.5s
       setTimeout(() => {
         navigate("/login");
       }, 1500);
@@ -62,41 +69,76 @@ function Registro() {
         <h1>REGISTRO</h1>
 
         <label>Nombre completo</label>
-        <input type="text" onChange={(e) => setNombre(e.target.value)} />
+        <input
+          type="text"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+        />
 
         <label>Correo electrónico</label>
-        <input type="email" onChange={(e) => setEmail(e.target.value)} />
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
         <label>Tipo de documento</label>
         <div className="input-box">
-          <select value={tipo} onChange={(e) => setTipo(e.target.value)}>
+          <select
+            value={tipo}
+            onChange={(e) => setTipo(e.target.value)}
+          >
             <option value="">Seleccione documento</option>
             <option value="cc">Cédula</option>
-            <option value="ti">Tarjeta</option>
-            <option value="ce">Extranjería</option>
+            <option value="ti">Tarjeta de Identidad</option>
+            <option value="ce">Cédula de Extranjería</option>
           </select>
         </div>
 
         <label>Número de documento</label>
-        <input type="text" onChange={(e) => setDocumento(e.target.value)} />
+        <input
+          type="text"
+          value={documento}
+          onChange={(e) => setDocumento(e.target.value)}
+        />
 
         <label>Número teléfono</label>
-        <input type="text" onChange={(e) => setTelefono(e.target.value)} />
+        <input
+          type="text"
+          value={telefono}
+          onChange={(e) => setTelefono(e.target.value)}
+        />
 
         <label>Contraseña</label>
-        <input type="password" onChange={(e) => setPassword(e.target.value)} />
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        {/* Mensaje de error o éxito */}
+        {mensaje && (
+          <p
+            id="mensajeError"
+            style={{
+              color: mensaje.includes("✅") ? "green" : "#ff4c4c",
+              fontWeight: "bold",
+              marginTop: "10px"
+            }}
+          >
+            {mensaje}
+          </p>
+        )}
 
         <button className="btn" onClick={registrar}>
           Registrar
         </button>
 
-        {/* 🔥 MENSAJE EN PANTALLA */}
-        {mensaje && (
-          <p style={{ marginTop: "10px", color: "green" }}>
-            {mensaje}
+        <div className="footer">
+          <p>
+            © {new Date().getFullYear()} Financiero. Todos los termisnos de confidelizacion.
           </p>
-        )}
-
+        </div>
       </div>
     </div>
   );
