@@ -5,16 +5,19 @@ import "../styles/inicio.css";
 function Inicio() {
   return (
     <div className="container">
+
       {/* NAVBAR */}
       <nav className="navbar">
         <div className="logo">Financiero</div>
+
         <ul className="menu">
           <li>Cuenta</li>
           <li>Certificado</li>
           <li>Bre-be</li>
+
           <li>
             <Link to="/login" className="btn-nav">
-              inicio
+              Inicio
             </Link>
           </li>
 
@@ -30,13 +33,19 @@ function Inicio() {
       <section className="hero">
         <div className="hero-text">
           <h1>Compromiso Financiero</h1>
+
           <p>
             Somos una compañía financiera nueva que está transformando lo ya
             existente en algo diferente. Comprender los problemas actuales de
             los usuarios y empresas es crucial para construir un servicio más
             robusto y confiable.
           </p>
-          <button className="btn">Registrarse</button>
+
+          <Link to="/registro">
+            <button className="btn">
+              Registrarse
+            </button>
+          </Link>
         </div>
 
         <div className="hero-img">
@@ -44,11 +53,12 @@ function Inicio() {
         </div>
       </section>
 
-      {/* CARDS */}
+      {/* GARANTÍAS */}
       <section className="garantias">
         <h2>Las Garantías De Nuestro Compromiso Financiero</h2>
 
         <div className="cards">
+
           <div className="card">
             <div className="icon">$</div>
             <div>
@@ -96,8 +106,40 @@ function Inicio() {
               <p>Documento oficial que confirma la existencia de tu cuenta.</p>
             </div>
           </div>
+
         </div>
       </section>
+
+      {/* TÉRMINOS Y CONDICIONES */}
+      <section className="terminos">
+        <h2>Términos y Condiciones</h2>
+
+        <p>
+          Al utilizar la plataforma Financiero, el usuario acepta cumplir con
+          las normas de uso, seguridad y protección de datos establecidas por
+          la entidad.
+        </p>
+
+        <p>
+          Toda la información suministrada deberá ser verídica. El usuario será
+          responsable de mantener la confidencialidad de sus credenciales de
+          acceso.
+        </p>
+
+        <p>
+          Financiero podrá suspender cuentas que presenten actividades
+          sospechosas, fraudulentas o que incumplan los presentes términos y
+          condiciones.
+        </p>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="footer">
+        <p>
+          © {new Date().getFullYear()} Financiero. Todos los derechos reservados.
+        </p>
+      </footer>
+
     </div>
   );
 }

@@ -45,15 +45,10 @@ function Login() {
         return;
       }
 
-      // ✅ LOGIN OK
       setMensaje("Login exitoso ✅");
 
-      // 🔥 GUARDAR SOLO LO QUE REALMENTE EXISTE
       localStorage.setItem("token", data.token);
       localStorage.setItem("documento", documento);
-
-      // ⚠️ IMPORTANTE: el backend NO devuelve usuario.nombre
-      // el nombre se obtiene en cuenta.jsx desde el backend
 
       setTimeout(() => {
         navigate("/cuenta");
@@ -96,26 +91,44 @@ function Login() {
           </button>
         </div>
 
-        <button type="submit" className="btn">
-          Iniciar sesión
-        </button>
-
+        {/* Mensaje de error o éxito */}
         {mensaje && (
-          <p style={{ marginTop: "10px", color: "green" }}>
+          <p
+            id="mensajeError"
+            style={{
+              color: mensaje.includes("exitoso") ? "green" : "#ff4c4c",
+              fontWeight: "bold",
+              marginTop: "10px"
+            }}
+          >
             {mensaje}
           </p>
         )}
 
+        <button type="submit" className="btn">
+          Acceder
+        </button>
+
         <p className="login">
           ¿No tienes cuenta?{" "}
-          <a href="#" onClick={irRegistro}>Regístrate aquí</a>
+          <a href="#" onClick={irRegistro}>
+            Regístrate aquí
+          </a>
         </p>
 
         <p className="login">
           ¿Olvidaste tu contraseña?{" "}
-          <a href="#" onClick={irRecuperar}>Recupérala aquí</a>
+          <a href="#" onClick={irRecuperar}>
+            Recupérala aquí
+          </a>
         </p>
 
+        <div className="footer">
+          <p>
+            © {new Date().getFullYear()} Financiero. Todos los derechos
+            reservados.
+          </p>
+        </div>
       </form>
     </div>
   );
