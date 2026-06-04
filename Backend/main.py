@@ -105,30 +105,31 @@ def register(data: dict, db: Session = Depends(get_db)):
 @financiero.post("/login")
 def login(data: dict, db: Session = Depends(get_db)):
 
-    if "documento" not in data or "password" not in data:
-        raise HTTPException(status_code=400, detail="Faltan campos")
+    print("Datos recibidos:", data)
 
     usuario = db.query(Usuario).filter(
         Usuario.documento == data["documento"]
     ).first()
 
+    print("Usuario encontrado:", usuario)
+
     if not usuario:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise HTTPException(
+            status_code=404,
+            detail="Usuario no encontrado"
+        )
 
     if not check_password(data["password"], usuario.password):
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+        raise HTTPException(
+            status_code=401,
+            detail="Credenciales inválidas"
+        )
 
     token = generate_token(identity=usuario.id_usuario)
 
     return {
         "message": "Login exitoso",
-        "token": token,
-        "usuario": {
-            "id": usuario.id_usuario,
-            "nombre": usuario.nombre,
-            "documento": usuario.documento,
-            "email": usuario.email,
-        },
+        "token": token
     }
 
 
