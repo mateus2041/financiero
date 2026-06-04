@@ -3,7 +3,7 @@ import Chart from "chart.js/auto";
 import { useNavigate, Link } from "react-router-dom";
 import "../styles/cuenta.css";
 
-const PanelFinanciero = () => {
+const Cuenta = () => {
   const navigate = useNavigate();
 
   const [usuario, setUsuario] = useState("");
@@ -12,19 +12,17 @@ const PanelFinanciero = () => {
   const [totalGastos, setTotalGastos] = useState(0);
   const [openTransfer, setOpenTransfer] = useState(false);
 
-  // 🔥 OBTENER DOCUMENTO DEL LOCALSTORAGE
   useEffect(() => {
     const doc = localStorage.getItem("documento");
 
     if (!doc) {
-      navigate("/inicio");
+      navigate("/");
       return;
     }
 
     setDocumento(doc);
   }, [navigate]);
 
-  // 🔥 TRAER USUARIO DESDE BASE DE DATOS
   useEffect(() => {
     if (!documento) return;
 
@@ -50,7 +48,6 @@ const PanelFinanciero = () => {
     obtenerUsuario();
   }, [documento]);
 
-  // 🔥 GRAFICA
   useEffect(() => {
     setTotalIngresos(1200);
     setTotalGastos(500);
@@ -94,11 +91,12 @@ const PanelFinanciero = () => {
     });
 
     return () => {
-      if (window.chart) window.chart.destroy();
+      if (window.chart) {
+        window.chart.destroy();
+      }
     };
   }, []);
 
-  // 🔥 BLOQUEO ATRÁS
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
 
@@ -113,26 +111,27 @@ const PanelFinanciero = () => {
     };
   }, []);
 
-  // 🔥 LOGOUT
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("usuario");
     localStorage.removeItem("documento");
-    navigate("/inicio");
+    navigate("/");
   };
 
   return (
     <div className="panel-financiero">
-
-      {/* SIDEBAR */}
       <aside className="sidebar">
         <ul>
           <li>
-            <Link to="#" className="active">💷 Cuenta</Link>
+            <Link to="/cuenta" className="active">
+              💷 Cuenta
+            </Link>
           </li>
 
           <li>
-            <Link to="#">📜 Historial Monetario</Link>
+            <Link to="/historial">
+              📜 Historial Monetario
+            </Link>
           </li>
 
           <li>
@@ -140,24 +139,37 @@ const PanelFinanciero = () => {
               className="menu-item"
               onClick={() => setOpenTransfer(!openTransfer)}
             >
-              💳 otros {openTransfer ? "▲" : "▼"}
+              💳 Otros {openTransfer ? "▲" : "▼"}
             </div>
 
             {openTransfer && (
               <ul className="submenu">
-                <li><Link to="/transferencias">➡ Enviar dinero</Link></li>
-                <li><Link to="/cuentas">🧾 transferir</Link></li>
+                <li>
+                  <Link to="/transferencias">
+                    ➡ Enviar dinero
+                  </Link>
+                </li>
+
+                <li>
+                  <Link to="/cuentas">
+                    🧾 Transferir
+                  </Link>
+                </li>
               </ul>
             )}
           </li>
 
           <li>
-            <Link to="/Certificado" className="btn-nav">
+            <Link to="/certificado" className="btn-nav">
               📄 Certificado Bancario
             </Link>
           </li>
 
-          <li><a href="#ajustes">⚙️ Ajustes</a></li>
+          <li>
+            <Link to="/ajustes">
+              ⚙️ Ajustes
+            </Link>
+          </li>
         </ul>
 
         <button className="logout" onClick={handleLogout}>
@@ -165,9 +177,7 @@ const PanelFinanciero = () => {
         </button>
       </aside>
 
-      {/* MAIN */}
       <main className="main">
-
         <header className="main-header">
           <h1>Bienvenido {usuario}</h1>
 
@@ -187,7 +197,7 @@ const PanelFinanciero = () => {
 
           <div className="card">
             <h3>Cuenta</h3>
-            <span>${totalIngresos}</span>
+            <span>${totalIngresos - totalGastos}</span>
           </div>
 
           <div className="card">
@@ -198,14 +208,14 @@ const PanelFinanciero = () => {
 
         <section className="chart-card">
           <h3>Porcentaje de dinero</h3>
+
           <div className="chart-container">
             <canvas id="salesChart"></canvas>
           </div>
         </section>
-
       </main>
     </div>
   );
 };
 
-export default PanelFinanciero;
+export default Cuenta;
