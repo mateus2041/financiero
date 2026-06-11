@@ -1,0 +1,89 @@
+/* 1. DIRECTIVAS BASE DE TAILWIND CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 2. CAPA BASE: Estilos globales para etiquetas HTML estándar */
+@layer base {
+  html, body {
+    @apply margin-0 padding-0 antialiased;
+    /* Define el comportamiento suave del scroll al navegar por la app */
+    scroll-behavior: smooth; 
+  }
+
+  /* Asegura que el texto seleccionado combine con nuestra paleta Indigo */
+  ::selection {
+    @apply bg-indigo-500/30 text-indigo-200;
+  }
+}
+
+/* 3. CAPA DE COMPONENTES: Clases de utilidad personalizadas o complejas */
+@layer components {
+  
+  /* DISEÑO DE LA BARRA DE DESPLAZAMIENTO (Scrollbar Personalizado) */
+  /* Optimizado para navegadores basados en WebKit (Chrome, Safari, Edge, Brave) */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  /* Fondo del canal del scroll (Track) */
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-900; 
+  }
+
+  /* La barra que se mueve (Thumb) */
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-700 rounded-full border-2 border-slate-900;
+    transition: background-color 0.2s ease;
+  }
+
+  /* Efecto hover sobre la barra de scroll */
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-600;
+  }
+
+  /* Soporte de scrollbar para Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #334155 #0f172a; /* thumb (slate-700) track (slate-900) */
+  }
+}
+
+/* 4. CAPA DE UTILERÍAS: Animaciones personalizadas nativas de CSS */
+/* Estas clases dan vida a la apertura suave del Modal y las alertas de error de los Inputs */
+@layer utilities {
+  
+  /* Animación de entrada con desvanecimiento */
+  .animate-fade-in {
+    animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Animación combinada para el Modal (Fade + Zoom) */
+  .animate-modal-entrance {
+    animation: modalEntrance 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+}
+
+/* KEYFRAMES (Definición matemática de las animaciones) */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modalEntrance {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
