@@ -8,7 +8,7 @@ USER = "root"
 PASSWORD = ""   # deja vacío si no tienes contraseña
 HOST = "localhost"
 PORT = "3306"
-DB = "billetera_db"
+DB = "billetera"
 
 DATABASE_URL = f"mysql+mysqlconnector://{USER}:{PASSWORD}@{HOST}:{PORT}/{DB}"
 

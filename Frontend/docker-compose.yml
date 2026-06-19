@@ -1,9 +1,94 @@
-version: '3.8'
-
 services:
-  frontend:
-    build: .
-    container_name: frontend_financiero
+  db:
+    image: postgres:17-alpine
+    container_name: billetera
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: nn_user
+      POSTGRES_PASSWORD: nn_password
+      POSTGRES_DB: billetera
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - billetera:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nn_user -d nn_auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - billetera_network
+
+  be:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+
+    container_name: billetera_Backend
+    restart: unless-stopped
+
+    env_file:
+      - ./Backend/.env
+
+    environment:
+      DATABASE_URL: mysql+pymysql://bancario_user:bancario_password@db:3306/bancario_db
+      SECRET_KEY: dev-secret-key-change-in-production-min-32-chars
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 15
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+      FRONTEND_URL: http://localhost:3000
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    networks:
+      - nn_auth_network
+
+  fe:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8000
+
+    container_name: nn_auth_fe
+    restart: unless-stopped
+
     ports:
       - "3000:80"
-    restart: always
+
+    depends_on:
+      - be
+
+    networks:
+      - nn_auth_network
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: nn_auth_mailpit
+    restart: unless-stopped
+
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+    networks:
+      - nn_auth_network
+
+networks:
+  nn_auth_network:
+    driver: bridge
+
+volumes:
+  nn_auth_data:

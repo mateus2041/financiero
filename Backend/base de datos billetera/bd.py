@@ -5,7 +5,7 @@ try:
         host="localhost",
         user="root",
         password="TU_PASSWORD",
-        database="billetera_db"
+        database="billetera"
     )
 
     if conexion.is_connected():
