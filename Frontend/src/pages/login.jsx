@@ -39,6 +39,7 @@ function Login() {
       });
 
       const data = await res.json();
+      console.log(data);
 
       if (!res.ok) {
         setMensaje(data.detail);
@@ -49,6 +50,7 @@ function Login() {
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("documento", documento);
+      localStorage.setItem("usuario_id", data.id);
 
       setTimeout(() => {
         navigate("/cuenta");

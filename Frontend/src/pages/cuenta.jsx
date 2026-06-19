@@ -11,9 +11,11 @@ const Cuenta = () => {
   const [totalIngresos, setTotalIngresos] = useState(0);
   const [totalGastos, setTotalGastos] = useState(0);
   const [openTransfer, setOpenTransfer] = useState(false);
+  const [id, setId] = useState("");
 
   useEffect(() => {
     const doc = localStorage.getItem("documento");
+    const id_u = localStorage.getItem("usuario_id");
 
     if (!doc) {
       navigate("/");
@@ -21,6 +23,7 @@ const Cuenta = () => {
     }
 
     setDocumento(doc);
+    setId(id_u);
   }, [navigate]);
 
   useEffect(() => {
@@ -29,10 +32,11 @@ const Cuenta = () => {
     const obtenerUsuario = async () => {
       try {
         const res = await fetch(
-          `http://127.0.0.1:8000/usuario-documento/${documento}`
+          `http://127.0.0.1:8000/usuario/${id}`
         );
 
         const data = await res.json();
+        console.log(data);
 
         if (res.ok && data?.nombre) {
           setUsuario(data.nombre);

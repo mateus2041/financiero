@@ -129,7 +129,8 @@ def login(data: dict, db: Session = Depends(get_db)):
 
     return {
         "message": "Login exitoso",
-        "token": token
+        "token": token,
+        "id": usuario.id_usuario
     }
 
 
