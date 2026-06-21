@@ -36,7 +36,7 @@ services:
       - ./Backend/.env
 
     environment:
-      DATABASE_URL: mysql+pymysql://bancario_user:bancario_password@db:3306/bancario_db
+      DATABASE_URL: mysql+pymysql://bancario_user:bancario_password@db:3306/billetera
       SECRET_KEY: dev-secret-key-change-in-production-min-32-chars
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 15
