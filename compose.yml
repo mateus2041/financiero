@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:17-alpine
-    container_name: billetera
+    container_name: billetera_db
     restart: unless-stopped
 
     environment:
@@ -13,10 +13,10 @@ services:
       - "5432:5432"
 
     volumes:
-      - billetera:/var/lib/postgresql/data
+      - billetera_data:/var/lib/postgresql/data
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nn_user -d nn_auth_db"]
+      test: ["CMD-SHELL", "pg_isready -U nn_user -d billetera"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,14 +29,14 @@ services:
       context: ./Backend
       dockerfile: Dockerfile
 
-    container_name: billetera_Backend
+    container_name: billetera_backend
     restart: unless-stopped
 
     env_file:
       - ./Backend/.env
 
     environment:
-      DATABASE_URL: mysql+pymysql://bancario_user:bancario_password@db:3306/billetera
+      DATABASE_URL: postgresql://nn_user:nn_password@db:5432/billetera
       SECRET_KEY: dev-secret-key-change-in-production-min-32-chars
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 15
@@ -53,7 +53,7 @@ services:
         condition: service_healthy
 
     networks:
-      - nn_auth_network
+      - billetera_network
 
   fe:
     build:
@@ -62,7 +62,7 @@ services:
       args:
         VITE_API_URL: http://localhost:8000
 
-    container_name: nn_auth_fe
+    container_name: billetera_frontend
     restart: unless-stopped
 
     ports:
@@ -72,11 +72,11 @@ services:
       - be
 
     networks:
-      - nn_auth_network
+      - billetera_network
 
   mailpit:
     image: axllent/mailpit:latest
-    container_name: nn_auth_mailpit
+    container_name: billetera_mailpit
     restart: unless-stopped
 
     ports:
@@ -84,11 +84,11 @@ services:
       - "1025:1025"
 
     networks:
-      - nn_auth_network
+      - billetera_network
 
 networks:
-  nn_auth_network:
+  billetera_network:
     driver: bridge
 
 volumes:
-  nn_auth_data:
+  billetera_data:
