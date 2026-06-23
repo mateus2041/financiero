@@ -170,7 +170,7 @@ const Cuenta = () => {
           </li>
 
           <li>
-            <Link to="/ajustes">
+            <Link to="/ajustes" className="btn-nav">
               ⚙️ Ajustes
             </Link>
           </li>
