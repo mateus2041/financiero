@@ -11,7 +11,7 @@ from Backend.security import (
     generate_token,
     token_required,
 )
-from Backend.dependencias import get_db, engine, Base
+from Backend.dependencias import get_db
 
 # 🔹 APP
 financiero = FastAPI()

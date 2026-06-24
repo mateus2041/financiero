@@ -1,94 +1,48 @@
 services:
   db:
-    image: postgres:17-alpine
-    container_name: billetera_db
-    restart: unless-stopped
-
+    image: mysql:8.4
+    container_name: billetera
+    restart: always
     environment:
-      POSTGRES_USER: nn_user
-      POSTGRES_PASSWORD: nn_password
-      POSTGRES_DB: billetera
-
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: billetera
     ports:
-      - "5432:5432"
-
+      - "3307:3306"
     volumes:
-      - billetera_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
 
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nn_user -d billetera"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-    networks:
-      - billetera_network
-
-  be:
+  backend:
     build:
       context: ./Backend
-      dockerfile: Dockerfile
-
     container_name: billetera_backend
-    restart: unless-stopped
-
-    env_file:
-      - ./Backend/.env
-
+    restart: always
+    depends_on:
+      - db
     environment:
-      DATABASE_URL: postgresql://nn_user:nn_password@db:5432/billetera
-      SECRET_KEY: dev-secret-key-change-in-production-min-32-chars
-      ALGORITHM: HS256
-      ACCESS_TOKEN_EXPIRE_MINUTES: 15
-      REFRESH_TOKEN_EXPIRE_DAYS: 7
-      FRONTEND_URL: http://localhost:3000
-      SMTP_HOST: mailpit
-      SMTP_PORT: 1025
-
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ""
+      DB_NAME: billetera
     ports:
       - "8000:8000"
+    volumes:
+      - ./Backend:/app
 
-    depends_on:
-      db:
-        condition: service_healthy
-
-    networks:
-      - billetera_network
-
-  fe:
+  frontend:
     build:
       context: ./Frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_URL: http://localhost:8000
-
     container_name: billetera_frontend
-    restart: unless-stopped
-
-    ports:
-      - "3000:80"
-
+    restart: always
     depends_on:
-      - be
-
-    networks:
-      - billetera_network
-
-  mailpit:
-    image: axllent/mailpit:latest
-    container_name: billetera_mailpit
-    restart: unless-stopped
-
+      - backend
     ports:
-      - "8025:8025"
-      - "1025:1025"
-
-    networks:
-      - billetera_network
-
-networks:
-  billetera_network:
-    driver: bridge
+      - "3000:3000"
+    volumes:
+      - ./Frontend:/app
+      - /app/node_modules
+    stdin_open: true
+    tty: true
 
 volumes:
-  billetera_data:
+  mysql_data:
