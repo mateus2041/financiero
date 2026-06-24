@@ -4,14 +4,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 # 🔹 IMPORTS
-from Backend.models import Usuario, Transaccion, Cuenta
+from models import Usuario, Transaccion, Cuenta
+from dependencias import get_db
 from Backend.security import (
     hash_password,
     check_password,
     generate_token,
     token_required,
 )
-from Backend.dependencias import get_db
 
 # 🔹 APP
 financiero = FastAPI()
