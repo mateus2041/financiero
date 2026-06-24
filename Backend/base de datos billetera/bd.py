@@ -2,7 +2,7 @@ import mysql.connector
 
 try:
     conexion = mysql.connector.connect(
-        host="localhost",
+        host="db",
         user="root",
         password="TU_PASSWORD",
         database="billetera"
