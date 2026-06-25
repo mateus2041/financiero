@@ -1,15 +1,19 @@
 services:
   db:
     image: mysql:8.4
-    container_name: billetera
+    container_name: billetera_db
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root123
       MYSQL_DATABASE: billetera
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: app_password
     ports:
-      - "3307:3306"
+      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    networks:
+      - billetera_net
 
   backend:
     build:
@@ -21,13 +25,15 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 3306
-      DB_USER: root
-      DB_PASSWORD: ""
+      DB_USER: app_user
+      DB_PASSWORD: app_password
       DB_NAME: billetera
     ports:
       - "8000:8000"
     volumes:
-      - ./Backend:/app
+      - ./Backend:/financiero
+    networks:
+      - billetera_net
 
   frontend:
     build:
@@ -43,6 +49,12 @@ services:
       - /app/node_modules
     stdin_open: true
     tty: true
+    networks:
+      - billetera_net
 
 volumes:
   mysql_data:
+
+networks:
+  billetera_net:
+    driver: bridge

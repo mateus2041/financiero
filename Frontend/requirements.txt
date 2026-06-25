@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+sqlalchemy
+PyMySQL
+alembic
+python-dotenv
+argon2-cffi
+passlib[argon2]
