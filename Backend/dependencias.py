@@ -2,16 +2,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # =========================
-# CONFIGURACIÓN MYSQL (DOCKER)
+# CONFIGURACIÓN MYSQL
 # =========================
 USER = "root"
-PASSWORD = "root"
-HOST = "db"   # 👈 nombre del servicio en docker-compose
+PASSWORD = ""   # deja vacío si no tienes contraseña
+HOST = "localhost"
 PORT = "3306"
 DB = "billetera"
 
-DATABASE_URL = "mysql+mysqlconnector://app_user:app_password@mysql-billetera:3306/billetera"
-
+DATABASE_URL = f"mysql+mysqlconnector://{USER}:{PASSWORD}@{HOST}:{PORT}/{DB}"
 
 # =========================
 # MOTOR DE CONEXIÓN
