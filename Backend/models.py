@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum, Boolean, DECIMAL, Text, CHAR
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from dependencias import Base
+from Backend.database.database import Base, engine, SessionLocal
 
 
 # =========================

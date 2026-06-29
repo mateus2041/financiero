@@ -1,11 +1,11 @@
 from fastapi import FastAPI, Depends, HTTPException
-from sqlalchemy.orm import Session
+from Backend.database.database import Base, engine, SessionLocal
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-# 🔹 IMPORTS
-from models import Usuario, Transaccion, Cuenta
-from dependencias import get_db
+from Backend.models import Usuario, Transaccion, Cuenta
+from Backend.dependencias import get_db
 from Backend.security import (
     hash_password,
     check_password,
@@ -13,11 +13,11 @@ from Backend.security import (
     token_required,
 )
 
-# 🔹 APP
-financiero = FastAPI()
+# APP
+app = FastAPI()
 
-# 🔹 CORS
-financiero.add_middleware(
+# CORS
+app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
@@ -25,8 +25,8 @@ financiero.add_middleware(
     allow_headers=["*"],
 )
 
-# 🔹 CREAR TABLAS
-@financiero.on_event("startup")
+# CREAR TABLAS
+@app.on_event("startup")
 def startup():
     Base.metadata.create_all(bind=engine)
 
@@ -34,7 +34,7 @@ def startup():
 # =======================
 # ROOT
 # =======================
-@financiero.get("/inicio")
+@app.get("/inicio")
 async def root():
     return {"message": "API funcionando correctamente"}
 
@@ -42,7 +42,7 @@ async def root():
 # =======================
 # AUTH
 # =======================
-@financiero.post("/register")
+@app.post("/register")
 def register(data: dict, db: Session = Depends(get_db)):
     try:
         required_fields = ["nombre", "email", "password", "documento"]
@@ -102,16 +102,12 @@ def register(data: dict, db: Session = Depends(get_db)):
 # =======================
 # LOGIN
 # =======================
-@financiero.post("/login")
+@app.post("/login")
 def login(data: dict, db: Session = Depends(get_db)):
-
-    print("Datos recibidos:", data)
 
     usuario = db.query(Usuario).filter(
         Usuario.documento == data["documento"]
     ).first()
-
-    print("Usuario encontrado:", usuario)
 
     if not usuario:
         raise HTTPException(
@@ -137,7 +133,7 @@ def login(data: dict, db: Session = Depends(get_db)):
 # =======================
 # USUARIO
 # =======================
-@financiero.get("/usuario/{id}")
+@app.get("/usuario/{id}")
 def get_user(id: int, db: Session = Depends(get_db)):
     usuario = db.query(Usuario).filter(
         Usuario.id_usuario == id
@@ -157,9 +153,9 @@ def get_user(id: int, db: Session = Depends(get_db)):
 
 
 # =======================
-# TRANSACCIONES (FIX IMPORTANTE)
+# TRANSACCIONES
 # =======================
-@financiero.get("/transacciones")
+@app.get("/transacciones")
 def get_transacciones(
     current_user: int = Depends(token_required),
     db: Session = Depends(get_db),
@@ -167,8 +163,8 @@ def get_transacciones(
     try:
         transacciones = (
             db.query(Transaccion)
-            .filter(Transaccion.id_cuenta == current_user)  # 🔥 FIX
-            .order_by(Transaccion.id_transaccion.desc())    # 🔥 FIX
+            .filter(Transaccion.id_cuenta == current_user)
+            .order_by(Transaccion.id_transaccion.desc())
             .all()
         )
 
@@ -178,7 +174,7 @@ def get_transacciones(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@financiero.post("/transacciones")
+@app.post("/transacciones")
 def add_transaccion(
     data: dict,
     current_user: int = Depends(token_required),
@@ -196,7 +192,7 @@ def add_transaccion(
 
     try:
         nueva = Transaccion(
-            id_cuenta=current_user,   # 🔥 FIX
+            id_cuenta=current_user,
             tipo=data["tipo"],
             monto=float(data["monto"]),
             descripcion=data.get("descripcion", ""),
@@ -223,7 +219,7 @@ def add_transaccion(
 # =======================
 # TEST DB
 # =======================
-@financiero.get("/test-db")
+@app.get("/test-db")
 def test_db(db: Session = Depends(get_db)):
     try:
         db.execute(text("SELECT 1"))

@@ -1,13 +1,15 @@
+version: "3.9"
+
 services:
   db:
-    image: mysql:8.4
-    container_name: billetera_db
+    image: mysql:8.0
+    container_name: mysql_billetera
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: billetera
       MYSQL_USER: app_user
-      MYSQL_PASSWORD: app_password
+      MYSQL_PASSWORD: app_pass
     ports:
       - "3306:3306"
     volumes:
@@ -17,38 +19,45 @@ services:
 
   backend:
     build:
-      context: ./Backend
-    container_name: billetera_backend
+      context: .
+      dockerfile: Backend/Dockerfile
+    container_name: backend_billetera
     restart: always
     depends_on:
       - db
     environment:
+      DB_USER: app_user
+      DB_PASSWORD: app_pass
       DB_HOST: db
       DB_PORT: 3306
-      DB_USER: app_user
-      DB_PASSWORD: app_password
       DB_NAME: billetera
+      PYTHONPATH: /app
     ports:
       - "8000:8000"
     volumes:
-      - ./Backend:/app
+      - .:/app
+    working_dir: /app
+    command: uvicorn Backend.main:app --host 0.0.0.0 --port 8000 --reload
     networks:
       - billetera_net
 
   frontend:
     build:
       context: ./Frontend
+      dockerfile: Dockerfile
     container_name: billetera_frontend
-    restart: always
+    restart: unless-stopped
     depends_on:
       - backend
-    ports:
-      - "3000:3000"
+    working_dir: /app
     volumes:
       - ./Frontend:/app
       - /app/node_modules
+    ports:
+      - "3000:3000"
     stdin_open: true
     tty: true
+    command: npm start
     networks:
       - billetera_net
 
