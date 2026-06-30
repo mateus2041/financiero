@@ -12,7 +12,11 @@ function Inicio() {
           <li>Cuenta</li>
           <li>Certificado</li>
           <li>Bre-be</li>
-          <li>Inicio</li>
+          <li>
+            <Link to="/login" className="btn-nav">
+              Inicio
+            </Link>
+          </li>
               {/* 🔥 CORREGIDO: Link con clase para que tome el estilo */}
           <li>
             <Link to="/registro" className="btn-nav">
@@ -32,7 +36,9 @@ function Inicio() {
             los usuarios y empresas es crucial para construir un servicio más
             robusto y confiable.
           </p>
-          <button className="btn">Registrarse</button>
+          <Link to="/registro" className="btn">
+           Registrarse
+          </Link>
         </div>
 
         <div className="hero-img">
