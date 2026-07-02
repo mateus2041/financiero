@@ -183,7 +183,7 @@ const Cuenta = () => {
 
       <main className="main">
         <header className="main-header">
-          <h1>Bienvenido {usuario}</h1>
+          <h2>Bienvenido {usuario}</h2>
 
           <div className="profile">
             <img
