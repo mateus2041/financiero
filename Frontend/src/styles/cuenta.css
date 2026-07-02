@@ -24,7 +24,7 @@ body {
   --texto-principal: #f5f5f5;
   --texto-secundario: #a8b3cf;
   --dorado: #f2c94c;
-  --azul-acento: #355dff;
+  --azul-acento: #1a2238;
 }
 
 /* 🔥 CONTENEDOR PRINCIPAL */
@@ -32,8 +32,8 @@ body {
   display: flex;
   width: 100%;
   height: 100vh;
-  background: var(--fondo-principal);
-  color: var(--texto-principal);
+  background: var(--fondo-secundario);
+  color: var(--dorado);
 }
 
 /* ========== SIDEBAR ========== */
