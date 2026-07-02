@@ -8,9 +8,7 @@ function Home() {
     <div className="container">
       {/* NAVBAR */}
       <nav className="navbar">
-        <div className="logo-text">
-          Financiero
-        </div>
+        <div></div>
 
         <ul className="menu">
           <li>Cuentas</li>
@@ -19,7 +17,7 @@ function Home() {
 
           <li>
             <Link to="/login">
-              <button className="btn-login">
+              <button className="btn-registro">
                 Inicio
               </button>
             </Link>
@@ -47,9 +45,11 @@ function Home() {
             robusto y confiable.
           </p>
 
-          <button className="btn">
-            COME MEET US
-          </button>
+          <Link to="/registro">
+            <button className="btn">
+              Regístrate aquí para nuestros servicios
+            </button>
+          </Link>
         </div>
 
         <div className="hero-img">
@@ -70,7 +70,7 @@ function Home() {
 
       {/* GARANTÍAS */}
       <section className="garantias">
-        <h2>Las Garantías De Nuestro Compromiso Financiero</h2>
+        <h2>Las Garantías de Nuestro Compromiso Financiero</h2>
 
         <div className="cards">
           <div className="card">
@@ -122,6 +122,13 @@ function Home() {
           </div>
         </div>
       </section>
+
+      {/* FOOTER */}
+      <footer className="footer">
+        <p className="footer-text">
+          © {new Date().getFullYear()} Financiero. Todos los derechos reservados.
+        </p>
+      </footer>
     </div>
   );
 }

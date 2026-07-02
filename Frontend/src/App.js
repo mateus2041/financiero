@@ -6,6 +6,7 @@ import Inicio from "./pages/inicio";
 import Login from "./pages/login";
 import Registro from "./pages/registro";
 import Cuenta from "./pages/cuenta";
+import Transferencias from "./pages/transferencias";
 import Certificado from "./pages/certificado";
 import Ajustes from "./pages/ajustes";
 
@@ -21,6 +22,7 @@ function App() {
 
       {/* Panel */}
       <Route path="/cuenta" element={<Cuenta />} />
+      <Route path="/transferencias" element={<Transferencias />} /> 
       <Route path="/certificado" element={<Certificado />} />
       <Route path="/ajustes" element={<Ajustes />} />
     </Routes>
