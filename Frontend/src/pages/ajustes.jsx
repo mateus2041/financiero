@@ -2,100 +2,116 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/ajustes.css";
 
-function Ajustes() {
-  const [usuario, setUsuario] = useState(null);
+function AjustesPerfil() {
+  const [usuario, setUsuario] = useState({
+    nombre: "",
+    correo: "",
+    telefono: "",
+    direccion: "",
+  });
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const obtenerUsuario = async () => {
+      try {
+        const token = localStorage.getItem("token");
 
-    fetch("http://127.0.0.1:8000/usuario", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => setUsuario(data))
-      .catch((err) => console.error(err));
+        const respuesta = await fetch("http://127.0.0.1:8000/usuario", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!respuesta.ok) {
+          throw new Error("No se pudo obtener la información del usuario.");
+        }
+
+        const data = await respuesta.json();
+        setUsuario(data);
+      } catch (error) {
+        console.error(error);
+        alert("Error al cargar los datos del usuario.");
+      }
+    };
+
+    obtenerUsuario();
   }, []);
 
-  const cerrarSesion = () => {
-    localStorage.removeItem("token");
-    window.location.href = "/login";
+  const guardarCambios = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const respuesta = await fetch(
+        "http://127.0.0.1:8000/usuario/perfil",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(usuario),
+        }
+      );
+
+      if (!respuesta.ok) {
+        throw new Error("No se pudo actualizar el perfil.");
+      }
+
+      alert("Perfil actualizado correctamente.");
+    } catch (error) {
+      console.error(error);
+      alert("Error al actualizar el perfil.");
+    }
   };
 
-  if (!usuario) {
-    return <h2>Cargando...</h2>;
-  }
-
   return (
-    <div className="ajustes-container">
-      <h1 className="titulo">Mi Cuenta</h1>
+    <div className="perfil-container">
+      <h1>Ajustes del Perfil</h1>
 
-      <section className="bloque">
-        <h2>Información de la Cuenta</h2>
+      <label>Nombre</label>
+      <input
+        type="text"
+        placeholder="Nombre"
+        value={usuario.nombre}
+        onChange={(e) =>
+          setUsuario({ ...usuario, nombre: e.target.value })
+        }
+      />
 
-        <div className="item">
-          <span>Nombre:</span>
-          <strong>{usuario.nombre}</strong>
-        </div>
+      <label>Correo</label>
+      <input
+        type="email"
+        placeholder="Correo"
+        value={usuario.correo}
+        onChange={(e) =>
+          setUsuario({ ...usuario, correo: e.target.value })
+        }
+      />
 
-        <div className="item">
-          <span>Correo:</span>
-          <strong>{usuario.correo}</strong>
-        </div>
+      <label>Teléfono</label>
+      <input
+        type="text"
+        placeholder="Teléfono"
+        value={usuario.telefono}
+        onChange={(e) =>
+          setUsuario({ ...usuario, telefono: e.target.value })
+        }
+      />
 
-        <div className="item">
-          <span>Número de Cuenta:</span>
-          <strong>{usuario.numero_cuenta}</strong>
-        </div>
+      <label>Dirección</label>
+      <input
+        type="text"
+        placeholder="Dirección"
+        value={usuario.direccion}
+        onChange={(e) =>
+          setUsuario({ ...usuario, direccion: e.target.value })
+        }
+      />
 
-        <div className="item">
-          <span>Saldo:</span>
-          <strong>
-            ${Number(usuario.saldo).toLocaleString()}
-          </strong>
-        </div>
-      </section>
-
-      <section className="bloque">
-        <h2>Seguridad</h2>
-
-        <button
-          className="btn"
-          onClick={() => window.location.href = "/cambiar-password"}
-        >
-          Cambiar Contraseña
-        </button>
-
-        <button
-          className="btn danger"
-          onClick={() => window.location.href = "/bloquear-cuenta"}
-        >
-          Bloqueo Rápido
-        </button>
-      </section>
-
-      <section className="bloque">
-        <h2>Documentos</h2>
-
-        <button
-          className="btn"
-          onClick={() => window.location.href = "/certificado"}
-        >
-          Descargar Certificado Bancario
-        </button>
-      </section>
-
-      <section className="bloque">
-        <button
-          className="btn danger"
-          onClick={cerrarSesion}
-        >
-          Cerrar Sesión
-        </button>
-      </section>
+      <button type="button" onClick={guardarCambios}>
+        Guardar Cambios
+      </button>
     </div>
   );
 }
 
-export default Ajustes;
+export default AjustesPerfil;
