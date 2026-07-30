@@ -155,7 +155,7 @@ const Cuenta = () => {
                 </li>
 
                 <li>
-                  <Link to="/cuentas">
+                  <Link to="/corriente">
                     🧾 Transferir
                   </Link>
                 </li>

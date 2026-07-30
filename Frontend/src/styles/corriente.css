@@ -1,4 +1,4 @@
-.perfil-container {
+.transferencia-container {
   max-width: 500px;
   margin: 50px auto;
   padding: 30px;
@@ -9,29 +9,29 @@
   font-family: Arial, Helvetica, sans-serif;
 }
 
-.perfil-container nav {
+.transferencia-container nav {
   text-align: left;
   margin-bottom: 20px;
 }
 
-.perfil-container nav a {
+.transferencia-container nav a {
   color: #0b5ed7;
   text-decoration: none;
   font-weight: bold;
   transition: 0.3s;
 }
 
-.perfil-container nav a:hover {
+.transferencia-container nav a:hover {
   color: #084298;
 }
 
-.perfil-container h1 {
+.transferencia-container h1 {
   color: #0b5ed7;
   margin-bottom: 25px;
   font-size: 28px;
 }
 
-.perfil-info {
+.saldo {
   background: #f8f9fa;
   border: 1px solid #dee2e6;
   border-radius: 10px;
@@ -39,23 +39,20 @@
   margin-bottom: 25px;
 }
 
-.campo {
-  display: flex;
-  flex-direction: column;
-  text-align: left;
-  margin-bottom: 18px;
-}
-
-.campo label {
-  margin-bottom: 8px;
-  font-size: 15px;
-  font-weight: bold;
+.saldo p {
+  margin: 12px 0;
+  font-size: 18px;
   color: #333;
 }
 
-.campo input {
+.saldo strong {
+  color: #0b5ed7;
+}
+
+.transferencia-container input {
   width: 100%;
   padding: 14px;
+  margin-bottom: 20px;
   border: 1px solid #ced4da;
   border-radius: 8px;
   font-size: 16px;
@@ -64,19 +61,12 @@
   transition: 0.3s;
 }
 
-.campo input:focus {
+.transferencia-container input:focus {
   border-color: #0b5ed7;
   box-shadow: 0 0 5px rgba(11, 94, 215, 0.3);
 }
 
-.campo input:disabled {
-  background: #e9ecef;
-  color: #6c757d;
-  cursor: not-allowed;
-  font-weight: bold;
-}
-
-.perfil-container button {
+.transferencia-container button {
   width: 100%;
   padding: 14px;
   background: #0b5ed7;
@@ -89,41 +79,31 @@
   transition: 0.3s;
 }
 
-.perfil-container button:hover {
+.transferencia-container button:hover {
   background: #084298;
 }
 
-.perfil-container button:disabled {
+.transferencia-container button:disabled {
   background: #6c757d;
   cursor: not-allowed;
 }
 
-.mensaje {
-  margin-top: 20px;
-  padding: 12px;
-  border-radius: 8px;
-  background: #d1e7dd;
-  color: #0f5132;
-  font-weight: bold;
-  border: 1px solid #badbcc;
-}
-
 @media (max-width: 600px) {
-  .perfil-container {
+  .transferencia-container {
     margin: 20px;
     padding: 20px;
   }
 
-  .perfil-container h1 {
+  .transferencia-container h1 {
     font-size: 22px;
   }
 
-  .campo label {
-    font-size: 14px;
+  .saldo p {
+    font-size: 16px;
   }
 
-  .campo input,
-  .perfil-container button {
+  .transferencia-container input,
+  .transferencia-container button {
     font-size: 15px;
   }
 }

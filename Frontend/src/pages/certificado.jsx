@@ -3,19 +3,23 @@ import { useNavigate, Link } from "react-router-dom";
 import html2pdf from "html2pdf.js";
 import "../styles/Certificado.css";
 
+const API_URL = "http://127.0.0.1:8000";
+
 const CertificadoBancario = () => {
   const navigate = useNavigate();
   const certificadoRef = useRef(null);
+
+  const [openTransfer, setOpenTransfer] = useState(false);
 
   const [usuario, setUsuario] = useState({
     nombre: "",
     documento: "",
     cuenta: "",
     tipoCuenta: "Ahorros",
-    saldo: "0",
+    saldo: "$0 COP",
+    fechaApertura: "",
   });
 
-  // 🔥 Obtener datos desde la base de datos
   useEffect(() => {
     const documentoGuardado = localStorage.getItem("documento");
 
@@ -27,7 +31,7 @@ const CertificadoBancario = () => {
     const obtenerUsuario = async () => {
       try {
         const response = await fetch(
-          `http://127.0.0.1:8000/usuario-documento/${documentoGuardado}`
+          `${API_URL}/usuario-documento/${documentoGuardado}`
         );
 
         if (!response.ok) {
@@ -44,6 +48,7 @@ const CertificadoBancario = () => {
           saldo: data.saldo
             ? `$${Number(data.saldo).toLocaleString("es-CO")} COP`
             : "$0 COP",
+          fechaApertura: data.fecha_apertura || "",
         });
       } catch (error) {
         console.error("Error al obtener usuario:", error);
@@ -54,6 +59,7 @@ const CertificadoBancario = () => {
           cuenta: "9800456721",
           tipoCuenta: "Ahorros",
           saldo: "$0 COP",
+          fechaApertura: "",
         });
       }
     };
@@ -61,7 +67,6 @@ const CertificadoBancario = () => {
     obtenerUsuario();
   }, [navigate]);
 
-  // 🔥 Bloquear botón atrás
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
 
@@ -76,15 +81,11 @@ const CertificadoBancario = () => {
     };
   }, []);
 
-  // 🔥 Logout
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuario");
-    localStorage.removeItem("documento");
+    localStorage.clear();
     navigate("/inicio");
   };
 
-  // 🔥 Descargar PDF
   const descargarPDF = () => {
     if (!certificadoRef.current) return;
 
@@ -113,7 +114,6 @@ const CertificadoBancario = () => {
     html2pdf().set(opciones).from(certificadoRef.current).save();
   };
 
-  // 🔥 Fecha actual
   const fechaActual = new Date().toLocaleDateString("es-CO", {
     day: "numeric",
     month: "long",
@@ -122,7 +122,6 @@ const CertificadoBancario = () => {
 
   return (
     <div className="panel-financiero">
-      {/* SIDEBAR */}
       <aside className="sidebar">
         <ul>
           <li>
@@ -134,7 +133,24 @@ const CertificadoBancario = () => {
           </li>
 
           <li>
-            <Link to="/transferencias">💳 Transferencias</Link>
+            <div
+              className="menu-item"
+              onClick={() => setOpenTransfer(!openTransfer)}
+            >
+              💳 Otros {openTransfer ? "▲" : "▼"}
+            </div>
+
+            {openTransfer && (
+              <ul className="submenu">
+                <li>
+                  <Link to="/transferencias">➡ Enviar dinero</Link>
+                </li>
+
+                <li>
+                  <Link to="/transferencias">🧾 Transferir</Link>
+                </li>
+              </ul>
+            )}
           </li>
 
           <li>
@@ -153,7 +169,6 @@ const CertificadoBancario = () => {
         </button>
       </aside>
 
-      {/* CONTENIDO PRINCIPAL */}
       <main className="main">
         <header className="main-header">
           <h1>Certificado Bancario</h1>
@@ -161,7 +176,6 @@ const CertificadoBancario = () => {
 
         <div className="certificado-page">
           <div className="certificado-real" ref={certificadoRef}>
-            {/* ENCABEZADO */}
             <div className="certificado-top">
               <div className="logo-section">
                 <h1>FINANCIERO</h1>
@@ -173,12 +187,12 @@ const CertificadoBancario = () => {
               </div>
             </div>
 
-            {/* TÍTULO */}
             <h2 className="titulo-certificado">HACE CONSTAR:</h2>
 
-            {/* DATOS PRINCIPALES */}
             <div className="cliente-info">
-              <p>Que el(la) cliente(s)</p><div className="cliente-line">
+              <p>Que el(la) cliente(s)</p>
+
+              <div className="cliente-line">
                 <span className="nombre-cliente">{usuario.nombre}</span>
                 <span>Identificado con</span>
                 <span className="documento-cliente">
@@ -187,14 +201,13 @@ const CertificadoBancario = () => {
               </div>
 
               <p>
-                Actualmente tiene el producto Cuenta Ahorros radicado en nuestra
-                entidad financiera con las siguientes características:
+                Actualmente tiene el producto Cuenta {usuario.tipoCuenta} radicado
+                en nuestra entidad financiera con las siguientes características:
               </p>
             </div>
 
-            {/* TABLA DE DATOS */}
             <div className="tabla-datos">
-              <h3>Cuenta Ahorro</h3>
+              <h3>Cuenta {usuario.tipoCuenta}</h3>
 
               <div className="fila">
                 <strong>Número:</strong>
@@ -203,11 +216,15 @@ const CertificadoBancario = () => {
 
               <div className="fila">
                 <strong>Fecha de apertura:</strong>
-                <span>{fechaActual}</span>
+                <span>{usuario.fechaApertura || fechaActual}</span>
+              </div>
+
+              <div className="fila">
+                <strong>Saldo:</strong>
+                <span>{usuario.saldo}</span>
               </div>
             </div>
 
-            {/* TEXTO FINAL */}
             <div className="texto-final">
               <p>
                 Esta constancia se expide con destino a {usuario.nombre},
@@ -219,13 +236,12 @@ const CertificadoBancario = () => {
 
               <div className="certificado-footer">
                 <p>Firma autorizada</p>
-                <p>financiera</p>
+                <p>FINANCIERO</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* BOTÓN PDF */}
         <div className="pdf-btn-container">
           <button className="descargar-btn" onClick={descargarPDF}>
             📥 Descargar Certificado en PDF

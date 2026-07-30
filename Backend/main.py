@@ -98,6 +98,74 @@ def register(data: dict, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+# =======================
+# PERFIL
+# =======================
+@app.get("/perfil")
+def obtener_perfil(
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+
+    usuario = db.query(Usuario).filter(
+        Usuario.id_usuario == current_user
+    ).first()
+
+    if not usuario:
+        raise HTTPException(
+            status_code=404,
+            detail="Usuario no encontrado"
+        )
+
+    return {
+        "id": usuario.id_usuario,
+        "nombre": usuario.nombre,
+        "documento": usuario.documento,
+        "email": usuario.email,
+        "telefono": usuario.telefono,
+        "direccion": usuario.direccion,
+    }
+
+
+@app.put("/perfil/direccion")
+def actualizar_direccion(
+    data: dict,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+
+    usuario = db.query(Usuario).filter(
+        Usuario.id_usuario == current_user
+    ).first()
+
+    if not usuario:
+        raise HTTPException(
+            status_code=404,
+            detail="Usuario no encontrado"
+        )
+
+    if "direccion" not in data:
+        raise HTTPException(
+            status_code=400,
+            detail="Debe enviar la dirección"
+        )
+
+    usuario.direccion = data["direccion"]
+
+    db.commit()
+    db.refresh(usuario)
+
+    return {
+        "message": "Dirección actualizada correctamente",
+        "usuario": {
+            "id": usuario.id_usuario,
+            "nombre": usuario.nombre,
+            "documento": usuario.documento,
+            "email": usuario.email,
+            "telefono": usuario.telefono,
+            "direccion": usuario.direccion,
+        },
+    }
 
 # =======================
 # LOGIN

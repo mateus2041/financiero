@@ -10,6 +10,9 @@ function Login() {
   const [mostrarPass, setMostrarPass] = useState(false);
   const [mensaje, setMensaje] = useState("");
 
+  const [intentos, setIntentos] = useState(0);
+  const [bloqueado, setBloqueado] = useState(false);
+
   const irRegistro = () => {
     navigate("/registro");
   };
@@ -21,6 +24,11 @@ function Login() {
   const manejarSubmit = async (e) => {
     e.preventDefault();
 
+    if (bloqueado) {
+      setMensaje("Has superado los 3 intentos. Espera 30 segundos.");
+      return;
+    }
+
     if (!documento || !password) {
       setMensaje("Completa todos los campos");
       return;
@@ -30,23 +38,43 @@ function Login() {
       const res = await fetch("http://127.0.0.1:8000/login", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           documento,
-          password
-        })
+          password,
+        }),
       });
 
       const data = await res.json();
-      console.log(data);
 
       if (!res.ok) {
-        setMensaje(data.detail);
+        const nuevosIntentos = intentos + 1;
+        setIntentos(nuevosIntentos);
+
+        if (nuevosIntentos >= 3) {
+          setBloqueado(true);
+          setMensaje(
+            "❌ Has agotado los 3 intentos. Intenta nuevamente en 30 segundos."
+          );
+
+          setTimeout(() => {
+            setBloqueado(false);
+            setIntentos(0);
+            setMensaje("");
+          }, 30000);
+        } else {
+          setMensaje(
+            `❌ ${data.detail} (Intento ${nuevosIntentos} de 3)`
+          );
+        }
+
         return;
       }
 
-      setMensaje("Login exitoso ✅");
+      // Login exitoso
+      setIntentos(0);
+      setMensaje("✅ Login exitoso");
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("documento", documento);
@@ -55,7 +83,6 @@ function Login() {
       setTimeout(() => {
         navigate("/cuenta");
       }, 800);
-
     } catch (error) {
       console.error(error);
       setMensaje("Error conectando con el servidor");
@@ -65,7 +92,7 @@ function Login() {
   return (
     <div className="container">
       <form className="form-box" onSubmit={manejarSubmit}>
-        <h1>Inicio</h1>
+        <h1>Inicio de Sesión</h1>
 
         <label>Documento</label>
         <div className="input-icon">
@@ -73,6 +100,7 @@ function Login() {
             type="text"
             value={documento}
             onChange={(e) => setDocumento(e.target.value)}
+            disabled={bloqueado}
           />
         </div>
 
@@ -82,45 +110,63 @@ function Login() {
             type={mostrarPass ? "text" : "password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            disabled={bloqueado}
           />
 
           <button
             type="button"
             className="eye-btn"
             onClick={() => setMostrarPass(!mostrarPass)}
+            disabled={bloqueado}
           >
             {mostrarPass ? "🙈" : "👁️"}
           </button>
         </div>
 
-        {/* Mensaje de error o éxito */}
         {mensaje && (
           <p
-            id="mensajeError"
             style={{
-              color: mensaje.includes("exitoso") ? "green" : "#ff4c4c",
+              color: mensaje.includes("Login exitoso")
+                ? "green"
+                : "#ff4c4c",
               fontWeight: "bold",
-              marginTop: "10px"
+              marginTop: "10px",
             }}
           >
             {mensaje}
           </p>
         )}
 
-        <button type="submit" className="btn">
-          Acceder
+        <button
+          type="submit"
+          className="btn"
+          disabled={bloqueado}
+        >
+          {bloqueado ? "Bloqueado" : "Acceder"}
         </button>
 
         <p className="login">
           ¿No tienes cuenta?{" "}
-          <a href="#" onClick={irRegistro}>
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              irRegistro();
+            }}
+          >
             Regístrate aquí
           </a>
         </p>
 
         <p className="login">
           ¿Olvidaste tu contraseña?{" "}
-          <a href="#" onClick={irRecuperar}>
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              irRecuperar();
+            }}
+          >
             Recupérala aquí
           </a>
         </p>
