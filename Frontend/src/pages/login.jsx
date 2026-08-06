@@ -18,7 +18,7 @@ function Login() {
   };
 
   const irRecuperar = () => {
-    navigate("/recuperar");
+    navigate("/recuperacion");
   };
 
   const manejarSubmit = async (e) => {

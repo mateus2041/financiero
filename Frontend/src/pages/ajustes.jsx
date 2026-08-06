@@ -1,127 +1,115 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import "../styles/ajustes.css";
 
 function AjustesPerfil() {
-  const [usuario, setUsuario] = useState(null);
-  const [direccion, setDireccion] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [usuario, setUsuario] = useState({
+    nombre: "",
+    correo: "",
+    telefono: "",
+    direccion: "",
+  });
 
   useEffect(() => {
-    obtenerPerfil();
-  }, []);
+    const obtenerUsuario = async () => {
+      try {
+        const token = localStorage.getItem("token");
 
-  const obtenerPerfil = async () => {
-    try {
-      const token = localStorage.getItem("token");
-
-      const res = await axios.get("http://localhost:8000/perfil", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setUsuario(res.data);
-      setDireccion(res.data.direccion || "");
-    } catch (error) {
-      console.error(error);
-      alert("Error al cargar el perfil.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const guardarDireccion = async () => {
-    if (direccion.trim() === "") {
-      alert("Ingrese una dirección válida.");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-
-      await axios.put(
-        "http://localhost:8000/perfil/direccion",
-        {
-          direccion: direccion,
-        },
-        {
+        const respuesta = await fetch("http://127.0.0.1:8000/usuario", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+        });
+
+        if (!respuesta.ok) {
+          throw new Error("No se pudo obtener la información del usuario.");
+        }
+
+        const data = await respuesta.json();
+        setUsuario(data);
+      } catch (error) {
+        console.error(error);
+        alert("Error al cargar los datos del usuario.");
+      }
+    };
+
+    obtenerUsuario();
+  }, []);
+
+  const guardarCambios = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const respuesta = await fetch(
+        "http://127.0.0.1:8000/usuario/perfil",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(usuario),
         }
       );
 
-      setUsuario({
-        ...usuario,
-        direccion,
-      });
+      if (!respuesta.ok) {
+        throw new Error("No se pudo actualizar el perfil.");
+      }
 
-      alert("✅ Dirección actualizada correctamente.");
+      alert("Perfil actualizado correctamente.");
     } catch (error) {
       console.error(error);
-      alert("Error al actualizar la dirección.");
+      alert("Error al actualizar el perfil.");
     }
   };
 
-  if (loading) {
-    return <h2>Cargando...</h2>;
-  }
-
   return (
     <div className="perfil-container">
-      <div className="perfil-card">
-        <h2>Ajustes de Perfil</h2>
+      <h1>Ajustes del Perfil</h1>
 
-        <div className="campo">
-          <label>Nombre</label>
-          <input
-            type="text"
-            value={usuario?.nombre || ""}
-            disabled
-          />
-        </div>
+      <label>Nombre</label>
+      <input
+        type="text"
+        placeholder="Nombre"
+        value={usuario.nombre}
+        onChange={(e) =>
+          setUsuario({ ...usuario, nombre: e.target.value })
+        }
+      />
 
-        <div className="campo">
-          <label>Documento</label>
-          <input
-            type="text"
-            value={usuario?.documento || ""}
-            disabled
-          />
-        </div>
+      <label>Correo</label>
+      <input
+        type="email"
+        placeholder="Correo"
+        value={usuario.correo}
+        onChange={(e) =>
+          setUsuario({ ...usuario, correo: e.target.value })
+        }
+      />
 
-        <div className="campo">
-          <label>Correo</label>
-          <input
-            type="email"
-            value={usuario?.email || ""}
-            disabled
-          />
-        </div>
+      <label>Teléfono</label>
+      <input
+        type="text"
+        placeholder="Teléfono"
+        value={usuario.telefono}
+        onChange={(e) =>
+          setUsuario({ ...usuario, telefono: e.target.value })
+        }
+      />
 
-        <div className="campo">
-          <label>Teléfono</label>
-          <input
-            type="text"
-            value={usuario?.telefono || ""}
-            disabled
-          />
-        </div>
+      <label>Dirección</label>
+      <input
+        type="text"
+        placeholder="Dirección"
+        value={usuario.direccion}
+        onChange={(e) =>
+          setUsuario({ ...usuario, direccion: e.target.value })
+        }
+      />
 
-        <div className="campo">
-          <label>Dirección</label>
-          <input
-            type="text"
-            value={direccion}
-            onChange={(e) => setDireccion(e.target.value)}
-          />
-        </div>
-
-        <button onClick={guardarDireccion}>
-          Guardar Cambios
-        </button>
-      </div>
+      <button type="button" onClick={guardarCambios}>
+        Guardar Cambios
+      </button>
     </div>
   );
 }

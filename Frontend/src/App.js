@@ -8,6 +8,7 @@ import Cuenta from "./pages/cuenta";
 import Transferencias from "./pages/transferencias";
 import Certificado from "./pages/certificado";
 import Ajustes from "./pages/ajustes";
+import Recuperacion from "./pages/recuperacion";
 import Corriente from "./pages/corriente";
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
       <Route path="/transferencias" element={<Transferencias />} />
       <Route path="/corriente" element={<Corriente />} />
       <Route path="/certificado" element={<Certificado />} />
+      <Route path="/recuperacion" element={<Recuperacion />} />
       <Route path="/ajustes" element={<Ajustes />} />
     </Routes>
   );
