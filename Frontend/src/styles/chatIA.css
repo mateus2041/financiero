@@ -1,0 +1,46 @@
+/* BOTÓN FLOTANTE IA */
+.boton-ia {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  width: 65px;
+  height: 65px;
+  background: #f5b841;
+  color: #0a192f;
+  border: 3px solid #0a192f;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+  font-size: 32px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  transition: all 0.3s ease;
+  z-index: 9999;
+}
+
+/* EFECTO AL PASAR EL MOUSE */
+.boton-ia:hover {
+  background: #13294b;
+  color: #f5b841;
+  border-color: #f5b841;
+  transform: scale(1.1);
+  box-shadow: 0 10px 25px rgba(245, 184, 65, 0.4);
+}
+
+/* EFECTO AL HACER CLIC */
+.boton-ia:active {
+  transform: scale(0.95);
+}
+
+/* SI USAS UN ÍCONO */
+.boton-ia svg {
+  font-size: 30px;
+}
+
+/* SI USAS UNA IMAGEN */
+.boton-ia img {
+  width: 34px;
+  height: 34px;
+}

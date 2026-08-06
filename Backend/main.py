@@ -1,22 +1,36 @@
 from fastapi import FastAPI, Depends, HTTPException
-from Backend.database.database import Base, engine, SessionLocal
+from Backend.database.database import Base, engine
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from Backend.models import Usuario, Transaccion, Cuenta
+from Backend.ai.router import router as ia_router
+from Backend.models import Usuario
 from Backend.dependencias import get_db
+
 from Backend.security import (
     hash_password,
     check_password,
     generate_token,
-    token_required,
+    token_required
 )
 
-# APP
-app = FastAPI()
 
+# =======================
+# APP
+# =======================
+
+app = FastAPI(
+    title="Financiero API",
+    version="1.0"
+)
+
+
+
+# =======================
 # CORS
+# =======================
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -25,273 +39,338 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+
+# =======================
+# IA ROUTER
+# =======================
+
+# IMPORTANTE:
+# El /ia ya está en Backend/ai/router.py
+
+app.include_router(ia_router)
+
+
+
+
+# =======================
 # CREAR TABLAS
+# =======================
+
 @app.on_event("startup")
 def startup():
-    Base.metadata.create_all(bind=engine)
+
+    Base.metadata.create_all(
+        bind=engine
+    )
+
 
 
 # =======================
-# ROOT
+# INICIO
 # =======================
+
 @app.get("/inicio")
-async def root():
-    return {"message": "API funcionando correctamente"}
-
-
-# =======================
-# AUTH
-# =======================
-@app.post("/register")
-def register(data: dict, db: Session = Depends(get_db)):
-    try:
-        required_fields = ["nombre", "email", "password", "documento"]
-
-        if not all(field in data for field in required_fields):
-            raise HTTPException(status_code=400, detail="Faltan campos")
-
-        if len(data["password"]) < 6:
-            raise HTTPException(status_code=400, detail="Contraseña muy corta")
-
-        if len(data["password"]) > 72:
-            raise HTTPException(status_code=400, detail="Contraseña demasiado larga")
-
-        existe = db.query(Usuario).filter(
-            Usuario.documento == data["documento"]
-        ).first()
-
-        if existe:
-            raise HTTPException(status_code=409, detail="Usuario ya existe")
-
-        hashed = hash_password(data["password"])
-
-        nuevo_usuario = Usuario(
-            nombre=data["nombre"],
-            email=data["email"],
-            password=hashed,
-            documento=data["documento"],
-            telefono=data.get("telefono"),
-            direccion=data.get("direccion"),
-        )
-
-        db.add(nuevo_usuario)
-        db.commit()
-        db.refresh(nuevo_usuario)
-
-        token = generate_token(identity=nuevo_usuario.id_usuario)
-
-        return {
-            "message": "Usuario creado correctamente",
-            "token": token,
-            "usuario": {
-                "id": nuevo_usuario.id_usuario,
-                "nombre": nuevo_usuario.nombre,
-                "documento": nuevo_usuario.documento,
-                "email": nuevo_usuario.email,
-            },
-        }
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-
-# =======================
-# PERFIL
-# =======================
-@app.get("/perfil")
-def obtener_perfil(
-    current_user: int = Depends(token_required),
-    db: Session = Depends(get_db)
-):
-
-    usuario = db.query(Usuario).filter(
-        Usuario.id_usuario == current_user
-    ).first()
-
-    if not usuario:
-        raise HTTPException(
-            status_code=404,
-            detail="Usuario no encontrado"
-        )
+def inicio():
 
     return {
-        "id": usuario.id_usuario,
-        "nombre": usuario.nombre,
-        "documento": usuario.documento,
-        "email": usuario.email,
-        "telefono": usuario.telefono,
-        "direccion": usuario.direccion,
+        "message":"API funcionando correctamente"
     }
 
 
-@app.put("/perfil/direccion")
-def actualizar_direccion(
-    data: dict,
-    current_user: int = Depends(token_required),
-    db: Session = Depends(get_db)
+
+# =======================
+# REGISTRO
+# =======================
+
+@app.post("/register")
+def register(
+    data:dict,
+    db:Session = Depends(get_db)
 ):
 
-    usuario = db.query(Usuario).filter(
-        Usuario.id_usuario == current_user
+
+    usuario_existente = db.query(Usuario).filter(
+        Usuario.documento == data["documento"]
     ).first()
 
-    if not usuario:
+
+
+    if usuario_existente:
+
         raise HTTPException(
-            status_code=404,
-            detail="Usuario no encontrado"
+            status_code=409,
+            detail="Usuario ya existe"
         )
 
-    if "direccion" not in data:
-        raise HTTPException(
-            status_code=400,
-            detail="Debe enviar la dirección"
-        )
 
-    usuario.direccion = data["direccion"]
+
+    nuevo_usuario = Usuario(
+
+        nombre=data["nombre"],
+
+        email=data["email"],
+
+        documento=data["documento"],
+
+        password=hash_password(
+            data["password"]
+        ),
+
+        telefono=data.get("telefono"),
+
+        direccion=data.get("direccion")
+
+    )
+
+
+
+    db.add(nuevo_usuario)
 
     db.commit()
-    db.refresh(usuario)
+
+    db.refresh(nuevo_usuario)
+
+
+
+    token = generate_token(
+        nuevo_usuario.id_usuario
+    )
+
+
 
     return {
-        "message": "Dirección actualizada correctamente",
-        "usuario": {
-            "id": usuario.id_usuario,
-            "nombre": usuario.nombre,
-            "documento": usuario.documento,
-            "email": usuario.email,
-            "telefono": usuario.telefono,
-            "direccion": usuario.direccion,
-        },
+
+
+        "message":"Usuario registrado correctamente",
+
+
+        "token":token,
+
+
+        "usuario":{
+
+            "id":nuevo_usuario.id_usuario,
+
+            "nombre":nuevo_usuario.nombre
+
+        }
+
     }
+
+
+
+
 
 # =======================
 # LOGIN
 # =======================
+
 @app.post("/login")
-def login(data: dict, db: Session = Depends(get_db)):
+def login(
+
+    data:dict,
+
+    db:Session = Depends(get_db)
+
+):
+
 
     usuario = db.query(Usuario).filter(
+
         Usuario.documento == data["documento"]
+
     ).first()
 
+
+
     if not usuario:
+
         raise HTTPException(
+
             status_code=404,
+
             detail="Usuario no encontrado"
+
         )
 
-    if not check_password(data["password"], usuario.password):
+
+
+
+    if not check_password(
+
+        data["password"],
+
+        usuario.password
+
+    ):
+
         raise HTTPException(
+
             status_code=401,
+
             detail="Credenciales inválidas"
+
         )
 
-    token = generate_token(identity=usuario.id_usuario)
+
+
+
+    token = generate_token(
+
+        usuario.id_usuario
+
+    )
+
+
+
 
     return {
-        "message": "Login exitoso",
-        "token": token,
-        "id": usuario.id_usuario
-    }
 
 
-# =======================
-# USUARIO
-# =======================
-@app.get("/usuario/{id}")
-def get_user(id: int, db: Session = Depends(get_db)):
-    usuario = db.query(Usuario).filter(
-        Usuario.id_usuario == id
-    ).first()
-
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-    return {
-        "id": usuario.id_usuario,
-        "nombre": usuario.nombre,
-        "documento": usuario.documento,
-        "email": usuario.email,
-        "telefono": usuario.telefono,
-        "direccion": usuario.direccion,
-    }
+        "message":"Login exitoso",
 
 
-# =======================
-# TRANSACCIONES
-# =======================
-@app.get("/transacciones")
-def get_transacciones(
-    current_user: int = Depends(token_required),
-    db: Session = Depends(get_db),
-):
-    try:
-        transacciones = (
-            db.query(Transaccion)
-            .filter(Transaccion.id_cuenta == current_user)
-            .order_by(Transaccion.id_transaccion.desc())
-            .all()
-        )
-
-        return transacciones
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        "token":token,
 
 
-@app.post("/transacciones")
-def add_transaccion(
-    data: dict,
-    current_user: int = Depends(token_required),
-    db: Session = Depends(get_db),
-):
+        "usuario":{
 
-    if "tipo" not in data or "monto" not in data:
-        raise HTTPException(status_code=400, detail="Faltan campos")
+            "id":usuario.id_usuario,
 
-    if data["tipo"] not in ["Ingreso", "Gasto", "Transferencia"]:
-        raise HTTPException(status_code=400, detail="Tipo inválido")
+            "nombre":usuario.nombre,
 
-    if float(data["monto"]) <= 0:
-        raise HTTPException(status_code=400, detail="Monto inválido")
+            "documento":usuario.documento
 
-    try:
-        nueva = Transaccion(
-            id_cuenta=current_user,
-            tipo=data["tipo"],
-            monto=float(data["monto"]),
-            descripcion=data.get("descripcion", ""),
-        )
-
-        db.add(nueva)
-        db.commit()
-        db.refresh(nueva)
-
-        return {
-            "message": "Transacción creada correctamente",
-            "transaccion": {
-                "id": nueva.id_transaccion,
-                "tipo": nueva.tipo,
-                "monto": float(nueva.monto),
-            },
         }
 
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+    }
+
+
+
 
 
 # =======================
-# TEST DB
+# PERFIL
 # =======================
+
+@app.get("/perfil")
+def perfil(
+
+    current_user:int = Depends(token_required),
+
+    db:Session = Depends(get_db)
+
+):
+
+
+    usuario = db.query(Usuario).filter(
+
+        Usuario.id_usuario == current_user
+
+    ).first()
+
+
+
+    if not usuario:
+
+        raise HTTPException(
+
+            status_code=404,
+
+            detail="Usuario no encontrado"
+
+        )
+
+
+
+    return {
+
+
+        "id":usuario.id_usuario,
+
+        "nombre":usuario.nombre,
+
+        "email":usuario.email,
+
+        "documento":usuario.documento,
+
+        "telefono":usuario.telefono,
+
+        "direccion":usuario.direccion
+
+    }
+
+
+
+
+# =======================
+# VALIDAR TOKEN
+# =======================
+
+@app.get("/validar-token")
+def validar_token(
+
+    usuario:int = Depends(token_required)
+
+):
+
+
+    return {
+
+
+        "mensaje":"Token válido",
+
+        "usuario":usuario
+
+    }
+
+
+
+
+# =======================
+# PRUEBA JWT
+# =======================
+
+@app.get("/probar-token")
+def probar_token(
+
+    usuario_id:int = Depends(token_required)
+
+):
+
+
+    return {
+
+        "mensaje":"JWT funcionando correctamente",
+
+        "usuario_id":usuario_id
+
+    }
+
+
+
+
+
+# =======================
+# TEST DATABASE
+# =======================
+
 @app.get("/test-db")
-def test_db(db: Session = Depends(get_db)):
-    try:
-        db.execute(text("SELECT 1"))
-        return {"message": "Conexión exitosa"}
+def test_db(
 
-    except Exception as e:
-        return {"error": str(e)}
+    db:Session = Depends(get_db)
+
+):
+
+
+    db.execute(
+        text("SELECT 1")
+    )
+
+
+    return {
+
+        "message":"Base de datos funcionando"
+
+    }
