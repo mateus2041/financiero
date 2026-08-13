@@ -10,6 +10,7 @@ import Certificado from "./pages/certificado";
 import Ajustes from "./pages/ajustes";
 import Recuperacion from "./pages/recuperacion";
 import Corriente from "./pages/corriente";
+import historial from "./App/historial";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
       <Route path="/certificado" element={<Certificado />} />
       <Route path="/recuperacion" element={<Recuperacion />} />
       <Route path="/ajustes" element={<Ajustes />} />
+      <Route path="/historial" element={<historial />} />
     </Routes>
   );
 }
