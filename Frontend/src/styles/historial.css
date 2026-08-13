@@ -1,0 +1,243 @@
+.historial-container {
+    width: 100%;
+    min-height: 100vh;
+    padding: 35px;
+    box-sizing: border-box;
+}
+
+/* ENCABEZADO */
+
+.historial-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.historial-header h1 {
+    margin: 0;
+    font-size: 30px;
+    color: #ffffff;
+}
+
+.historial-header p {
+    margin-top: 8px;
+    color: #aeb8cc;
+    font-size: 15px;
+}
+
+/* FILTROS */
+
+.historial-filtros {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.buscador {
+    flex: 1;
+}
+
+.buscador input {
+    width: 100%;
+    padding: 14px 18px;
+    box-sizing: border-box;
+    border: 1px solid #33415f;
+    border-radius: 10px;
+    background-color: #1e2a4a;
+    color: white;
+    outline: none;
+    font-size: 14px;
+}
+
+.buscador input::placeholder {
+    color: #8e9ab2;
+}
+
+.buscador input:focus {
+    border-color: #f5c542;
+}
+
+/* BOTONES */
+
+.botones-filtro {
+    display: flex;
+    gap: 10px;
+}
+
+.botones-filtro button {
+    padding: 12px 20px;
+    border: 1px solid #33415f;
+    border-radius: 9px;
+    background-color: #1e2a4a;
+    color: #ffffff;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.botones-filtro button:hover {
+    border-color: #f5c542;
+}
+
+.botones-filtro button.activo {
+    background-color: #f5c542;
+    color: #111827;
+    border-color: #f5c542;
+    font-weight: bold;
+}
+
+/* LISTA */
+
+.transacciones-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* TARJETA */
+
+.transaccion-card {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    background-color: #1e2a4a;
+    border: 1px solid #2e3b59;
+    border-radius: 14px;
+    transition: 0.2s;
+}
+
+.transaccion-card:hover {
+    transform: translateY(-2px);
+    border-color: #465676;
+}
+
+/* ICONO */
+
+.transaccion-icono {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 25px;
+    font-weight: bold;
+    margin-right: 16px;
+}
+
+.transaccion-icono.ingreso {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.transaccion-icono.salida {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+/* INFORMACIÓN */
+
+.transaccion-info {
+    flex: 1;
+}
+
+.transaccion-info h3 {
+    margin: 0 0 6px 0;
+    color: #ffffff;
+    font-size: 16px;
+}
+
+.transaccion-info p {
+    margin: 0 0 8px 0;
+    color: #8e9ab2;
+    font-size: 13px;
+}
+
+/* ESTADO */
+
+.estado {
+    display: inline-block;
+    padding: 4px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    background-color: rgba(34, 197, 94, 0.12);
+    color: #22c55e;
+}
+
+/* MONTO */
+
+.transaccion-monto {
+    font-size: 18px;
+    font-weight: bold;
+    margin-left: 20px;
+}
+
+.transaccion-monto.ingreso {
+    color: #22c55e;
+}
+
+.transaccion-monto.salida {
+    color: #ef4444;
+}
+
+/* MENSAJES */
+
+.historial-mensaje,
+.historial-vacio {
+    background-color: #1e2a4a;
+    border: 1px solid #2e3b59;
+    border-radius: 14px;
+    padding: 50px;
+    text-align: center;
+    color: #aeb8cc;
+}
+
+.historial-vacio h2 {
+    color: white;
+    margin-bottom: 8px;
+}
+
+.icono-vacio {
+    font-size: 45px;
+    margin-bottom: 15px;
+}
+
+.historial-error {
+    padding: 18px;
+    border-radius: 10px;
+    background-color: rgba(239, 68, 68, 0.12);
+    border: 1px solid #ef4444;
+    color: #ff6b6b;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 700px) {
+
+    .historial-container {
+        padding: 20px;
+    }
+
+    .historial-filtros {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .botones-filtro {
+        width: 100%;
+    }
+
+    .botones-filtro button {
+        flex: 1;
+    }
+
+    .transaccion-card {
+        padding: 15px;
+    }
+
+    .transaccion-monto {
+        font-size: 15px;
+    }
+}

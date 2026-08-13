@@ -1,0 +1,162 @@
+.tarjeta-container {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30px;
+    box-sizing: border-box;
+}
+
+.tarjeta-box {
+    width: 430px;
+    max-width: 100%;
+    padding: 35px;
+    background-color: #1e2a4a;
+    border: 1px solid #33415f;
+    border-radius: 18px;
+    text-align: center;
+    box-sizing: border-box;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+}
+
+.tarjeta-icono {
+    font-size: 50px;
+    margin-bottom: 10px;
+}
+
+.tarjeta-box h1 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 27px;
+}
+
+.tarjeta-descripcion {
+    color: #aeb8cc;
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 12px 0 25px;
+}
+
+/* TARJETA */
+
+.tarjeta-visual {
+    position: relative;
+    height: 210px;
+    padding: 25px;
+    box-sizing: border-box;
+    border-radius: 18px;
+    background: linear-gradient(
+        135deg,
+        #26375d,
+        #121b33
+    );
+    border: 1px solid #465676;
+    text-align: left;
+    margin-bottom: 25px;
+}
+
+.tarjeta-chip {
+    font-size: 30px;
+    color: #f5c542;
+}
+
+.tarjeta-numero {
+    position: absolute;
+    left: 25px;
+    bottom: 65px;
+    color: white;
+    font-size: 19px;
+    letter-spacing: 2px;
+}
+
+.tarjeta-tipo {
+    position: absolute;
+    bottom: 25px;
+    right: 25px;
+    color: #f5c542;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+/* ESTADO */
+
+.tarjeta-estado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #151f38;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    color: #c5cede;
+}
+
+.tarjeta-estado strong.activa {
+    color: #22c55e;
+}
+
+.tarjeta-estado strong.bloqueada {
+    color: #ef4444;
+}
+
+/* BOTÓN */
+
+.btn-desbloquear {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background-color: #f5c542;
+    color: #111827;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-desbloquear:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.05);
+}
+
+.btn-desbloquear:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* MENSAJES */
+
+.tarjeta-error {
+    padding: 13px;
+    margin-bottom: 18px;
+    border-radius: 9px;
+    background-color: rgba(239, 68, 68, 0.12);
+    border: 1px solid #ef4444;
+    color: #ff6b6b;
+    font-size: 14px;
+}
+
+.tarjeta-exito {
+    padding: 13px;
+    margin-bottom: 18px;
+    border-radius: 9px;
+    background-color: rgba(34, 197, 94, 0.12);
+    border: 1px solid #22c55e;
+    color: #22c55e;
+    font-size: 14px;
+}
+
+.tarjeta-activa {
+    padding: 14px;
+    border-radius: 10px;
+    background-color: rgba(34, 197, 94, 0.12);
+    color: #22c55e;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.tarjeta-mensaje {
+    color: white;
+    font-size: 16px;
+}
