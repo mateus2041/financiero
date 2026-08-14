@@ -4,7 +4,7 @@ import "../styles/transferencias.css";
 
 export default function Transferencias() {
   const [form, setForm] = useState({
-    origen: "Cuenta Principal",
+    origen: "Cuenta de Ahorros",
     destino: "",
     monto: "",
     descripcion: "",
@@ -12,6 +12,20 @@ export default function Transferencias() {
 
   const [mensaje, setMensaje] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Saldos de las cuentas
+  const saldoAhorros = 0;
+  const saldoCorriente = 700;
+
+  // Formato de dinero colombiano
+  const formatoDinero = (valor) => {
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(valor);
+  };
 
   const handleChange = (e) => {
     setForm({
@@ -46,23 +60,23 @@ export default function Transferencias() {
         }
       );
 
-      setMensaje(response.data.mensaje || "Transferencia realizada correctamente.");
+      setMensaje(
+        response.data.mensaje ||
+          "Transferencia realizada correctamente."
+      );
 
       setForm({
-        origen: "Cuenta Principal",
+        origen: "Cuenta de Ahorros",
         destino: "",
         monto: "",
         descripcion: "",
       });
-
     } catch (error) {
-
       if (error.response) {
         setMensaje(error.response.data.detail);
       } else {
         setMensaje("No se pudo conectar con el servidor.");
       }
-
     } finally {
       setLoading(false);
     }
@@ -78,15 +92,25 @@ export default function Transferencias() {
 
           <div className="input-group">
             <label>Cuenta Origen</label>
-            <input
-              type="text"
+
+            <select
+              name="origen"
               value={form.origen}
-              readOnly
-            />
+              onChange={handleChange}
+            >
+              <option value="Cuenta de Ahorros">
+                Cuenta de Ahorros ({formatoDinero(saldoAhorros)})
+              </option>
+
+              <option value="Cuenta Corriente">
+                Cuenta Corriente ({formatoDinero(saldoCorriente)})
+              </option>
+            </select>
           </div>
 
           <div className="input-group">
             <label>Cuenta Destino</label>
+
             <input
               type="text"
               name="destino"
@@ -98,16 +122,19 @@ export default function Transferencias() {
 
           <div className="input-group">
             <label>Monto</label>
+
             <input
               type="number"
               name="monto"
               value={form.monto}
               onChange={handleChange}
+              placeholder="Ingrese el monto"
             />
           </div>
 
           <div className="input-group">
             <label>Descripción</label>
+
             <textarea
               name="descripcion"
               value={form.descripcion}
