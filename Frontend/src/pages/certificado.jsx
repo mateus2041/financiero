@@ -7,6 +7,9 @@ const CertificadoBancario = () => {
   const navigate = useNavigate();
   const certificadoRef = useRef(null);
 
+  // Estado para abrir/cerrar el menú Otros
+  const [openTransfer, setOpenTransfer] = useState(false);
+
   const [usuario, setUsuario] = useState({
     nombre: "",
     documento: "",
@@ -122,47 +125,113 @@ const CertificadoBancario = () => {
 
   return (
     <div className="panel-financiero">
+
       {/* SIDEBAR */}
       <aside className="sidebar">
+
         <ul>
+
           <li>
-            <Link to="/cuenta">💷 Cuenta</Link>
+            <Link to="/cuenta">
+              💷 Cuenta
+            </Link>
           </li>
 
           <li>
-            <Link to="#">📜 Historial Monetario</Link>
+            <Link to="/historial">
+              📜 Historial Monetario
+            </Link>
+          </li>
+
+          {/* MENÚ OTROS */}
+          <li>
+
+            <div
+              className="menu-item"
+              onClick={() =>
+                setOpenTransfer(!openTransfer)
+              }
+            >
+              💳 Otros{" "}
+              {openTransfer ? "▲" : "▼"}
+            </div>
+
+            {openTransfer && (
+              <ul className="submenu">
+
+                <li>
+                  <Link to="/transferencias">
+                    ➡ Enviar dinero
+                  </Link>
+                </li>
+
+                <li>
+                  <Link to="/corriente">
+                    🧾 Transferir
+                  </Link>
+                </li>
+
+              </ul>
+            )}
+
           </li>
 
           <li>
-            <Link to="/transferencias">💳 Transferencias</Link>
-          </li>
-
-          <li>
-            <Link to="/certificado" className="active">
+            <Link
+              to="/certificado"
+              className="active"
+            >
               📄 Certificado Bancario
             </Link>
           </li>
 
           <li>
-            <Link to="#">⚙️ Ajustes</Link>
+            <Link
+              to="/ajustes"
+              className="btn-nav"
+            >
+              ⚙️ Ajustes
+            </Link>
           </li>
+
+          {/* BOTÓN NUEVO CHAT IA */}
+          <li>
+            <Link
+              to="/ChatIA"
+              className="btn-nav"
+            >
+              🤖 Asistente IA
+            </Link>
+          </li>
+
         </ul>
 
-        <button className="logout" onClick={handleLogout}>
+        <button
+          className="logout"
+          onClick={handleLogout}
+        >
           🚪 Cerrar sesión
         </button>
+
       </aside>
 
       {/* CONTENIDO PRINCIPAL */}
       <main className="main">
+
         <header className="main-header">
           <h1>Certificado Bancario</h1>
         </header>
 
         <div className="certificado-page">
-          <div className="certificado-real" ref={certificadoRef}>
+
+          <div
+            className="certificado-real"
+            ref={certificadoRef}
+          >
+
             {/* ENCABEZADO */}
             <div className="certificado-top">
+
               <div className="logo-section">
                 <h1>FINANCIERO</h1>
               </div>
@@ -171,67 +240,118 @@ const CertificadoBancario = () => {
                 <p>UNA EMPRESA DEL</p>
                 <h3>FINANCIERO</h3>
               </div>
+
             </div>
 
             {/* TÍTULO */}
-            <h2 className="titulo-certificado">HACE CONSTAR:</h2>
+            <h2 className="titulo-certificado">
+              HACE CONSTAR:
+            </h2>
 
             {/* DATOS PRINCIPALES */}
             <div className="cliente-info">
-              <p>Que el(la) cliente(s)</p><div className="cliente-line">
-                <span className="nombre-cliente">{usuario.nombre}</span>
-                <span>Identificado con</span>
+
+              <p>Que el(la) cliente(s)</p>
+
+              <div className="cliente-line">
+
+                <span className="nombre-cliente">
+                  {usuario.nombre}
+                </span>
+
+                <span>
+                  Identificado con
+                </span>
+
                 <span className="documento-cliente">
                   CC {usuario.documento}
                 </span>
+
               </div>
 
               <p>
-                Actualmente tiene el producto Cuenta Ahorros radicado en nuestra
-                entidad financiera con las siguientes características:
+                Actualmente tiene el producto Cuenta Ahorros
+                radicado en nuestra entidad financiera con las
+                siguientes características:
               </p>
+
             </div>
 
             {/* TABLA DE DATOS */}
             <div className="tabla-datos">
+
               <h3>Cuenta Ahorro</h3>
 
               <div className="fila">
+
                 <strong>Número:</strong>
-                <span>{usuario.cuenta}</span>
+
+                <span>
+                  {usuario.cuenta}
+                </span>
+
               </div>
 
               <div className="fila">
-                <strong>Fecha de apertura:</strong>
-                <span>{fechaActual}</span>
+
+                <strong>
+                  Fecha de apertura:
+                </strong>
+
+                <span>
+                  {fechaActual}
+                </span>
+
               </div>
+
             </div>
 
             {/* TEXTO FINAL */}
             <div className="texto-final">
+
               <p>
-                Esta constancia se expide con destino a {usuario.nombre},
-                realizada en el Canal Digital de la ciudad de Bogotá, el día{" "}
+                Esta constancia se expide con destino a{" "}
+                {usuario.nombre}, realizada en el Canal Digital
+                de la ciudad de Bogotá, el día{" "}
                 {fechaActual}.
               </p>
 
-              <p className="cordialmente">Cordialmente</p>
+              <p className="cordialmente">
+                Cordialmente
+              </p>
 
               <div className="certificado-footer">
-                <p>Firma autorizada</p>
-                <p>financiera</p>
+
+                <p>
+                  Firma autorizada
+                </p>
+
+                <p>
+                  financiera
+                </p>
+
               </div>
+
             </div>
+
           </div>
+
         </div>
 
         {/* BOTÓN PDF */}
         <div className="pdf-btn-container">
-          <button className="descargar-btn" onClick={descargarPDF}>
+
+          <button
+            className="descargar-btn"
+            onClick={descargarPDF}
+          >
             📥 Descargar Certificado en PDF
           </button>
+
         </div>
+
       </main>
+
     </div>
   );
 };

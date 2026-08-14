@@ -10,9 +10,59 @@ function Historial() {
     const [filtro, setFiltro] = useState("todas");
     const [busqueda, setBusqueda] = useState("");
 
+    const [usuario, setUsuario] = useState("");
+    const [openTransfer, setOpenTransfer] = useState(false);
+
     useEffect(() => {
         cargarTransacciones();
+        cargarUsuario();
     }, []);
+
+    const cargarUsuario = async () => {
+
+        try {
+
+            const token = localStorage.getItem("token");
+
+            const respuesta = await fetch(
+                "http://127.0.0.1:8000/usuario",
+                {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            if (!respuesta.ok) {
+                return;
+            }
+
+            const datos = await respuesta.json();
+
+            setUsuario(
+                datos.nombre ||
+                datos.usuario ||
+                datos.nombre_usuario ||
+                ""
+            );
+
+        } catch (error) {
+
+            console.error(error);
+
+        }
+
+    };
+
+    const handleLogout = () => {
+
+        localStorage.removeItem("token");
+
+        window.location.href = "/login";
+
+    };
 
     const cargarTransacciones = async () => {
 
@@ -140,152 +190,382 @@ function Historial() {
     };
 
     return (
-        <div className="historial-container">
 
-            <div className="historial-header">
+        <div className="panel-financiero">
 
-                <div>
-                    <h1>Historial de transacciones</h1>
-                    <p>
-                        Consulta todos los movimientos de tu billetera.
-                    </p>
-                </div>
+            <aside className="sidebar">
 
-            </div>
+                <ul>
 
-            <div className="historial-filtros">
+                    <li>
 
-                <div className="buscador">
-                    <input
-                        type="text"
-                        placeholder="Buscar transacción..."
-                        value={busqueda}
-                        onChange={(e) => setBusqueda(e.target.value)}
-                    />
-                </div>
+                        <Link
+                            to="/cuenta"
+                        >
 
-                <div className="botones-filtro">
+                            💷 Cuenta
 
-                    <button
-                        className={filtro === "todas" ? "activo" : ""}
-                        onClick={() => setFiltro("todas")}
-                    >
-                        Todas
-                    </button>
+                        </Link>
 
-                    <button
-                        className={filtro === "ingreso" ? "activo" : ""}
-                        onClick={() => setFiltro("ingreso")}
-                    >
-                        Ingresos
-                    </button>
+                    </li>
 
-                    <button
-                        className={filtro === "salida" ? "activo" : ""}
-                        onClick={() => setFiltro("salida")}
-                    >
-                        Salidas
-                    </button>
 
-                </div>
+                    <li>
 
-            </div>
+                        <Link
+                            to="/historial"
+                            className="active"
+                        >
 
-            {cargando && (
-                <div className="historial-mensaje">
-                    <p>Cargando transacciones...</p>
-                </div>
-            )}
+                            📜 Historial Monetario
 
-            {error && (
-                <div className="historial-error">
-                    {error}
-                </div>
-            )}
+                        </Link>
 
-            {!cargando && !error && transaccionesFiltradas.length === 0 && (
-                <div className="historial-vacio">
+                    </li>
 
-                    <div className="icono-vacio">
-                        💳
+
+                    <li>
+
+                        <div
+                            className="menu-item"
+                            onClick={() =>
+                                setOpenTransfer(!openTransfer)
+                            }
+                        >
+
+                            💳 Otros
+
+                            {openTransfer ? "▲" : "▼"}
+
+                        </div>
+
+
+                        {
+
+                        openTransfer && (
+
+                            <ul className="submenu">
+
+                                <li>
+
+                                    <Link to="/transferencias">
+
+                                        ➡ Enviar dinero
+
+                                    </Link>
+
+                                </li>
+
+
+                                <li>
+
+                                    <Link to="/corriente">
+
+                                        🧾 Transferir
+
+                                    </Link>
+
+                                </li>
+
+                            </ul>
+
+                        )
+
+                        }
+
+
+                    </li>
+
+
+                    <li>
+
+                        <Link
+                            to="/certificado"
+                            className="btn-nav"
+                        >
+
+                            📄 Certificado Bancario
+
+                        </Link>
+
+                    </li>
+
+
+                    <li>
+
+                        <Link
+                            to="/ajustes"
+                            className="btn-nav"
+                        >
+
+                            ⚙️ Ajustes
+
+                        </Link>
+
+                    </li>
+
+
+                    {/* BOTON NUEVO CHAT IA */}
+
+                    <li>
+
+                        <Link
+                            to="/ChatIA"
+                            className="btn-nav"
+                        >
+
+                            🤖 Asistente IA
+
+                        </Link>
+
+                    </li>
+
+
+                </ul>
+
+
+                <button
+                    className="logout"
+                    onClick={handleLogout}
+                >
+
+                    🚪 Cerrar sesión
+
+                </button>
+
+
+            </aside>
+
+
+            <main className="main">
+
+
+                <header className="main-header">
+
+                    <h2>
+
+                        Bienvenido {usuario}
+
+                    </h2>
+
+
+                    <div className="profile">
+
+                        <img
+
+                            src="https://i.pinimg.com/736x/e0/06/16/e00616c1e181f83b35b157f9281bd36e.jpg"
+
+                            alt="Usuario"
+
+                        />
+
                     </div>
 
-                    <h2>No hay transacciones</h2>
 
-                    <p>
-                        Todavía no tienes movimientos registrados.
-                    </p>
+                </header>
 
-                </div>
-            )}
 
-            {!cargando && !error && transaccionesFiltradas.length > 0 && (
+                <div className="historial-container">
 
-                <div className="transacciones-lista">
+                    <div className="historial-header">
 
-                    {transaccionesFiltradas.map((transaccion, index) => {
+                        <div>
 
-                        const tipo = obtenerTipo(transaccion);
-                        const monto = obtenerMonto(transaccion);
+                            <h1>Historial de transacciones</h1>
 
-                        return (
-                            <div
-                                className="transaccion-card"
-                                key={
-                                    transaccion.id ||
-                                    transaccion.id_transaccion ||
-                                    index
-                                }
+                            <p>
+                                Consulta todos los movimientos de tu billetera.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div className="historial-filtros">
+
+                        <div className="buscador">
+
+                            <input
+                                type="text"
+                                placeholder="Buscar transacción..."
+                                value={busqueda}
+                                onChange={(e) => setBusqueda(e.target.value)}
+                            />
+
+                        </div>
+
+
+                        <div className="botones-filtro">
+
+                            <button
+                                className={filtro === "todas" ? "activo" : ""}
+                                onClick={() => setFiltro("todas")}
                             >
 
-                                <div
-                                    className={`transaccion-icono ${tipo}`}
-                                >
-                                    {tipo === "ingreso" ? "↓" : "↑"}
-                                </div>
+                                Todas
 
-                                <div className="transaccion-info">
+                            </button>
 
-                                    <h3>
-                                        {obtenerDescripcion(transaccion)}
-                                    </h3>
 
-                                    <p>
-                                        {formatearFecha(
-                                            transaccion.fecha ||
-                                            transaccion.fecha_transaccion ||
-                                            transaccion.created_at
-                                        )}
-                                    </p>
+                            <button
+                                className={filtro === "ingreso" ? "activo" : ""}
+                                onClick={() => setFiltro("ingreso")}
+                            >
 
-                                    <span
-                                        className={`estado ${
-                                            String(
-                                                transaccion.estado || "Completada"
-                                            ).toLowerCase()
-                                        }`}
-                                    >
-                                        {transaccion.estado || "Completada"}
-                                    </span>
+                                Ingresos
 
-                                </div>
+                            </button>
 
-                                <div
-                                    className={`transaccion-monto ${tipo}`}
-                                >
-                                    {formatearMonto(monto, tipo)}
-                                </div>
+
+                            <button
+                                className={filtro === "salida" ? "activo" : ""}
+                                onClick={() => setFiltro("salida")}
+                            >
+
+                                Salidas
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    {cargando && (
+
+                        <div className="historial-mensaje">
+
+                            <p>Cargando transacciones...</p>
+
+                        </div>
+
+                    )}
+
+
+                    {error && (
+
+                        <div className="historial-error">
+
+                            {error}
+
+                        </div>
+
+                    )}
+
+
+                    {!cargando && !error && transaccionesFiltradas.length === 0 && (
+
+                        <div className="historial-vacio">
+
+                            <div className="icono-vacio">
+
+                                💳
 
                             </div>
-                        );
-                    })}
+
+                            <h2>No hay transacciones</h2>
+
+                            <p>
+                                Todavía no tienes movimientos registrados.
+                            </p>
+
+                        </div>
+
+                    )}
+
+
+                    {!cargando && !error && transaccionesFiltradas.length > 0 && (
+
+                        <div className="transacciones-lista">
+
+                            {transaccionesFiltradas.map((transaccion, index) => {
+
+                                const tipo = obtenerTipo(transaccion);
+                                const monto = obtenerMonto(transaccion);
+
+                                return (
+
+                                    <div
+                                        className="transaccion-card"
+                                        key={
+                                            transaccion.id ||
+                                            transaccion.id_transaccion ||
+                                            index
+                                        }
+                                    >
+
+                                        <div
+                                            className={`transaccion-icono ${tipo}`}
+                                        >
+
+                                            {tipo === "ingreso" ? "↓" : "↑"}
+
+                                        </div>
+
+
+                                        <div className="transaccion-info">
+
+                                            <h3>
+                                                {obtenerDescripcion(transaccion)}
+                                            </h3>
+
+
+                                            <p>
+
+                                                {formatearFecha(
+                                                    transaccion.fecha ||
+                                                    transaccion.fecha_transaccion ||
+                                                    transaccion.created_at
+                                                )}
+
+                                            </p>
+
+
+                                            <span
+                                                className={`estado ${
+                                                    String(
+                                                        transaccion.estado || "Completada"
+                                                    ).toLowerCase()
+                                                }`}
+                                            >
+
+                                                {transaccion.estado || "Completada"}
+
+                                            </span>
+
+                                        </div>
+
+
+                                        <div
+                                            className={`transaccion-monto ${tipo}`}
+                                        >
+
+                                            {formatearMonto(monto, tipo)}
+
+                                        </div>
+
+
+                                    </div>
+
+                                );
+
+                            })}
+
+                        </div>
+
+                    )}
 
                 </div>
 
-            )}
+
+            </main>
+
 
         </div>
+
     );
+
 }
 
 export default Historial;

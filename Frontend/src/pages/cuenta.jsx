@@ -454,112 +454,122 @@ const Cuenta = () => {
 
             <img
 
-              src="https://i.pinimg.com/736x/e0/06/16/e00616c1e181f83b35b157f9281bd36e.jpg"
-
-              alt="Usuario"
-
-            />
-
-
+              src="https://i.pinimg.com/736x/e0/06/16/e00616c1e181f83b35b157f9281bd36e.jpg" 
+ 
+              alt="Usuario" 
+ 
+            /> 
+ 
+ 
+          </div> 
+ 
+ 
+ 
+        </header> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+        <section className="stats"> 
+ 
+ 
+          <div className="card"> 
+ 
+            <h3>Ingresos</h3> 
+ 
+            <span>${totalIngresos}</span> 
+ 
+ 
+          </div> 
+ 
+ 
+ 
+ 
+          <div className="card"> 
+ 
+            <h3>Cuenta</h3> 
+ 
+            <span> 
+              ${totalIngresos-totalGastos} 
+            </span> 
+ 
+ 
           </div>
-
-
-
-        </header>
-
-
-
-
-
-
-
-        <section className="stats">
 
 
           <div className="card">
 
-            <h3>Ingresos</h3>
-
-            <span>${totalIngresos}</span>
-
-
-          </div>
-
-
-
-
-          <div className="card">
-
-            <h3>Cuenta</h3>
+            <h3>Ahorros</h3>
 
             <span>
-              ${totalIngresos-totalGastos}
+              $0
             </span>
 
-
           </div>
-
-
-
-
-
-          <div className="card">
-
-
-            <h3>Gastos</h3>
-
-
-            <span>${totalGastos}</span>
-
-
-          </div>
-
-
-
-        </section>
-
-
-
-
-
-
-
-
-        <section className="chart-card">
-
-
-          <h3>
-            Porcentaje de dinero
-          </h3>
-
-
-
-          <div className="chart-container">
-
-
-            <canvas id="salesChart"></canvas>
-
-
-          </div>
-
-
-
-        </section>
-
-
-
-      </main>
-
-
-
-
-    </div>
-
-
-  );
-
-
-};
-
-
+ 
+ 
+ 
+ 
+          <div className="card"> 
+ 
+ 
+            <h3>Gastos</h3> 
+ 
+ 
+            <span>${totalGastos}</span> 
+ 
+ 
+          </div> 
+ 
+ 
+ 
+        </section> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+        <section className="chart-card"> 
+ 
+ 
+          <h3> 
+            Porcentaje de dinero 
+          </h3> 
+ 
+ 
+ 
+          <div className="chart-container"> 
+ 
+ 
+            <canvas id="salesChart"></canvas> 
+ 
+ 
+          </div> 
+ 
+ 
+ 
+        </section> 
+ 
+ 
+ 
+      </main> 
+ 
+ 
+ 
+ 
+    </div> 
+ 
+ 
+  ); 
+ 
+ 
+}; 
+ 
+ 
 export default Cuenta;
