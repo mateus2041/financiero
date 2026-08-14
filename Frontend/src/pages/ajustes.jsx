@@ -10,6 +10,9 @@ function AjustesPerfil() {
     direccion: "",
   });
 
+  const [editando, setEditando] = useState(false);
+  const [password, setPassword] = useState("");
+
   useEffect(() => {
     const obtenerUsuario = async () => {
       try {
@@ -22,11 +25,19 @@ function AjustesPerfil() {
         });
 
         if (!respuesta.ok) {
-          throw new Error("No se pudo obtener la información del usuario.");
+          throw new Error(
+            "No se pudo obtener la información del usuario."
+          );
         }
 
         const data = await respuesta.json();
-        setUsuario(data);
+
+        setUsuario({
+          nombre: data.nombre || "",
+          correo: data.correo || data.email || "",
+          telefono: data.telefono || "",
+          direccion: data.direccion || "",
+        });
       } catch (error) {
         console.error(error);
         alert("Error al cargar los datos del usuario.");
@@ -36,7 +47,16 @@ function AjustesPerfil() {
     obtenerUsuario();
   }, []);
 
+  const editarPerfil = () => {
+    setEditando(true);
+  };
+
   const guardarCambios = async () => {
+    if (!password) {
+      alert("Debes ingresar tu contraseña para guardar los cambios.");
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
 
@@ -48,18 +68,28 @@ function AjustesPerfil() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(usuario),
+          body: JSON.stringify({
+            ...usuario,
+            password: password,
+          }),
         }
       );
 
+      const data = await respuesta.json();
+
       if (!respuesta.ok) {
-        throw new Error("No se pudo actualizar el perfil.");
+        throw new Error(
+          data.detail || "No se pudo actualizar el perfil."
+        );
       }
 
       alert("Perfil actualizado correctamente.");
+
+      setPassword("");
+      setEditando(false);
     } catch (error) {
       console.error(error);
-      alert("Error al actualizar el perfil.");
+      alert(error.message || "Error al actualizar el perfil.");
     }
   };
 
@@ -72,8 +102,12 @@ function AjustesPerfil() {
         type="text"
         placeholder="Nombre"
         value={usuario.nombre}
+        disabled={!editando}
         onChange={(e) =>
-          setUsuario({ ...usuario, nombre: e.target.value })
+          setUsuario({
+            ...usuario,
+            nombre: e.target.value,
+          })
         }
       />
 
@@ -82,8 +116,12 @@ function AjustesPerfil() {
         type="email"
         placeholder="Correo"
         value={usuario.correo}
+        disabled={!editando}
         onChange={(e) =>
-          setUsuario({ ...usuario, correo: e.target.value })
+          setUsuario({
+            ...usuario,
+            correo: e.target.value,
+          })
         }
       />
 
@@ -92,8 +130,12 @@ function AjustesPerfil() {
         type="text"
         placeholder="Teléfono"
         value={usuario.telefono}
+        disabled={!editando}
         onChange={(e) =>
-          setUsuario({ ...usuario, telefono: e.target.value })
+          setUsuario({
+            ...usuario,
+            telefono: e.target.value,
+          })
         }
       />
 
@@ -102,14 +144,36 @@ function AjustesPerfil() {
         type="text"
         placeholder="Dirección"
         value={usuario.direccion}
+        disabled={!editando}
         onChange={(e) =>
-          setUsuario({ ...usuario, direccion: e.target.value })
+          setUsuario({
+            ...usuario,
+            direccion: e.target.value,
+          })
         }
       />
 
-      <button type="button" onClick={guardarCambios}>
-        Guardar Cambios
-      </button>
+      {editando && (
+        <>
+          <label>Contraseña</label>
+          <input
+            type="password"
+            placeholder="Ingresa tu contraseña"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </>
+      )}
+
+      {!editando ? (
+        <button type="button" onClick={editarPerfil}>
+          Editar
+        </button>
+      ) : (
+        <button type="button" onClick={guardarCambios}>
+          Guardar cambios
+        </button>
+      )}
     </div>
   );
 }
