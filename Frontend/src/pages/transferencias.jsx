@@ -88,9 +88,33 @@ export default function Transferencias() {
       return;
     }
 
+    // ==============================
+    // VALIDAR SI LA CUENTA EXISTE
+    // ==============================
     try {
       setLoading(true);
 
+      const cuentaResponse = await axios.get(
+        `http://localhost:8000/cuentas/existe/${form.destino}`
+      );
+
+      if (!cuentaResponse.data.existe) {
+        const motivo = "La cuenta destino no existe.";
+
+        setMensaje(motivo);
+
+        await reportarTransaccionFallida(motivo);
+
+        return;
+      }
+
+      setMensaje(
+        "La cuenta destino existe. Procesando transferencia..."
+      );
+
+      // ==============================
+      // REALIZAR TRANSFERENCIA
+      // ==============================
       const response = await axios.post(
         "http://localhost:8000/transferencias",
         {
@@ -191,12 +215,22 @@ export default function Transferencias() {
             <label>Monto</label>
 
             <input
-              type="number"
+              type="text"
               name="monto"
-              value={form.monto}
-              onChange={handleChange}
-              placeholder="Ingrese el monto"
-              min="1"
+              value={
+                form.monto
+                  ? formatoDinero(form.monto)
+                  : ""
+              }
+              onChange={(e) => {
+                const valor = e.target.value.replace(/\D/g, "");
+
+                setForm({
+                  ...form,
+                  monto: valor,
+                });
+              }}
+              placeholder="$0"
             />
 
           </div>
