@@ -95,85 +95,110 @@ function AjustesPerfil() {
 
   return (
     <div className="perfil-container">
+
       <h1>Ajustes del Perfil</h1>
 
-      <label>Nombre</label>
-      <input
-        type="text"
-        placeholder="Nombre"
-        value={usuario.nombre}
-        disabled={!editando}
-        onChange={(e) =>
-          setUsuario({
-            ...usuario,
-            nombre: e.target.value,
-          })
-        }
-      />
+      <div className="perfil-seccion">
+        <h2>👤 Información personal</h2>
 
-      <label>Correo</label>
-      <input
-        type="email"
-        placeholder="Correo"
-        value={usuario.correo}
-        disabled={!editando}
-        onChange={(e) =>
-          setUsuario({
-            ...usuario,
-            correo: e.target.value,
-          })
-        }
-      />
+        <label>Nombre</label>
+        <input
+          type="text"
+          placeholder="Nombre"
+          value={usuario.nombre}
+          disabled={!editando}
+          onChange={(e) =>
+            setUsuario({
+              ...usuario,
+              nombre: e.target.value,
+            })
+          }
+        />
 
-      <label>Teléfono</label>
-      <input
-        type="text"
-        placeholder="Teléfono"
-        value={usuario.telefono}
-        disabled={!editando}
-        onChange={(e) =>
-          setUsuario({
-            ...usuario,
-            telefono: e.target.value,
-          })
-        }
-      />
+        <label>Correo</label>
+        <input
+          type="email"
+          placeholder="Correo"
+          value={usuario.correo}
+          disabled={!editando}
+          onChange={(e) =>
+            setUsuario({
+              ...usuario,
+              correo: e.target.value,
+            })
+          }
+        />
 
-      <label>Dirección</label>
-      <input
-        type="text"
-        placeholder="Dirección"
-        value={usuario.direccion}
-        disabled={!editando}
-        onChange={(e) =>
-          setUsuario({
-            ...usuario,
-            direccion: e.target.value,
-          })
-        }
-      />
+        <label>Teléfono</label>
+        <input
+          type="text"
+          placeholder="Teléfono"
+          value={usuario.telefono}
+          disabled={!editando}
+          onChange={(e) =>
+            setUsuario({
+              ...usuario,
+              telefono: e.target.value,
+            })
+          }
+        />
 
-      {editando && (
-        <>
-          <label>Contraseña</label>
-          <input
-            type="password"
-            placeholder="Ingresa tu contraseña"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </>
-      )}
+        <label>Dirección</label>
+        <input
+          type="text"
+          placeholder="Dirección"
+          value={usuario.direccion}
+          disabled={!editando}
+          onChange={(e) =>
+            setUsuario({
+              ...usuario,
+              direccion: e.target.value,
+            })
+          }
+        />
+      </div>
 
-      {!editando ? (
-        <button type="button" onClick={editarPerfil}>
-          Editar
-        </button>
-      ) : (
-        <button type="button" onClick={guardarCambios}>
-          Guardar cambios
-        </button>
-      )}
+      <div className="perfil-seccion">
+        <h2>🔐 Seguridad</h2>
+
+        {editando && (
+          <>
+            <label>Contraseña</label>
+
+            <input
+              type="password"
+              placeholder="Ingresa tu contraseña"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </>
+        )}
+
+        {!editando ? (
+          <button type="button" onClick={editarPerfil}>
+            Editar perfil
+          </button>
+        ) : (
+          <button type="button" onClick={guardarCambios}>
+            Guardar cambios
+          </button>
+        )}
+      </div>
+
+      <div className="perfil-seccion">
+        <h2>🔔 Notificaciones</h2>
+
+        <div className="opcion-ajuste">
+          <span>Notificaciones de transacciones</span>
+          <input type="checkbox" defaultChecked />
+        </div>
+
+        <div className="opcion-ajuste">
+          <span>Alertas de seguridad</span>
+          <input type="checkbox" defaultChecked />
+        </div>
+      </div>
+
     </div>
   );
 }
