@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import "../styles/transferencia.css";
+import "../styles/transferencias.css";
 
 function Transferencia() {
 
@@ -26,6 +26,11 @@ function Transferencia() {
 
     if (Number(monto) <= 0) {
       alert("Ingrese un monto válido.");
+      return;
+    }
+
+    if (Number(monto) > Number(usuario.saldo_corriente)) {
+      alert("No tiene suficiente saldo en la Cuenta Corriente.");
       return;
     }
 
@@ -73,6 +78,14 @@ function Transferencia() {
 
   }
 
+  const formatoMoneda = (valor) => {
+    return Number(valor).toLocaleString("es-CO", {
+      style: "currency",
+      currency: "COP",
+      minimumFractionDigits: 0
+    });
+  };
+
   return (
 
     <div className="transferencia-container">
@@ -82,13 +95,15 @@ function Transferencia() {
       <div className="saldo">
 
         <p>
-          <strong>Cuenta Corriente:</strong>
-          ${Number(usuario.saldo_corriente).toLocaleString()}
+          <strong>
+            Cuenta Corriente ({formatoMoneda(usuario.saldo_corriente)})
+          </strong>
         </p>
 
         <p>
-          <strong>Cuenta de Ahorro:</strong>
-          ${Number(usuario.saldo_ahorro).toLocaleString()}
+          <strong>
+            Cuenta de Ahorro ({formatoMoneda(usuario.saldo_ahorro)})
+          </strong>
         </p>
 
       </div>
@@ -101,7 +116,7 @@ function Transferencia() {
       />
 
       <button onClick={realizarTransferencia}>
-        Transferir a Cuenta de Ahorro
+        Transferir de Cuenta Corriente a Cuenta de Ahorro
       </button>
 
     </div>
