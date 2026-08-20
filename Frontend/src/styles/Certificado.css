@@ -6,15 +6,17 @@
 }
 
 .certificado-real {
-  width: 850px;
-  min-height: 1100px;
+  box-sizing: border-box;
+  width: 8in;
+  height: 10.5in;
   background: white;
-  padding: 70px;
+  padding: 0.55in;
   font-family: Arial, sans-serif;
   color: #222;
   box-shadow: 0 0 25px rgba(0, 0, 0, 0.12);
   border-radius: 6px;
   position: relative;
+  overflow: hidden;
 }
 
 /* ENCABEZADO */
@@ -22,12 +24,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 70px;
+  margin-bottom: 36px;
 }
 
 .logo-section h1 {
   color: #005baa;
-  font-size: 48px;
+  font-size: 36px;
   margin: 0;
   font-weight: bold;
 }
@@ -59,22 +61,22 @@
 /* TITULO */
 .titulo-certificado {
   text-align: center;
-  font-size: 34px;
+  font-size: 25px;
   font-weight: bold;
-  margin-bottom: 60px;
+  margin-bottom: 36px;
 }
 
 /* CLIENTE */
 .cliente-info p {
-  font-size: 26px;
-  line-height: 1.7;
+  font-size: 17px;
+  line-height: 1.55;
 }
 
 .cliente-line {
   display: flex;
   justify-content: space-between;
-  margin: 30px 0;
-  font-size: 28px;
+  margin: 20px 0;
+  font-size: 18px;
   flex-wrap: wrap;
 }
 
@@ -88,34 +90,34 @@
 
 /* TABLA */
 .tabla-datos {
-  margin-top: 50px;
-  margin-bottom: 60px;
+  margin-top: 30px;
+  margin-bottom: 36px;
 }
 
 .tabla-datos h3 {
   text-align: center;
-  font-size: 30px;
-  margin-bottom: 35px;
+  font-size: 22px;
+  margin-bottom: 22px;
 }
 
 .fila {
   display: flex;
-  margin-bottom: 22px;
-  font-size: 26px;
+  margin-bottom: 14px;
+  font-size: 17px;
 }
 
 .fila strong {
-  width: 280px;
+  width: 220px;
 }
 
 /* FINAL */
 .texto-final p {
-  font-size: 24px;
-  line-height: 1.8;
+  font-size: 16px;
+  line-height: 1.55;
 }
 
 .cordialmente {
-  margin-top: 70px;
+  margin-top: 42px;
 }
 
 .texto-final h3 {
@@ -126,7 +128,7 @@
 
 /* FIRMA */
 .certificado-footer {
-  margin-top: 80px;
+  margin-top: 42px;
   text-align: center;
 }
 

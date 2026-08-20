@@ -92,7 +92,7 @@ const CertificadoBancario = () => {
     if (!certificadoRef.current) return;
 
     const opciones = {
-      margin: [0.3, 0.3, 0.3, 0.3],
+      margin: 0.25,
       filename: `Certificado_${usuario.documento}.pdf`,
       image: {
         type: "jpeg",
@@ -102,6 +102,7 @@ const CertificadoBancario = () => {
         scale: 2,
         useCORS: true,
         scrollY: 0,
+        backgroundColor: "#ffffff",
       },
       jsPDF: {
         unit: "in",
@@ -109,7 +110,7 @@ const CertificadoBancario = () => {
         orientation: "portrait",
       },
       pagebreak: {
-        mode: ["avoid-all", "css", "legacy"],
+        mode: ["avoid-all"],
       },
     };
 
