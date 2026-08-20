@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from Backend.database.database import Base, engine
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 
 from Backend.ai.router import router as ia_router
 from Backend.models import Usuario
@@ -56,6 +56,21 @@ def startup():
     Base.metadata.create_all(
         bind=engine
     )
+
+    columnas_usuario = {
+        columna["name"]
+        for columna in inspect(engine).get_columns("usuario")
+    }
+
+    with engine.begin() as conexion:
+        if "tope_ahorros" not in columnas_usuario:
+            conexion.execute(text(
+                "ALTER TABLE usuario ADD COLUMN tope_ahorros DECIMAL(15, 2) NOT NULL DEFAULT 0"
+            ))
+        if "tope_corriente" not in columnas_usuario:
+            conexion.execute(text(
+                "ALTER TABLE usuario ADD COLUMN tope_corriente DECIMAL(15, 2) NOT NULL DEFAULT 0"
+            ))
 
 
 # =======================
@@ -247,7 +262,11 @@ def perfil(
 
         "telefono": usuario.telefono,
 
-        "direccion": usuario.direccion
+        "direccion": usuario.direccion,
+
+        "tope_ahorros": usuario.tope_ahorros,
+
+        "tope_corriente": usuario.tope_corriente
 
     }
 
@@ -295,7 +314,11 @@ def obtener_usuario(
 
         "telefono": usuario.telefono,
 
-        "direccion": usuario.direccion
+        "direccion": usuario.direccion,
+
+        "tope_ahorros": usuario.tope_ahorros,
+
+        "tope_corriente": usuario.tope_corriente
 
     }
 
@@ -371,9 +394,9 @@ def actualizar_perfil(
         usuario.nombre = data["nombre"]
 
 
-    if "email" in data:
+    if "email" in data or "correo" in data:
 
-        usuario.email = data["email"]
+        usuario.email = data["email"] if "email" in data else data["correo"]
 
 
     if "telefono" in data:
@@ -384,6 +407,16 @@ def actualizar_perfil(
     if "direccion" in data:
 
         usuario.direccion = data["direccion"]
+
+
+    if "tope_ahorros" in data:
+
+        usuario.tope_ahorros = data["tope_ahorros"]
+
+
+    if "tope_corriente" in data:
+
+        usuario.tope_corriente = data["tope_corriente"]
 
 
     db.commit()

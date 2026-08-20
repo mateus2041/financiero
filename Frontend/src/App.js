@@ -11,6 +11,7 @@ import Ajustes from "./pages/ajustes";
 import Recuperacion from "./pages/recuperacion";
 import Corriente from "./pages/corriente";
 import Historial from "./pages/historial";
+import Reporte from "./pages/reporte";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
       <Route path="/recuperacion" element={<Recuperacion />} />
       <Route path="/ajustes" element={<Ajustes />} />
       <Route path="/historial" element={<Historial />} />
+      <Route path="/reporte" element={<Reporte />} />
     </Routes>
   );
 }
