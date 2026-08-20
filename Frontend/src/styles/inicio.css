@@ -7,9 +7,10 @@
 }
 
 /* CONTAINER */
-.container {
+.home-container {
   min-height: 100vh;
   width: 100%;
+  min-width: 0;
   background: linear-gradient(180deg, #0a192f, #0f2747);
   color: white;
 
@@ -18,11 +19,12 @@
 }
 
 /* NAVBAR */
-.navbar {
+.home-navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 60px;
+  padding: 20px clamp(20px, 5vw, 60px);
+  gap: 20px;
 }
 
 .logo {
@@ -30,18 +32,20 @@
   font-weight: bold;
 }
 
-.menu {
+.home-menu {
   display: flex;
   gap: 25px;
   list-style: none;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
-.menu li {
+.home-menu li {
   cursor: pointer;
 }
 
-.btn-registro {
+.home-btn-registro {
   background: #f5b841;
   border: none;
   padding: 8px 15px;
@@ -52,75 +56,80 @@
 }
 
 /* HERO */
-.hero {
+.home-hero {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 60px;
+  padding: clamp(36px, 7vw, 60px) clamp(20px, 5vw, 60px);
   gap: 40px;
 }
 
-.hero-text {
+.home-hero-text {
   max-width: 500px;
+  min-width: 0;
 }
 
-.hero-text h1 {
+.home-title {
   color: #f5b841;
-  font-size: 48px;
+  font-size: clamp(32px, 5vw, 48px);
+  line-height: 1.1;
   margin-bottom: 20px;
 }
 
-.hero-text p {
+.home-hero-text p {
   margin-bottom: 25px;
   line-height: 1.6;
   color: #cbd5e1;
 }
 
-.btn {
+.home-btn {
   background: black;
   border: none;
-  padding: 14px 25px;
+  padding: 14px clamp(16px, 3vw, 25px);
   border-radius: 10px;
   color: white;
   cursor: pointer;
   font-weight: bold;
+  max-width: 100%;
 }
 
 /* CÍRCULO */
-.hero-img {
+.home-hero-img {
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-.hero-img .circle {
-  width: 260px;
-  height: 260px;
+.home-circle {
+  width: clamp(180px, 26vw, 260px);
+  aspect-ratio: 1;
+  height: auto;
   border: 4px solid #f5b841;
   border-radius: 50%;
+  overflow: hidden;
 }
 
 /* GARANTIAS */
-.garantias {
-  padding: 60px;
+.home-garantias {
+  padding: clamp(36px, 7vw, 60px) clamp(20px, 5vw, 60px);
   text-align: center;
 }
 
-.garantias h2 {
+.home-garantias h2 {
   color: #f5b841;
   margin-bottom: 40px;
   font-size: 24px;
 }
 
 /* CARDS */
-.cards {
+.home-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 25px;
 }
 
 /* CARD */
-.card {
+.home-card {
   background: #13294b;
   padding: 20px;
   border-radius: 15px;
@@ -131,12 +140,12 @@
   transition: 0.3s;
 }
 
-.card:hover {
+.home-card:hover {
   transform: translateY(-5px);
 }
 
 /* ICONO */
-.icon {
+.home-icon {
   background: #1e3a5f;
   padding: 15px;
   border-radius: 10px;
@@ -146,12 +155,75 @@
 }
 
 /* TEXTO CARD */
-.card h3 {
+.home-card h3 {
   font-size: 14px;
   margin-bottom: 5px;
 }
 
-.card p {
+.home-card p {
   font-size: 13px;
   color: #cbd5e1;
+}
+
+@media (max-width: 900px) {
+  .home-hero {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .home-hero-text {
+    max-width: 620px;
+  }
+
+  .home-hero-img {
+    order: -1;
+  }
+
+  .home-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-card {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .home-navbar {
+    align-items: flex-start;
+  }
+
+  .home-menu {
+    gap: 12px;
+    font-size: 14px;
+  }
+
+  .home-btn-registro {
+    padding: 8px 10px;
+  }
+
+  .home-hero {
+    gap: 28px;
+  }
+
+  .home-circle {
+    width: min(62vw, 220px);
+  }
+
+  .home-hero-text p {
+    font-size: 15px;
+  }
+
+  .home-btn {
+    width: 100%;
+  }
+
+  .home-cards {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .home-card {
+    padding: 16px;
+  }
 }

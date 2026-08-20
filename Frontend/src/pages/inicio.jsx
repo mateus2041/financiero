@@ -5,19 +5,19 @@ import logo from "../assets/images/logo.jpeg";
 
 function Home() {
   return (
-    <div className="container">
+    <div className="home-container">
       {/* NAVBAR */}
-      <nav className="navbar">
+      <nav className="home-navbar">
         <div></div>
 
-        <ul className="menu">
+        <ul className="home-menu">
           <li>Cuentas</li>
           <li>Certificado</li>
           <li>Bre-Be</li>
 
           <li>
             <Link to="/login">
-              <button className="btn-registro">
+              <button className="home-btn-registro">
                 Inicio
               </button>
             </Link>
@@ -25,7 +25,7 @@ function Home() {
 
           <li>
             <Link to="/registro">
-              <button className="btn-registro">
+              <button className="home-btn-registro">
                 Registro
               </button>
             </Link>
@@ -34,9 +34,9 @@ function Home() {
       </nav>
 
       {/* HERO */}
-      <section className="hero">
-        <div className="hero-text">
-          <h1>Compromiso Financiero</h1>
+      <section className="home-hero">
+        <div className="home-hero-text">
+          <h1 className="home-title">Compromiso Financiero</h1>
 
           <p>
             Somos una compañía financiera nueva que está transformando lo ya
@@ -46,14 +46,14 @@ function Home() {
           </p>
 
           <Link to="/registro">
-            <button className="btn">
+            <button className="home-btn">
               Regístrate aquí para nuestros servicios
             </button>
           </Link>
         </div>
 
-        <div className="hero-img">
-          <div className="circle">
+        <div className="home-hero-img">
+          <div className="home-circle">
             <img
               src={logo}
               alt="Logo Financiero"
@@ -69,52 +69,52 @@ function Home() {
       </section>
 
       {/* GARANTÍAS */}
-      <section className="garantias">
+      <section className="home-garantias">
         <h2>Las Garantías de Nuestro Compromiso Financiero</h2>
 
-        <div className="cards">
-          <div className="card">
-            <div className="icon">💲</div>
+        <div className="home-cards">
+          <div className="home-card">
+            <div className="home-icon">💲</div>
             <div>
               <h3>Seguridad del dinero</h3>
               <p>El dinero quedará asegurado en todo momento.</p>
             </div>
           </div>
 
-          <div className="card">
-            <div className="icon">🔒</div>
+          <div className="home-card">
+            <div className="home-icon">🔒</div>
             <div>
               <h3>Seguridad al iniciar sesión</h3>
               <p>Tendrás garantía total de la seguridad de tu acceso.</p>
             </div>
           </div>
 
-          <div className="card">
-            <div className="icon">🔁</div>
+          <div className="home-card">
+            <div className="home-icon">🔁</div>
             <div>
               <h3>Transferencias</h3>
               <p>Transferencias seguras entre bancos, rápidas y confiables.</p>
             </div>
           </div>
 
-          <div className="card">
-            <div className="icon">⟳</div>
+          <div className="home-card">
+            <div className="home-icon">⟳</div>
             <div>
               <h3>Actualización de movimientos</h3>
               <p>Actualización en tiempo real del historial.</p>
             </div>
           </div>
 
-          <div className="card">
-            <div className="icon">🚫</div>
+          <div className="home-card">
+            <div className="home-icon">🚫</div>
             <div>
               <h3>Bloqueo rápido y seguro</h3>
               <p>Bloqueo eficiente en caso de robo o fraude.</p>
             </div>
           </div>
 
-          <div className="card">
-            <div className="icon">📄</div>
+          <div className="home-card">
+            <div className="home-icon">📄</div>
             <div>
               <h3>Certificado bancario</h3>
               <p>Documento oficial que certifica tu cuenta bancaria.</p>
@@ -124,7 +124,7 @@ function Home() {
       </section>
 
       {/* FOOTER */}
-      <footer className="footer">
+      <footer className="home-footer">
         <p className="footer-text">
           © {new Date().getFullYear()} Financiero. Todos los derechos reservados.
         </p>
