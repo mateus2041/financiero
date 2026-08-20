@@ -1,4 +1,5 @@
 from passlib.context import CryptContext
+import bcrypt
 from jose import JWTError, jwt
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -10,7 +11,7 @@ from datetime import datetime, timedelta
 # =========================
 
 pwd_context = CryptContext(
-    schemes=["argon2"],
+    schemes=["argon2", "bcrypt"],
     deprecated="auto"
 )
 
@@ -52,6 +53,13 @@ def check_password(
 ):
 
     try:
+
+        if hashed.startswith(("$2a$", "$2b$", "$2y$")):
+
+            return bcrypt.checkpw(
+                plain.encode("utf-8"),
+                hashed.encode("utf-8")
+            )
 
         return pwd_context.verify(
             plain,

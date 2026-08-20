@@ -3,7 +3,7 @@ uvicorn[standard]
 sqlalchemy
 PyMySQL
 python-jose[cryptography]
-passlib[argon2]
+passlib[argon2,bcrypt]
 python-multipart
 python-dotenv
 cryptography

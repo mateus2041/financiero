@@ -8,6 +8,8 @@ function AjustesPerfil() {
     correo: "",
     telefono: "",
     direccion: "",
+    tope_ahorros: 0,
+    tope_corriente: 0,
   });
 
   const [editando, setEditando] = useState(false);
@@ -50,6 +52,8 @@ function AjustesPerfil() {
           correo: data.correo || data.email || "",
           telefono: data.telefono || "",
           direccion: data.direccion || "",
+          tope_ahorros: data.tope_ahorros || 0,
+          tope_corriente: data.tope_corriente || 0,
         });
       } catch (error) {
         console.error(error);
@@ -73,6 +77,11 @@ function AjustesPerfil() {
       return;
     }
 
+    if (usuario.tope_ahorros < 0 || usuario.tope_corriente < 0) {
+      alert("Los topes no pueden ser negativos.");
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
 
@@ -85,7 +94,12 @@ function AjustesPerfil() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            ...usuario,
+            nombre: usuario.nombre,
+            email: usuario.correo,
+            telefono: usuario.telefono,
+            direccion: usuario.direccion,
+            tope_ahorros: Number(usuario.tope_ahorros),
+            tope_corriente: Number(usuario.tope_corriente),
             password: password,
           }),
         }
@@ -102,6 +116,15 @@ function AjustesPerfil() {
 
       alert("Perfil actualizado correctamente.");
 
+      setUsuario((usuarioActual) => ({
+        ...usuarioActual,
+        nombre: data.usuario?.nombre ?? usuarioActual.nombre,
+        correo: data.usuario?.email ?? usuarioActual.correo,
+        telefono: data.usuario?.telefono ?? usuarioActual.telefono,
+        direccion: data.usuario?.direccion ?? usuarioActual.direccion,
+        tope_ahorros: data.usuario?.tope_ahorros ?? usuarioActual.tope_ahorros,
+        tope_corriente: data.usuario?.tope_corriente ?? usuarioActual.tope_corriente,
+      }));
       setPassword("");
       setEditando(false);
     } catch (error) {
@@ -174,6 +197,38 @@ function AjustesPerfil() {
           setUsuario({
             ...usuario,
             direccion: e.target.value,
+          })
+        }
+      />
+
+      <label>Tope cuenta de ahorros</label>
+
+      <input
+        type="number"
+        placeholder="Tope de cuenta de ahorros"
+        value={usuario.tope_ahorros}
+        disabled={!editando}
+        min="0"
+        onChange={(e) =>
+          setUsuario({
+            ...usuario,
+            tope_ahorros: e.target.value,
+          })
+        }
+      />
+
+      <label>Tope cuenta corriente</label>
+
+      <input
+        type="number"
+        placeholder="Tope de cuenta corriente"
+        value={usuario.tope_corriente}
+        disabled={!editando}
+        min="0"
+        onChange={(e) =>
+          setUsuario({
+            ...usuario,
+            tope_corriente: e.target.value,
           })
         }
       />

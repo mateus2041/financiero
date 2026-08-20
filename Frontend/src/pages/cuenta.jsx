@@ -283,6 +283,17 @@ const Cuenta = () => {
           </li>
 
 
+          <li>
+
+            <Link to="/reporte">
+
+              📜 reportes
+
+            </Link>
+
+          </li>
+
+
 
 
 
