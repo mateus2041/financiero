@@ -110,7 +110,7 @@ const CertificadoBancario = () => {
         orientation: "portrait",
       },
       pagebreak: {
-        mode: ["avoid-all"],
+        mode: ["css"],
       },
     };
 
