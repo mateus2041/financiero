@@ -18,19 +18,32 @@ function AjustesPerfil() {
       try {
         const token = localStorage.getItem("token");
 
-        const respuesta = await fetch("http://127.0.0.1:8000/usuario", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        if (!token) {
+          alert("No hay una sesión iniciada.");
+          return;
+        }
+
+        const respuesta = await fetch(
+          "http://127.0.0.1:8000/usuario",
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const data = await respuesta.json();
 
         if (!respuesta.ok) {
           throw new Error(
-            "No se pudo obtener la información del usuario."
+            data.detail ||
+              "No se pudo obtener la información del usuario."
           );
         }
 
-        const data = await respuesta.json();
+        console.log("Información recibida:", data);
 
         setUsuario({
           nombre: data.nombre || "",
@@ -40,7 +53,10 @@ function AjustesPerfil() {
         });
       } catch (error) {
         console.error(error);
-        alert("Error al cargar los datos del usuario.");
+        alert(
+          error.message ||
+            "Error al cargar los datos del usuario."
+        );
       }
     };
 
@@ -79,7 +95,8 @@ function AjustesPerfil() {
 
       if (!respuesta.ok) {
         throw new Error(
-          data.detail || "No se pudo actualizar el perfil."
+          data.detail ||
+            "No se pudo actualizar el perfil."
         );
       }
 
@@ -89,7 +106,10 @@ function AjustesPerfil() {
       setEditando(false);
     } catch (error) {
       console.error(error);
-      alert(error.message || "Error al actualizar el perfil.");
+      alert(
+        error.message ||
+          "Error al actualizar el perfil."
+      );
     }
   };
 
@@ -98,106 +118,96 @@ function AjustesPerfil() {
 
       <h1>Ajustes del Perfil</h1>
 
-      <div className="perfil-seccion">
-        <h2>👤 Información personal</h2>
+      <label>Nombre</label>
 
-        <label>Nombre</label>
-        <input
-          type="text"
-          placeholder="Nombre"
-          value={usuario.nombre}
-          disabled={!editando}
-          onChange={(e) =>
-            setUsuario({
-              ...usuario,
-              nombre: e.target.value,
-            })
-          }
-        />
+      <input
+        type="text"
+        placeholder="Nombre"
+        value={usuario.nombre}
+        disabled={!editando}
+        onChange={(e) =>
+          setUsuario({
+            ...usuario,
+            nombre: e.target.value,
+          })
+        }
+      />
 
-        <label>Correo</label>
-        <input
-          type="email"
-          placeholder="Correo"
-          value={usuario.correo}
-          disabled={!editando}
-          onChange={(e) =>
-            setUsuario({
-              ...usuario,
-              correo: e.target.value,
-            })
-          }
-        />
+      <label>Correo</label>
 
-        <label>Teléfono</label>
-        <input
-          type="text"
-          placeholder="Teléfono"
-          value={usuario.telefono}
-          disabled={!editando}
-          onChange={(e) =>
-            setUsuario({
-              ...usuario,
-              telefono: e.target.value,
-            })
-          }
-        />
+      <input
+        type="email"
+        placeholder="Correo"
+        value={usuario.correo}
+        disabled={!editando}
+        onChange={(e) =>
+          setUsuario({
+            ...usuario,
+            correo: e.target.value,
+          })
+        }
+      />
 
-        <label>Dirección</label>
-        <input
-          type="text"
-          placeholder="Dirección"
-          value={usuario.direccion}
-          disabled={!editando}
-          onChange={(e) =>
-            setUsuario({
-              ...usuario,
-              direccion: e.target.value,
-            })
-          }
-        />
-      </div>
+      <label>Teléfono</label>
 
-      <div className="perfil-seccion">
-        <h2>🔐 Seguridad</h2>
+      <input
+        type="text"
+        placeholder="Teléfono"
+        value={usuario.telefono}
+        disabled={!editando}
+        onChange={(e) =>
+          setUsuario({
+            ...usuario,
+            telefono: e.target.value,
+          })
+        }
+      />
 
-        {editando && (
-          <>
-            <label>Contraseña</label>
+      <label>Dirección</label>
 
-            <input
-              type="password"
-              placeholder="Ingresa tu contraseña"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </>
-        )}
+      <input
+        type="text"
+        placeholder="Dirección"
+        value={usuario.direccion}
+        disabled={!editando}
+        onChange={(e) =>
+          setUsuario({
+            ...usuario,
+            direccion: e.target.value,
+          })
+        }
+      />
 
-        {!editando ? (
-          <button type="button" onClick={editarPerfil}>
-            Editar perfil
-          </button>
-        ) : (
-          <button type="button" onClick={guardarCambios}>
-            Guardar cambios
-          </button>
-        )}
-      </div>
+      {editando && (
+        <>
+          <label>Contraseña</label>
 
-      <div className="perfil-seccion">
-        <h2>🔔 Notificaciones</h2>
+          <input
+            type="password"
+            placeholder="Ingresa tu contraseña"
+            value={password}
+            onChange={(e) =>
+              setPassword(e.target.value)
+            }
+          />
+        </>
+      )}
 
-        <div className="opcion-ajuste">
-          <span>Notificaciones de transacciones</span>
-          <input type="checkbox" defaultChecked />
-        </div>
-
-        <div className="opcion-ajuste">
-          <span>Alertas de seguridad</span>
-          <input type="checkbox" defaultChecked />
-        </div>
-      </div>
+      {!editando ? (
+        <button
+          type="button"
+          onClick={editarPerfil}
+        >
+          Editar
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={guardarCambios}
+        >
+          Guardar cambios
+        </button>
+      )}
 
     </div>
   );

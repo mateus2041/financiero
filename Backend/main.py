@@ -26,7 +26,6 @@ app = FastAPI(
 )
 
 
-
 # =======================
 # CORS
 # =======================
@@ -40,17 +39,11 @@ app.add_middleware(
 )
 
 
-
 # =======================
 # IA ROUTER
 # =======================
 
-# IMPORTANTE:
-# El /ia ya está en Backend/ai/router.py
-
 app.include_router(ia_router)
-
-
 
 
 # =======================
@@ -65,7 +58,6 @@ def startup():
     )
 
 
-
 # =======================
 # INICIO
 # =======================
@@ -74,9 +66,8 @@ def startup():
 def inicio():
 
     return {
-        "message":"API funcionando correctamente"
+        "message": "API funcionando correctamente"
     }
-
 
 
 # =======================
@@ -85,16 +76,13 @@ def inicio():
 
 @app.post("/register")
 def register(
-    data:dict,
-    db:Session = Depends(get_db)
+    data: dict,
+    db: Session = Depends(get_db)
 ):
-
 
     usuario_existente = db.query(Usuario).filter(
         Usuario.documento == data["documento"]
     ).first()
-
-
 
     if usuario_existente:
 
@@ -102,8 +90,6 @@ def register(
             status_code=409,
             detail="Usuario ya existe"
         )
-
-
 
     nuevo_usuario = Usuario(
 
@@ -123,43 +109,31 @@ def register(
 
     )
 
-
-
     db.add(nuevo_usuario)
 
     db.commit()
 
     db.refresh(nuevo_usuario)
 
-
-
     token = generate_token(
         nuevo_usuario.id_usuario
     )
 
-
-
     return {
 
+        "message": "Usuario registrado correctamente",
 
-        "message":"Usuario registrado correctamente",
+        "token": token,
 
+        "usuario": {
 
-        "token":token,
+            "id": nuevo_usuario.id_usuario,
 
-
-        "usuario":{
-
-            "id":nuevo_usuario.id_usuario,
-
-            "nombre":nuevo_usuario.nombre
+            "nombre": nuevo_usuario.nombre
 
         }
 
     }
-
-
-
 
 
 # =======================
@@ -169,20 +143,17 @@ def register(
 @app.post("/login")
 def login(
 
-    data:dict,
+    data: dict,
 
-    db:Session = Depends(get_db)
+    db: Session = Depends(get_db)
 
 ):
-
 
     usuario = db.query(Usuario).filter(
 
         Usuario.documento == data["documento"]
 
     ).first()
-
-
 
     if not usuario:
 
@@ -193,9 +164,6 @@ def login(
             detail="Usuario no encontrado"
 
         )
-
-
-
 
     if not check_password(
 
@@ -213,41 +181,29 @@ def login(
 
         )
 
-
-
-
     token = generate_token(
 
         usuario.id_usuario
 
     )
 
-
-
-
     return {
 
+        "message": "Login exitoso",
 
-        "message":"Login exitoso",
+        "token": token,
 
+        "usuario": {
 
-        "token":token,
+            "id": usuario.id_usuario,
 
+            "nombre": usuario.nombre,
 
-        "usuario":{
-
-            "id":usuario.id_usuario,
-
-            "nombre":usuario.nombre,
-
-            "documento":usuario.documento
+            "documento": usuario.documento
 
         }
 
     }
-
-
-
 
 
 # =======================
@@ -257,20 +213,17 @@ def login(
 @app.get("/perfil")
 def perfil(
 
-    current_user:int = Depends(token_required),
+    current_user: int = Depends(token_required),
 
-    db:Session = Depends(get_db)
+    db: Session = Depends(get_db)
 
 ):
-
 
     usuario = db.query(Usuario).filter(
 
         Usuario.id_usuario == current_user
 
     ).first()
-
-
 
     if not usuario:
 
@@ -282,26 +235,183 @@ def perfil(
 
         )
 
-
-
     return {
 
+        "id": usuario.id_usuario,
 
-        "id":usuario.id_usuario,
+        "nombre": usuario.nombre,
 
-        "nombre":usuario.nombre,
+        "email": usuario.email,
 
-        "email":usuario.email,
+        "documento": usuario.documento,
 
-        "documento":usuario.documento,
+        "telefono": usuario.telefono,
 
-        "telefono":usuario.telefono,
-
-        "direccion":usuario.direccion
+        "direccion": usuario.direccion
 
     }
 
 
+# =======================
+# USUARIO
+# =======================
+# Este endpoint es el que utiliza
+# Ajustes.jsx
+
+@app.get("/usuario")
+def obtener_usuario(
+
+    current_user: int = Depends(token_required),
+
+    db: Session = Depends(get_db)
+
+):
+
+    usuario = db.query(Usuario).filter(
+
+        Usuario.id_usuario == current_user
+
+    ).first()
+
+    if not usuario:
+
+        raise HTTPException(
+
+            status_code=404,
+
+            detail="Usuario no encontrado"
+
+        )
+
+    return {
+
+        "id": usuario.id_usuario,
+
+        "nombre": usuario.nombre,
+
+        "email": usuario.email,
+
+        "documento": usuario.documento,
+
+        "telefono": usuario.telefono,
+
+        "direccion": usuario.direccion
+
+    }
+
+
+# =======================
+# ACTUALIZAR PERFIL
+# =======================
+
+@app.put("/usuario/perfil")
+def actualizar_perfil(
+
+    data: dict,
+
+    current_user: int = Depends(token_required),
+
+    db: Session = Depends(get_db)
+
+):
+
+    usuario = db.query(Usuario).filter(
+
+        Usuario.id_usuario == current_user
+
+    ).first()
+
+    if not usuario:
+
+        raise HTTPException(
+
+            status_code=404,
+
+            detail="Usuario no encontrado"
+
+        )
+
+    # =======================
+    # VERIFICAR CONTRASEÑA
+    # =======================
+
+    if "password" not in data or not data["password"]:
+
+        raise HTTPException(
+
+            status_code=400,
+
+            detail="Debes ingresar tu contraseña"
+
+        )
+
+    if not check_password(
+
+        data["password"],
+
+        usuario.password
+
+    ):
+
+        raise HTTPException(
+
+            status_code=401,
+
+            detail="Contraseña incorrecta"
+
+        )
+
+
+    # =======================
+    # ACTUALIZAR DATOS
+    # =======================
+
+    if "nombre" in data:
+
+        usuario.nombre = data["nombre"]
+
+
+    if "email" in data:
+
+        usuario.email = data["email"]
+
+
+    if "telefono" in data:
+
+        usuario.telefono = data["telefono"]
+
+
+    if "direccion" in data:
+
+        usuario.direccion = data["direccion"]
+
+
+    db.commit()
+
+    db.refresh(usuario)
+
+
+    return {
+
+        "message": "Perfil actualizado correctamente",
+
+        "usuario": {
+
+            "id": usuario.id_usuario,
+
+            "nombre": usuario.nombre,
+
+            "email": usuario.email,
+
+            "documento": usuario.documento,
+
+            "telefono": usuario.telefono,
+
+            "direccion": usuario.direccion
+
+        }
+
+    }
 
 
 # =======================
@@ -311,21 +421,17 @@ def perfil(
 @app.get("/validar-token")
 def validar_token(
 
-    usuario:int = Depends(token_required)
+    usuario: int = Depends(token_required)
 
 ):
 
-
     return {
 
+        "mensaje": "Token válido",
 
-        "mensaje":"Token válido",
-
-        "usuario":usuario
+        "usuario": usuario
 
     }
-
-
 
 
 # =======================
@@ -335,21 +441,17 @@ def validar_token(
 @app.get("/probar-token")
 def probar_token(
 
-    usuario_id:int = Depends(token_required)
+    usuario_id: int = Depends(token_required)
 
 ):
 
-
     return {
 
-        "mensaje":"JWT funcionando correctamente",
+        "mensaje": "JWT funcionando correctamente",
 
-        "usuario_id":usuario_id
+        "usuario_id": usuario_id
 
     }
-
-
-
 
 
 # =======================
@@ -359,18 +461,18 @@ def probar_token(
 @app.get("/test-db")
 def test_db(
 
-    db:Session = Depends(get_db)
+    db: Session = Depends(get_db)
 
 ):
 
-
     db.execute(
-        text("SELECT 1")
-    )
 
+        text("SELECT 1")
+
+    )
 
     return {
 
-        "message":"Base de datos funcionando"
+        "message": "Base de datos funcionando"
 
     }
