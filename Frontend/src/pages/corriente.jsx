@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import "../styles/transferencias.css";
+import "../styles/corriente.css";
 
 export default function Transferencia() {
   const [form, setForm] = useState({
     origen: "corriente",
-    destino: "ahorro",
+    llave: "",
     monto: "",
     descripcion: "",
   });
@@ -14,8 +14,10 @@ export default function Transferencia() {
   const [saldoCorriente, setSaldoCorriente] = useState(0);
   const [saldoAhorro, setSaldoAhorro] = useState(0);
 
+  const [destinatario, setDestinatario] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [loading, setLoading] = useState(false);
+  const [consultando, setConsultando] = useState(false);
 
   // Formato de pesos colombianos
   const formatoMoneda = (valor) => {
@@ -75,10 +77,63 @@ export default function Transferencia() {
     });
   };
 
+  // Consultar destinatario mediante llave Bre-B
+  const consultarLlave = async () => {
+    if (!form.llave.trim()) {
+      setMensaje("Ingrese una llave Bre-B.");
+      return;
+    }
+
+    try {
+      setConsultando(true);
+      setMensaje("");
+      setDestinatario("");
+
+      const token = localStorage.getItem("token");
+
+      const res = await axios.get(
+        `http://localhost:8000/bre-b/consultar/${form.llave}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setDestinatario(res.data.nombre);
+
+      setMensaje("Destinatario encontrado correctamente.");
+
+    } catch (err) {
+      if (err.response) {
+        setMensaje(
+          err.response.data.detail ||
+          "No se encontró la llave Bre-B."
+        );
+      } else {
+        setMensaje("Error al conectar con el servidor.");
+      }
+
+      setDestinatario("");
+    } finally {
+      setConsultando(false);
+    }
+  };
+
   const transferir = async (e) => {
     e.preventDefault();
 
     const monto = Number(form.monto);
+
+    if (!form.llave.trim()) {
+      setMensaje("Ingrese la llave Bre-B del destinatario.");
+      return;
+    }
+
+    if (!destinatario) {
+      setMensaje("Primero debe consultar la llave Bre-B.");
+      return;
+    }
 
     if (monto <= 0) {
       setMensaje("Ingrese un monto válido.");
@@ -99,10 +154,10 @@ export default function Transferencia() {
       const token = localStorage.getItem("token");
 
       const res = await axios.post(
-        "http://localhost:8000/transferencias",
+        "http://localhost:8000/transferencias/bre-b",
         {
           origen: "corriente",
-          destino: "ahorro",
+          llave_destino: form.llave,
           monto: monto,
           descripcion: form.descripcion,
         },
@@ -117,10 +172,12 @@ export default function Transferencia() {
 
       setForm({
         origen: "corriente",
-        destino: "ahorro",
+        llave: "",
         monto: "",
         descripcion: "",
       });
+
+      setDestinatario("");
 
       // Actualizar saldos inmediatamente
       await obtenerSaldos();
@@ -146,25 +203,7 @@ export default function Transferencia() {
 
       <div className="transfer-card">
 
-        <h2>Transferencia entre cuentas</h2>
-
-        {/* SALDOS */}
-
-        <div className="saldos">
-
-          <div className="saldo-cuenta">
-            <span>
-              Cuenta Corriente ({formatoMoneda(saldoCorriente)})
-            </span>
-          </div>
-
-          <div className="saldo-cuenta">
-            <span>
-              Cuenta de Ahorro ({formatoMoneda(saldoAhorro)})
-            </span>
-          </div>
-
-        </div>
+        <h2>Transferencia Bre-B</h2>
 
         <form onSubmit={transferir}>
 
@@ -182,19 +221,37 @@ export default function Transferencia() {
             </option>
           </select>
 
-          {/* CUENTA DESTINO */}
+          {/* LLAVE BRE-B */}
 
-          <label>Cuenta destino</label>
+          <label>Llave Bre-B del destinatario</label>
 
-          <select
-            name="destino"
-            value={form.destino}
+          <input
+            type="text"
+            name="llave"
+            value={form.llave}
             onChange={cambiar}
+            placeholder="Ej: 3001234567"
+            required
+          />
+
+          <button
+            type="button"
+            onClick={consultarLlave}
+            disabled={consultando}
           >
-            <option value="ahorro">
-              Cuenta de Ahorro ({formatoMoneda(saldoAhorro)})
-            </option>
-          </select>
+            {consultando
+              ? "Consultando..."
+              : "Consultar destinatario"}
+          </button>
+
+          {/* DESTINATARIO */}
+
+          {destinatario && (
+            <div className="destinatario">
+              <strong>Destinatario:</strong>
+              <span>{destinatario}</span>
+            </div>
+          )}
 
           {/* MONTO */}
 
@@ -221,15 +278,18 @@ export default function Transferencia() {
             name="descripcion"
             value={form.descripcion}
             onChange={cambiar}
+            placeholder="Descripción de la transferencia"
           />
 
           {/* BOTÓN */}
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !destinatario}
           >
-            {loading ? "Procesando..." : "Transferir"}
+            {loading
+              ? "Procesando..."
+              : "Transferir por Bre-B"}
           </button>
 
         </form>
