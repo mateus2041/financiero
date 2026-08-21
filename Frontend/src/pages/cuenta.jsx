@@ -53,16 +53,26 @@ const Cuenta = () => {
 
 
         const res = await fetch(
-          `http://127.0.0.1:8000/usuario/${id}`
+          "http://127.0.0.1:8000/usuario",
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`
+            }
+          }
         );
 
 
-        const data = await res.json();
+        const datos = await res.json();
 
 
-        if (res.ok && data.nombre) {
+        if (res.ok && datos.nombre) {
 
-          setUsuario(data.nombre);
+          setUsuario(
+            datos.nombre ||
+            datos.usuario ||
+            datos.nombre_usuario ||
+            ""
+          );
 
         } else {
 
@@ -465,49 +475,48 @@ const Cuenta = () => {
 
             <img
 
-              src="https://i.pinimg.com/736x/e0/06/16/e00616c1e181f83b35b157f9281bd36e.jpg" 
- 
-              alt="Usuario" 
- 
-            /> 
- 
- 
-          </div> 
- 
- 
- 
-        </header> 
- 
- 
- 
- 
- 
- 
- 
-        <section className="stats"> 
- 
- 
-          <div className="card"> 
- 
-            <h3>Ingresos</h3> 
- 
-            <span>${totalIngresos}</span> 
- 
- 
-          </div> 
- 
- 
- 
- 
-          <div className="card"> 
- 
-            <h3>Cuenta</h3> 
- 
-            <span> 
-              ${totalIngresos-totalGastos} 
-            </span> 
- 
- 
+              src="https://i.pinimg.com/736x/e0/06/16/e00616c1e181f83b35b157f9281bd36e.jpg"
+
+              alt="Usuario"
+
+            />
+
+
+          </div>
+
+
+
+        </header>
+
+
+
+
+
+
+        <section className="stats">
+
+
+          <div className="card">
+
+            <h3>Ingresos</h3>
+
+            <span>${totalIngresos}</span>
+
+
+          </div>
+
+
+
+
+          <div className="card">
+
+            <h3>Cuenta</h3>
+
+            <span>
+              ${totalIngresos-totalGastos}
+            </span>
+
+
           </div>
 
 
@@ -520,67 +529,66 @@ const Cuenta = () => {
             </span>
 
           </div>
- 
- 
- 
- 
-          <div className="card"> 
- 
- 
-            <h3>Gastos</h3> 
- 
- 
-            <span>${totalGastos}</span> 
- 
- 
-          </div> 
- 
- 
- 
-        </section> 
- 
- 
- 
- 
- 
- 
- 
- 
-        <section className="chart-card"> 
- 
- 
-          <h3> 
-            Porcentaje de dinero 
-          </h3> 
- 
- 
- 
-          <div className="chart-container"> 
- 
- 
-            <canvas id="salesChart"></canvas> 
- 
- 
-          </div> 
- 
- 
- 
-        </section> 
- 
- 
- 
-      </main> 
- 
- 
- 
- 
-    </div> 
- 
- 
-  ); 
- 
- 
-}; 
- 
- 
+
+
+
+
+          <div className="card">
+
+
+            <h3>Gastos</h3>
+
+
+            <span>${totalGastos}</span>
+
+
+          </div>
+
+
+
+        </section>
+
+
+
+
+
+
+
+
+        <section className="chart-card">
+
+
+          <h3>
+            Porcentaje de dinero
+          </h3>
+
+
+
+          <div className="chart-container">
+
+
+            <canvas id="salesChart"></canvas>
+
+
+          </div>
+
+
+
+        </section>
+
+
+
+      </main>
+
+
+
+    </div>
+
+
+  );
+
+
+};
+
+
 export default Cuenta;
