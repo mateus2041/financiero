@@ -1,109 +1,122 @@
-.transferencia-container {
-  max-width: 500px;
-  margin: 50px auto;
+.transfer-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
   padding: 30px;
-  background: #ffffff;
-  border-radius: 15px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-  text-align: center;
+  background: #0b1535;
+  color: #f5f7ff;
   font-family: Arial, Helvetica, sans-serif;
 }
 
-.transferencia-container nav {
-  text-align: left;
-  margin-bottom: 20px;
+.transfer-card {
+  width: 450px;
+  padding: 30px;
+  background: #131a2c;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(250, 248, 248, 0.65);
 }
 
-.transferencia-container nav a {
-  color: #0b5ed7;
-  text-decoration: none;
-  font-weight: bold;
-  transition: 0.3s;
+.transfer-card h2 {
+  margin: 0 0 25px;
+  color: #f2c94c;
+  text-align: center;
+  font-size: 30px;
 }
 
-.transferencia-container nav a:hover {
-  color: #084298;
+.transfer-card label,
+.saldo-cuenta,
+.destinatario,
+.mensaje {
+  color: #f5f7ff;
 }
 
-.transferencia-container h1 {
-  color: #0b5ed7;
-  margin-bottom: 25px;
-  font-size: 28px;
+.transfer-card label {
+  display: block;
+  margin: 12px 0 6px;
+  font-size: 14px;
 }
 
-.saldo {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 25px;
+.saldos {
+  margin-bottom: 18px;
 }
 
-.saldo p {
-  margin: 12px 0;
-  font-size: 18px;
-  color: #333;
+.saldo-cuenta {
+  margin: 4px 0;
 }
 
-.saldo strong {
-  color: #0b5ed7;
-}
-
-.transferencia-container input {
+.transfer-card input,
+.transfer-card select,
+.transfer-card textarea {
   width: 100%;
-  padding: 14px;
-  margin-bottom: 20px;
-  border: 1px solid #ced4da;
-  border-radius: 8px;
-  font-size: 16px;
-  outline: none;
   box-sizing: border-box;
-  transition: 0.3s;
-}
-
-.transferencia-container input:focus {
-  border-color: #0b5ed7;
-  box-shadow: 0 0 5px rgba(11, 94, 215, 0.3);
-}
-
-.transferencia-container button {
-  width: 100%;
-  padding: 14px;
-  background: #0b5ed7;
-  color: #fff;
-  border: none;
+  padding: 10px;
+  border: 1px solid #52617f;
   border-radius: 8px;
-  font-size: 17px;
+  background: #202e50;
+  color: #f5f7ff;
+  font-size: 14px;
+}
+
+.transfer-card input::placeholder,
+.transfer-card textarea::placeholder {
+  color: #c8d0e2;
+  opacity: 1;
+}
+
+.transfer-card textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.transfer-card option {
+  background: #202e50;
+  color: #f5f7ff;
+}
+
+.transfer-card button {
+  padding: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #202e50, #f2c94c);
+  color: #fff;
   font-weight: bold;
   cursor: pointer;
-  transition: 0.3s;
 }
 
-.transferencia-container button:hover {
-  background: #084298;
-}
-
-.transferencia-container button:disabled {
-  background: #6c757d;
+.transfer-card button:disabled {
   cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.destinatario,
+.mensaje {
+  margin-top: 12px;
+}
+
+.destinatario span {
+  margin-left: 5px;
+  color: #f2c94c;
+}
+
+.mensaje {
+  font-weight: bold;
+  text-align: center;
+}
+
+.volver {
+  display: inline-block;
+  margin-top: 12px;
+  color: #f2c94c;
 }
 
 @media (max-width: 600px) {
-  .transferencia-container {
-    margin: 20px;
+  .transfer-container {
     padding: 20px;
   }
 
-  .transferencia-container h1 {
-    font-size: 22px;
-  }
-
-  .saldo p {
-    font-size: 16px;
-  }
-
-  .transferencia-container input,
-  .transferencia-container button {
-    font-size: 15px;
+  .transfer-card {
+    width: 100%;
+    padding: 20px;
   }
 }

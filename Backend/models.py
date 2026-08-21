@@ -28,13 +28,48 @@ class Usuario(Base):
     password = Column(String(255), nullable=False)
     telefono = Column(String(20))
     direccion = Column(String(200))
-    tope_ahorros = Column(DECIMAL(15, 2), nullable=False, default=0)
-    tope_corriente = Column(DECIMAL(15, 2), nullable=False, default=0)
-    id_tipo_doc = Column(Integer, ForeignKey("tipo_documento.id_tipo_doc"))
-    documento = Column(String(50), unique=True)
-    fecha_creacion = Column(DateTime, default=datetime.utcnow)
 
-    tipo_doc = relationship("TipoDocumento", back_populates="usuarios")
+    tope_ahorros = Column(
+        DECIMAL(15, 2),
+        nullable=False,
+        default=0
+    )
+
+    tope_corriente = Column(
+        DECIMAL(15, 2),
+        nullable=False,
+        default=0
+    )
+
+    id_tipo_doc = Column(
+        Integer,
+        ForeignKey("tipo_documento.id_tipo_doc")
+    )
+
+    documento = Column(
+        String(50),
+        unique=True
+    )
+
+    # =========================
+    # 🔹 LLAVE BRE-B
+    # =========================
+    llave_bre_b = Column(
+        String(100),
+        unique=True,
+        nullable=True,
+        index=True
+    )
+
+    fecha_creacion = Column(
+        DateTime,
+        default=datetime.utcnow
+    )
+
+    tipo_doc = relationship(
+        "TipoDocumento",
+        back_populates="usuarios"
+    )
 
     cuentas = relationship(
         "Cuenta",
@@ -55,7 +90,11 @@ class Usuario(Base):
 class Cuenta(Base):
     __tablename__ = "cuentas"
 
-    id_cuenta = Column(Integer, primary_key=True, index=True)
+    id_cuenta = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
     id_usuario = Column(
         Integer,

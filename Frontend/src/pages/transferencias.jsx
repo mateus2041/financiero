@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import "../styles/transferencias.css";
+
+const API_URL = "http://localhost:8000";
 
 export default function Transferencias() {
   const [form, setForm] = useState({
@@ -13,8 +15,15 @@ export default function Transferencias() {
   const [mensaje, setMensaje] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const saldoAhorros = 0;
-  const saldoCorriente = 700;
+  const [cuentas, setCuentas] = useState([]);
+
+  const token = localStorage.getItem("token");
+  const headers = token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
+
+  const saldoAhorros = cuentas.find((cuenta) => cuenta.tipo === "ahorros")?.saldo || 0;
+  const saldoCorriente = cuentas.find((cuenta) => cuenta.tipo === "corriente")?.saldo || 0;
 
   // Formato de dinero colombiano
   const formatoDinero = (valor) => {
@@ -33,20 +42,40 @@ export default function Transferencias() {
     });
   };
 
+  const obtenerDetalleError = (error, fallback) => {
+    const detalle = error.response?.data?.detail;
+
+    if (Array.isArray(detalle)) {
+      return detalle.map((item) => item.msg).join(" ");
+    }
+
+    return detalle || fallback;
+  };
+
+  const cargarCuentas = async () => {
+    const response = await axios.get(`${API_URL}/cuentas/mis-cuentas`, { headers });
+    setCuentas(response.data);
+  };
+
+  useEffect(() => {
+    cargarCuentas().catch(() => setMensaje("No se pudieron cargar las cuentas."));
+  }, []);
+
   // ==============================
   // REPORTAR TRANSACCIÓN FALLIDA
   // ==============================
   const reportarTransaccionFallida = async (motivo) => {
     try {
       await axios.post(
-        "http://localhost:8000/reportes/transaccion-fallida",
+        `${API_URL}/reportes/transaccion-fallida`,
         {
           origen: form.origen,
           destino: form.destino,
           monto: parseFloat(form.monto) || 0,
           descripcion: form.descripcion,
           motivo: motivo,
-        }
+        },
+        { headers }
       );
 
       console.log("Reporte registrado correctamente");
@@ -67,7 +96,10 @@ export default function Transferencias() {
     setMensaje("");
 
     // Validar campos
-    if (!form.destino || !form.monto) {
+    const destino = form.destino.trim();
+    const monto = Number(form.monto);
+
+    if (!destino || !form.monto) {
       const motivo = "Todos los campos son obligatorios.";
 
       setMensaje(motivo);
@@ -78,7 +110,17 @@ export default function Transferencias() {
     }
 
     // Validar monto
-    if (parseFloat(form.monto) <= 0) {
+    if (!Number.isInteger(Number(destino)) || Number(destino) <= 0) {
+      const motivo = "La cuenta destino debe ser un número válido.";
+
+      setMensaje(motivo);
+
+      await reportarTransaccionFallida(motivo);
+
+      return;
+    }
+
+    if (!Number.isFinite(monto) || monto <= 0) {
       const motivo = "El monto debe ser mayor que cero.";
 
       setMensaje(motivo);
@@ -95,7 +137,8 @@ export default function Transferencias() {
       setLoading(true);
 
       const cuentaResponse = await axios.get(
-        `http://localhost:8000/cuentas/existe/${form.destino}`
+        `${API_URL}/cuentas/existe/${destino}`,
+        { headers }
       );
 
       if (!cuentaResponse.data.existe) {
@@ -116,13 +159,14 @@ export default function Transferencias() {
       // REALIZAR TRANSFERENCIA
       // ==============================
       const response = await axios.post(
-        "http://localhost:8000/transferencias",
+        `${API_URL}/transferencias`,
         {
           origen: form.origen,
-          destino: form.destino,
-          monto: parseFloat(form.monto),
+          destino: Number(destino),
+          monto,
           descripcion: form.descripcion,
-        }
+        },
+        { headers }
       );
 
       // Transferencia exitosa
@@ -139,11 +183,15 @@ export default function Transferencias() {
         descripcion: "",
       });
 
+      await cargarCuentas();
+
     } catch (error) {
       // Obtener motivo del error
       const motivo =
-        error.response?.data?.detail ||
-        "La transferencia no pudo ser procesada.";
+        obtenerDetalleError(
+          error,
+          "La transferencia no pudo ser procesada."
+        );
 
       // Mostrar mensaje
       setMensaje(
@@ -199,13 +247,25 @@ export default function Transferencias() {
 
             <label>Cuenta Destino</label>
 
-            <input
-              type="text"
+            <select
               name="destino"
               value={form.destino}
               onChange={handleChange}
-              placeholder="Ingrese la cuenta destino"
-            />
+            >
+
+              <option value="" disabled>
+                Seleccione una cuenta destino
+              </option>
+
+              {cuentas.map((cuenta) => (
+                <option key={cuenta.id} value={cuenta.id}>
+                  {cuenta.tipo === "ahorros"
+                    ? "Cuenta de Ahorros"
+                    : "Cuenta Corriente"} ({cuenta.id})
+                </option>
+              ))}
+
+            </select>
 
           </div>
 
