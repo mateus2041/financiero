@@ -619,6 +619,28 @@ def mis_cuentas(
     ]
 
 
+@app.get("/cuentas/destino")
+def cuentas_destino(
+
+    current_user: int = Depends(token_required),
+
+    db: Session = Depends(get_db)
+
+):
+
+    cuentas = db.query(Cuenta).filter(
+        Cuenta.estado == "activa"
+    ).order_by(Cuenta.id_cuenta).all()
+
+    return [
+        {
+            "id": cuenta.id_cuenta,
+            "tipo": cuenta.tipo_cuenta,
+        }
+        for cuenta in cuentas
+    ]
+
+
 @app.post("/transferencias")
 def realizar_transferencia(
 
