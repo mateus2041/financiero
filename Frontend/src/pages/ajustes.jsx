@@ -14,6 +14,9 @@ function AjustesPerfil() {
 
   const [editando, setEditando] = useState(false);
   const [password, setPassword] = useState("");
+  const [llaveBreB, setLlaveBreB] = useState("");
+  const [guardandoLlave, setGuardandoLlave] = useState(false);
+  const [mensajeLlave, setMensajeLlave] = useState("");
 
   useEffect(() => {
     const obtenerUsuario = async () => {
@@ -52,9 +55,11 @@ function AjustesPerfil() {
           correo: data.correo || data.email || "",
           telefono: data.telefono || "",
           direccion: data.direccion || "",
+          llave_bre_b: data.llave_bre_b || "",
           tope_ahorros: data.tope_ahorros || 0,
           tope_corriente: data.tope_corriente || 0,
         });
+        setLlaveBreB(data.llave_bre_b || "");
       } catch (error) {
         console.error(error);
         alert(
@@ -69,6 +74,40 @@ function AjustesPerfil() {
 
   const editarPerfil = () => {
     setEditando(true);
+  };
+
+  const guardarLlaveBreB = async () => {
+    const llave = llaveBreB.trim();
+
+    if (llave.length < 4) {
+      setMensajeLlave("La llave Bre-B debe tener mínimo 4 caracteres.");
+      return;
+    }
+
+    try {
+      setGuardandoLlave(true);
+      setMensajeLlave("");
+      const respuesta = await fetch("http://127.0.0.1:8000/bre-b/llave", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ llave }),
+      });
+      const data = await respuesta.json();
+
+      if (!respuesta.ok) {
+        throw new Error(data.detail || "No se pudo registrar la llave Bre-B.");
+      }
+
+      setLlaveBreB(data.llave || llave);
+      setMensajeLlave(data.mensaje || "Llave Bre-B registrada correctamente.");
+    } catch (error) {
+      setMensajeLlave(error.message || "Error al registrar la llave Bre-B.");
+    } finally {
+      setGuardandoLlave(false);
+    }
   };
 
   const guardarCambios = async () => {
@@ -200,6 +239,28 @@ function AjustesPerfil() {
           })
         }
       />
+
+      <label>Tu llave Bre-B</label>
+
+      <input
+        type="text"
+        placeholder="Ej: 3001234567"
+        value={llaveBreB}
+        disabled={!editando}
+        onChange={(e) => setLlaveBreB(e.target.value)}
+      />
+
+      {editando && (
+        <button
+          type="button"
+          onClick={guardarLlaveBreB}
+          disabled={guardandoLlave}
+        >
+          {guardandoLlave ? "Guardando..." : "Guardar llave Bre-B"}
+        </button>
+      )}
+
+      {mensajeLlave && <p>{mensajeLlave}</p>}
 
       <label>Tope cuenta de ahorros</label>
 

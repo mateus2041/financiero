@@ -1,318 +1,682 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
-import "../styles/transferencias.css";
+import "../styles/corriente.css";
 
-export default function Transferencias() {
+const API_BASE_URL = "http://127.0.0.1:8000";
+
+export default function Transferencia() {
+
   const [form, setForm] = useState({
-    origen: "Cuenta de Ahorros",
-    destino: "",
+    origen: "corriente",
+    llave: "",
     monto: "",
     descripcion: "",
   });
 
+  const [saldoCorriente, setSaldoCorriente] = useState(0);
+  const [saldoAhorro, setSaldoAhorro] = useState(0);
+
+  const [destinatario, setDestinatario] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [loading, setLoading] = useState(false);
+  const [consultando, setConsultando] = useState(false);
 
-  const saldoAhorros = 0;
-  const saldoCorriente = 700;
 
-  // Formato de dinero colombiano
-  const formatoDinero = (valor) => {
+  // =====================================================
+  // FORMATO DE PESOS COLOMBIANOS
+  // =====================================================
+
+  const formatoMoneda = (valor) => {
+
     return new Intl.NumberFormat("es-CO", {
       style: "currency",
       currency: "COP",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(valor);
+    }).format(Number(valor) || 0);
+
   };
 
-  const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
-  };
 
-  // ==============================
-  // REPORTAR TRANSACCIÓN FALLIDA
-  // ==============================
-  const reportarTransaccionFallida = async (motivo) => {
+  // =====================================================
+  // OBTENER SALDOS
+  // =====================================================
+
+  const obtenerSaldos = async () => {
+
     try {
-      await axios.post(
-        "http://localhost:8000/reportes/transaccion-fallida",
+
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+
+        setMensaje("No hay una sesión activa.");
+
+        return;
+
+      }
+
+      const res = await axios.get(
+        `${API_BASE_URL}/cuentas/saldos`,
         {
-          origen: form.origen,
-          destino: form.destino,
-          monto: parseFloat(form.monto) || 0,
-          descripcion: form.descripcion,
-          motivo: motivo,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
-      console.log("Reporte registrado correctamente");
-    } catch (error) {
-      console.error(
-        "Error al registrar el reporte:",
-        error
+      setSaldoCorriente(
+        Number(res.data.cuenta_corriente || 0)
       );
+
+      setSaldoAhorro(
+        Number(res.data.cuenta_ahorro || 0)
+      );
+
+    } catch (err) {
+
+      console.error(
+        "Error obteniendo saldos:",
+        err
+      );
+
     }
+
   };
 
-  // ==============================
+
+  // =====================================================
+  // CARGAR SALDOS
+  // =====================================================
+
+  useEffect(() => {
+
+    obtenerSaldos();
+
+  }, []);
+
+
+  // =====================================================
+  // CAMBIAR CAMPOS
+  // =====================================================
+
+  const cambiar = (e) => {
+
+    const { name, value } = e.target;
+
+    setForm({
+      ...form,
+      [name]: value,
+    });
+
+    if (name === "origen") {
+
+      setDestinatario("");
+      setMensaje("");
+
+    }
+
+    if (name === "llave") {
+
+      setDestinatario("");
+      setMensaje("");
+
+    }
+
+  };
+
+
+  // =====================================================
+  // CAMBIAR MONTO
+  // =====================================================
+
+  const cambiarMonto = (e) => {
+
+    const valor = e.target.value.replace(/\D/g, "");
+
+    setForm({
+      ...form,
+      monto: valor,
+    });
+
+  };
+
+
+  // =====================================================
+  // CONSULTAR LLAVE BRE-B
+  // =====================================================
+
+  const consultarLlave = async () => {
+
+    const llave = form.llave.trim();
+
+    if (!llave) {
+
+      setMensaje(
+        "Ingrese una llave Bre-B."
+      );
+
+      return;
+
+    }
+
+    try {
+
+      setConsultando(true);
+
+      setMensaje("");
+
+      setDestinatario("");
+
+      const token =
+        localStorage.getItem("token");
+
+      if (!token) {
+
+        setMensaje(
+          "No hay una sesión activa."
+        );
+
+        return;
+
+      }
+
+      const res = await axios.get(
+
+        `${API_BASE_URL}/bre-b/consultar/${encodeURIComponent(
+          llave
+        )}`,
+
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+
+      );
+
+      setDestinatario(
+        res.data.nombre
+      );
+
+      setMensaje(
+        "Destinatario encontrado correctamente."
+      );
+
+    } catch (err) {
+
+      console.error(
+        "Error consultando llave:",
+        err
+      );
+
+      if (err.response) {
+
+        setMensaje(
+          err.response.data.detail ||
+          "No se encontró la llave Bre-B."
+        );
+
+      } else {
+
+        setMensaje(
+          "Error al conectar con el servidor."
+        );
+
+      }
+
+      setDestinatario("");
+
+    } finally {
+
+      setConsultando(false);
+
+    }
+
+  };
+
+
+  // =====================================================
   // REALIZAR TRANSFERENCIA
-  // ==============================
-  const handleSubmit = async (e) => {
+  // =====================================================
+
+  const transferir = async (e) => {
+
     e.preventDefault();
 
     setMensaje("");
 
-    // Validar campos
-    if (!form.destino || !form.monto) {
-      const motivo =
-        "Todos los campos son obligatorios.";
 
-      setMensaje(motivo);
+    // ===================================================
+    // VALIDAR LLAVE
+    // ===================================================
 
-      await reportarTransaccionFallida(motivo);
+    if (!form.llave.trim()) {
 
-      return;
-    }
-
-    // Validar monto
-    if (parseFloat(form.monto) <= 0) {
-      const motivo =
-        "El monto debe ser mayor que cero.";
-
-      setMensaje(motivo);
-
-      await reportarTransaccionFallida(motivo);
+      setMensaje(
+        "Ingrese la llave Bre-B del destinatario."
+      );
 
       return;
+
     }
 
-    // ==============================
-    // VALIDAR SI LA CUENTA EXISTE
-    // ==============================
+
+    // ===================================================
+    // VALIDAR DESTINATARIO
+    // ===================================================
+
+    if (!destinatario) {
+
+      setMensaje(
+        "Primero debe consultar la llave Bre-B."
+      );
+
+      return;
+
+    }
+
+
+    // ===================================================
+    // VALIDAR MONTO
+    // ===================================================
+
+    const monto = Number(form.monto);
+
+    if (!monto || monto <= 0) {
+
+      setMensaje(
+        "Ingrese un monto válido."
+      );
+
+      return;
+
+    }
+
+
+    // ===================================================
+    // OBTENER SALDO
+    // ===================================================
+
+    const saldoDisponible =
+      form.origen === "corriente"
+        ? saldoCorriente
+        : saldoAhorro;
+
+
+    // ===================================================
+    // VALIDAR SALDO
+    // ===================================================
+
+    if (monto > saldoDisponible) {
+
+      setMensaje(
+        `No tiene saldo suficiente en ${
+          form.origen === "corriente"
+            ? "Cuenta Corriente"
+            : "Cuenta de Ahorros"
+        }.`
+      );
+
+      return;
+
+    }
+
+
     try {
+
       setLoading(true);
 
-      const cuentaResponse = await axios.get(
-        `http://localhost:8000/cuentas/existe/${form.destino}`
-      );
 
-      if (!cuentaResponse.data.existe) {
-        const motivo =
-          "La cuenta destino no existe.";
+      const token =
+        localStorage.getItem("token");
 
-        setMensaje(motivo);
+      if (!token) {
 
-        await reportarTransaccionFallida(motivo);
+        setMensaje(
+          "No hay una sesión activa."
+        );
 
         return;
+
       }
 
-      setMensaje(
-        "La cuenta destino existe. Procesando transferencia..."
-      );
 
-      // ==============================
-      // REALIZAR TRANSFERENCIA
-      // ==============================
-      const response = await axios.post(
-        "http://localhost:8000/transferencias",
+      // =================================================
+      // ENVIAR TRANSFERENCIA BRE-B
+      // =================================================
+
+      const res = await axios.post(
+
+        `${API_BASE_URL}/transferencias/bre-b`,
+
         {
           origen: form.origen,
-          destino: form.destino,
-          monto: parseFloat(form.monto),
-          descripcion: form.descripcion,
+
+          llave_destino:
+            form.llave.trim(),
+
+          monto: monto,
+
+          descripcion:
+            form.descripcion.trim(),
+        },
+
+        {
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+          },
         }
+
       );
 
-      // Transferencia exitosa
+
+      // =================================================
+      // MENSAJE DE ÉXITO
+      // =================================================
+
       setMensaje(
-        response.data.mensaje ||
-          "Transferencia realizada correctamente."
+
+        res.data.mensaje ||
+        "Transferencia Bre-B realizada correctamente."
+
       );
 
-      // Limpiar formulario
+
+      // =================================================
+      // LIMPIAR FORMULARIO
+      // =================================================
+
       setForm({
-        origen: "Cuenta de Ahorros",
-        destino: "",
+
+        origen: form.origen,
+
+        llave: "",
+
         monto: "",
+
         descripcion: "",
+
       });
 
-    } catch (error) {
+      setDestinatario("");
 
-      // Obtener motivo del error
-      const motivo =
-        error.response?.data?.detail ||
-        "La transferencia no pudo ser procesada.";
 
-      // Mostrar un mensaje general sin exponer el detalle del backend
-      setMensaje("Transacción fallida");
+      // =================================================
+      // ACTUALIZAR SALDOS
+      // =================================================
 
-      // Guardar reporte
-      await reportarTransaccionFallida(motivo);
+      await obtenerSaldos();
+
+
+    } catch (err) {
+
+      console.error(
+        "Error realizando transferencia:",
+        err
+      );
+
+      if (err.response) {
+
+        setMensaje(
+
+          err.response.data.detail ||
+
+          "Error al realizar la transferencia."
+
+        );
+
+      } else {
+
+        setMensaje(
+          "Error al conectar con el servidor."
+        );
+
+      }
 
     } finally {
+
       setLoading(false);
+
     }
+
   };
 
+
+  // =====================================================
+  // RENDER
+  // =====================================================
+
   return (
+
     <div className="transfer-container">
 
       <div className="transfer-card">
 
-        <h2>Transferencias Bancarias</h2>
 
-        <form onSubmit={handleSubmit}>
-
-          {/* ============================== */}
-          {/* CUENTA ORIGEN */}
-          {/* ============================== */}
-
-          <div className="input-group">
-
-            <label>Cuenta Origen</label>
-
-            <select
-              name="origen"
-              value={form.origen}
-              onChange={handleChange}
-            >
-
-              <option value="Cuenta de Ahorros">
-                Cuenta de Ahorros (
-                {formatoDinero(saldoAhorros)}
-                )
-              </option>
-
-              <option value="Cuenta Corriente">
-                Cuenta Corriente (
-                {formatoDinero(saldoCorriente)}
-                )
-              </option>
-
-            </select>
-
-          </div>
+        <h2>
+          Transferencia Bre-B
+        </h2>
 
 
-          {/* ============================== */}
-          {/* CUENTA DESTINO */}
-          {/* ============================== */}
-
-          <div className="input-group">
-
-            <label>Cuenta Destino</label>
-
-            <select
-              name="destino"
-              value={form.destino}
-              onChange={handleChange}
-            >
-
-              <option value="">
-                Seleccione una cuenta destino
-              </option>
-
-              <option value="Cuenta de Ahorros">
-                Cuenta de Ahorros
-              </option>
-
-              <option value="Cuenta Corriente">
-                Cuenta Corriente
-              </option>
-
-            </select>
-
-          </div>
+        <form onSubmit={transferir}>
 
 
-          {/* ============================== */}
-          {/* MONTO */}
-          {/* ============================== */}
+          {/* =================================================
+              CUENTA ORIGEN
+          ================================================= */}
 
-          <div className="input-group">
+          <label>
+            Cuenta origen
+          </label>
 
-            <label>Monto</label>
+          <select
+            name="origen"
+            value={form.origen}
+            onChange={cambiar}
+          >
 
-            <input
-              type="text"
-              name="monto"
-              value={
-                form.monto
-                  ? formatoDinero(form.monto)
-                  : ""
-              }
-              onChange={(e) => {
+            <option value="corriente">
 
-                const valor =
-                  e.target.value.replace(/\D/g, "");
+              Cuenta Corriente (
+              {formatoMoneda(
+                saldoCorriente
+              )}
+              )
 
-                setForm({
-                  ...form,
-                  monto: valor,
-                });
-
-              }}
-              placeholder="$0"
-            />
-
-          </div>
+            </option>
 
 
-          {/* ============================== */}
-          {/* DESCRIPCIÓN */}
-          {/* ============================== */}
+            <option value="ahorro">
 
-          <div className="input-group">
+              Cuenta de Ahorros (
+              {formatoMoneda(
+                saldoAhorro
+              )}
+              )
 
-            <label>Descripción</label>
+            </option>
 
-            <textarea
-              name="descripcion"
-              value={form.descripcion}
-              onChange={handleChange}
-              placeholder="Ingrese una descripción"
-            />
-
-          </div>
+          </select>
 
 
-          {/* ============================== */}
-          {/* BOTÓN */}
-          {/* ============================== */}
+          {/* =================================================
+              LLAVE BRE-B
+          ================================================= */}
+
+          <label>
+            Llave Bre-B del destinatario
+          </label>
+
+          <input
+            type="text"
+            name="llave"
+            value={form.llave}
+            onChange={cambiar}
+            placeholder="Ej: @3162715547"
+            required
+          />
+
+
+          {/* =================================================
+              CONSULTAR DESTINATARIO
+          ================================================= */}
 
           <button
-            className="btn-transferir"
+            type="button"
+            onClick={consultarLlave}
+            disabled={
+              consultando ||
+              !form.llave.trim()
+            }
+          >
+
+            {consultando
+              ? "Consultando..."
+              : "Consultar destinatario"}
+
+          </button>
+
+
+          {/* =================================================
+              DESTINATARIO
+          ================================================= */}
+
+          {destinatario && (
+
+            <div className="destinatario">
+
+              <strong>
+                Destinatario:
+              </strong>
+
+              <span>
+                {destinatario}
+              </span>
+
+            </div>
+
+          )}
+
+
+          {/* =================================================
+              MONTO
+          ================================================= */}
+
+          <label>
+            Monto
+          </label>
+
+          <input
+            type="text"
+            name="monto"
+            value={
+              form.monto
+                ? formatoMoneda(
+                    Number(form.monto)
+                  )
+                : ""
+            }
+            onChange={cambiarMonto}
+            placeholder="$0"
+            required
+          />
+
+
+          {/* =================================================
+              SALDO DISPONIBLE
+          ================================================= */}
+
+          <div className="saldo-disponible">
+
+            Saldo disponible:
+
+            {" "}
+
+            {formatoMoneda(
+
+              form.origen === "corriente"
+                ? saldoCorriente
+                : saldoAhorro
+
+            )}
+
+          </div>
+
+
+          {/* =================================================
+              DESCRIPCIÓN
+          ================================================= */}
+
+          <label>
+            Descripción
+          </label>
+
+          <textarea
+            name="descripcion"
+            value={form.descripcion}
+            onChange={cambiar}
+            placeholder="Descripción de la transferencia"
+          />
+
+
+          {/* =================================================
+              BOTÓN TRANSFERIR
+          ================================================= */}
+
+          <button
             type="submit"
-            disabled={loading}
+            disabled={
+              loading ||
+              consultando ||
+              !destinatario
+            }
           >
 
             {loading
               ? "Procesando..."
-              : "Transferir"}
+              : "Transferir por Bre-B"}
 
           </button>
 
         </form>
 
 
-        {/* ============================== */}
-        {/* MENSAJE */}
-        {/* ============================== */}
+        {/* =================================================
+            MENSAJE
+        ================================================= */}
 
         {mensaje && (
+
           <p className="mensaje">
+
             {mensaje}
+
           </p>
+
         )}
+
+
+        {/* =================================================
+            VOLVER
+        ================================================= */}
+
+        <Link
+          to="/cuenta"
+          className="volver"
+        >
+
+          Volver
+
+        </Link>
+
 
       </div>
 
     </div>
+
   );
+
 }

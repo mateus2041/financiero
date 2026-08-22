@@ -7,7 +7,7 @@ from sqlalchemy import inspect, text
 from pydantic import BaseModel
 
 from Backend.ai.router import router as ia_router
-from Backend.models import Usuario, Cuenta, Transaccion
+from Backend.models import Usuario, Cuenta, Transaccion, LlaveBreb
 from Backend.dependencias import get_db
 
 from Backend.security import (
@@ -18,9 +18,9 @@ from Backend.security import (
 )
 
 
-# =======================
+# ==========================================================
 # APP
-# =======================
+# ==========================================================
 
 app = FastAPI(
     title="Financiero API",
@@ -28,9 +28,9 @@ app = FastAPI(
 )
 
 
-# =======================
+# ==========================================================
 # CORS
-# =======================
+# ==========================================================
 
 app.add_middleware(
     CORSMiddleware,
@@ -41,16 +41,16 @@ app.add_middleware(
 )
 
 
-# =======================
+# ==========================================================
 # IA ROUTER
-# =======================
+# ==========================================================
 
 app.include_router(ia_router)
 
 
-# =======================
+# ==========================================================
 # CREAR TABLAS
-# =======================
+# ==========================================================
 
 @app.on_event("startup")
 def startup():
@@ -82,10 +82,6 @@ def startup():
                 "NOT NULL DEFAULT 0"
             ))
 
-        # =======================
-        # LLAVE BRE-B
-        # =======================
-
         if "llave_bre_b" not in columnas_usuario:
 
             conexion.execute(text(
@@ -94,9 +90,23 @@ def startup():
             ))
 
 
-# =======================
+# ==========================================================
+# UTILIDAD LLAVE BRE-B
+# ==========================================================
+
+def obtener_llave_bre_b_actual(db: Session, usuario_id: int):
+
+    llave = db.query(LlaveBreb).filter(
+        LlaveBreb.id_usuario == usuario_id,
+        LlaveBreb.estado == "activa"
+    ).order_by(LlaveBreb.id_llave.desc()).first()
+
+    return llave.llave if llave else None
+
+
+# ==========================================================
 # INICIO
-# =======================
+# ==========================================================
 
 @app.get("/inicio")
 def inicio():
@@ -106,9 +116,9 @@ def inicio():
     }
 
 
-# =======================
+# ==========================================================
 # REGISTRO
-# =======================
+# ==========================================================
 
 @app.post("/register")
 def register(
@@ -152,18 +162,21 @@ def register(
     db.refresh(nuevo_usuario)
 
     db.add_all([
+
         Cuenta(
             id_usuario=nuevo_usuario.id_usuario,
             tipo_cuenta="ahorros",
             saldo=0,
-            estado="activa",
+            estado="activa"
         ),
+
         Cuenta(
             id_usuario=nuevo_usuario.id_usuario,
             tipo_cuenta="corriente",
             saldo=0,
-            estado="activa",
-        ),
+            estado="activa"
+        )
+
     ])
 
     db.commit()
@@ -174,24 +187,28 @@ def register(
 
     return {
 
-        "message": "Usuario registrado correctamente",
+        "message":
+        "Usuario registrado correctamente",
 
-        "token": token,
+        "token":
+        token,
 
         "usuario": {
 
-            "id": nuevo_usuario.id_usuario,
+            "id":
+            nuevo_usuario.id_usuario,
 
-            "nombre": nuevo_usuario.nombre
+            "nombre":
+            nuevo_usuario.nombre
 
         }
 
     }
 
 
-# =======================
+# ==========================================================
 # LOGIN
-# =======================
+# ==========================================================
 
 @app.post("/login")
 def login(
@@ -211,57 +228,51 @@ def login(
     if not usuario:
 
         raise HTTPException(
-
             status_code=404,
-
             detail="Usuario no encontrado"
-
         )
 
     if not check_password(
-
         data["password"],
-
         usuario.password
-
     ):
 
         raise HTTPException(
-
             status_code=401,
-
             detail="Credenciales inválidas"
-
         )
 
     token = generate_token(
-
         usuario.id_usuario
-
     )
 
     return {
 
-        "message": "Login exitoso",
+        "message":
+        "Login exitoso",
 
-        "token": token,
+        "token":
+        token,
 
         "usuario": {
 
-            "id": usuario.id_usuario,
+            "id":
+            usuario.id_usuario,
 
-            "nombre": usuario.nombre,
+            "nombre":
+            usuario.nombre,
 
-            "documento": usuario.documento
+            "documento":
+            usuario.documento
 
         }
 
     }
 
 
-# =======================
+# ==========================================================
 # PERFIL
-# =======================
+# ==========================================================
 
 @app.get("/perfil")
 def perfil(
@@ -281,37 +292,45 @@ def perfil(
     if not usuario:
 
         raise HTTPException(
-
             status_code=404,
-
             detail="Usuario no encontrado"
-
         )
 
     return {
 
-        "id": usuario.id_usuario,
+        "id":
+        usuario.id_usuario,
 
-        "nombre": usuario.nombre,
+        "nombre":
+        usuario.nombre,
 
-        "email": usuario.email,
+        "email":
+        usuario.email,
 
-        "documento": usuario.documento,
+        "documento":
+        usuario.documento,
 
-        "telefono": usuario.telefono,
+        "telefono":
+        usuario.telefono,
 
-        "direccion": usuario.direccion,
+        "direccion":
+        usuario.direccion,
 
-        "tope_ahorros": usuario.tope_ahorros,
+        "tope_ahorros":
+        float(usuario.tope_ahorros or 0),
 
-        "tope_corriente": usuario.tope_corriente
+        "tope_corriente":
+        float(usuario.tope_corriente or 0),
+
+        "llave_bre_b":
+        obtener_llave_bre_b_actual(db, current_user)
 
     }
 
 
-# =======================
+# ==========================================================
 # USUARIO
-# =======================
+# ==========================================================
 
 @app.get("/usuario")
 def obtener_usuario(
@@ -331,37 +350,45 @@ def obtener_usuario(
     if not usuario:
 
         raise HTTPException(
-
             status_code=404,
-
             detail="Usuario no encontrado"
-
         )
 
     return {
 
-        "id": usuario.id_usuario,
+        "id":
+        usuario.id_usuario,
 
-        "nombre": usuario.nombre,
+        "nombre":
+        usuario.nombre,
 
-        "email": usuario.email,
+        "email":
+        usuario.email,
 
-        "documento": usuario.documento,
+        "documento":
+        usuario.documento,
 
-        "telefono": usuario.telefono,
+        "telefono":
+        usuario.telefono,
 
-        "direccion": usuario.direccion,
+        "direccion":
+        usuario.direccion,
 
-        "tope_ahorros": usuario.tope_ahorros,
+        "tope_ahorros":
+        float(usuario.tope_ahorros or 0),
 
-        "tope_corriente": usuario.tope_corriente
+        "tope_corriente":
+        float(usuario.tope_corriente or 0),
+
+        "llave_bre_b":
+        obtener_llave_bre_b_actual(db, current_user)
 
     }
 
 
-# =======================
+# ==========================================================
 # ACTUALIZAR PERFIL
-# =======================
+# ==========================================================
 
 @app.put("/usuario/perfil")
 def actualizar_perfil(
@@ -383,113 +410,92 @@ def actualizar_perfil(
     if not usuario:
 
         raise HTTPException(
-
             status_code=404,
-
             detail="Usuario no encontrado"
-
         )
-
-    # =======================
-    # VERIFICAR CONTRASEÑA
-    # =======================
 
     if "password" not in data or not data["password"]:
 
         raise HTTPException(
-
             status_code=400,
-
             detail="Debes ingresar tu contraseña"
-
         )
 
     if not check_password(
-
         data["password"],
-
         usuario.password
-
     ):
 
         raise HTTPException(
-
             status_code=401,
-
             detail="Contraseña incorrecta"
-
         )
-
-
-    # =======================
-    # ACTUALIZAR DATOS
-    # =======================
 
     if "nombre" in data:
 
         usuario.nombre = data["nombre"]
 
+    if "email" in data:
 
-    if "email" in data or "correo" in data:
+        usuario.email = data["email"]
 
-        usuario.email = (
-            data["email"]
-            if "email" in data
-            else data["correo"]
-        )
+    elif "correo" in data:
 
+        usuario.email = data["correo"]
 
     if "telefono" in data:
 
         usuario.telefono = data["telefono"]
 
-
     if "direccion" in data:
 
         usuario.direccion = data["direccion"]
-
 
     if "tope_ahorros" in data:
 
         usuario.tope_ahorros = data["tope_ahorros"]
 
-
     if "tope_corriente" in data:
 
         usuario.tope_corriente = data["tope_corriente"]
-
 
     db.commit()
 
     db.refresh(usuario)
 
-
     return {
 
-        "message": "Perfil actualizado correctamente",
+        "message":
+        "Perfil actualizado correctamente",
 
         "usuario": {
 
-            "id": usuario.id_usuario,
+            "id":
+            usuario.id_usuario,
 
-            "nombre": usuario.nombre,
+            "nombre":
+            usuario.nombre,
 
-            "email": usuario.email,
+            "email":
+            usuario.email,
 
-            "documento": usuario.documento,
+            "documento":
+            usuario.documento,
 
-            "telefono": usuario.telefono,
+            "telefono":
+            usuario.telefono,
 
-            "direccion": usuario.direccion
+            "direccion":
+            usuario.direccion
 
         }
 
     }
 
 
-# =======================
+# ==========================================================
 # VALIDAR TOKEN
-# =======================
+# ==========================================================
 
 @app.get("/validar-token")
 def validar_token(
@@ -500,16 +506,18 @@ def validar_token(
 
     return {
 
-        "mensaje": "Token válido",
+        "mensaje":
+        "Token válido",
 
-        "usuario": usuario
+        "usuario":
+        usuario
 
     }
 
 
-# =======================
+# ==========================================================
 # PRUEBA JWT
-# =======================
+# ==========================================================
 
 @app.get("/probar-token")
 def probar_token(
@@ -520,16 +528,18 @@ def probar_token(
 
     return {
 
-        "mensaje": "JWT funcionando correctamente",
+        "mensaje":
+        "JWT funcionando correctamente",
 
-        "usuario_id": usuario_id
+        "usuario_id":
+        usuario_id
 
     }
 
 
-# =======================
+# ==========================================================
 # TEST DATABASE
-# =======================
+# ==========================================================
 
 @app.get("/test-db")
 def test_db(
@@ -539,42 +549,18 @@ def test_db(
 ):
 
     db.execute(
-
         text("SELECT 1")
-
     )
 
     return {
-
-        "message": "Base de datos funcionando"
-
+        "message":
+        "Base de datos funcionando"
     }
 
 
 # ==========================================================
-#                  TRANSFERENCIAS
+# CUENTAS
 # ==========================================================
-
-class Transferencia(BaseModel):
-
-    origen: str
-    destino: int
-    monto: Decimal
-    descripcion: str = ""
-
-
-def tipo_cuenta(origen: str):
-
-    valores = {
-        "Cuenta de Ahorros": "ahorros",
-        "Cuenta Corriente": "corriente",
-        "ahorro": "ahorros",
-        "ahorros": "ahorros",
-        "corriente": "corriente",
-    }
-
-    return valores.get(origen)
-
 
 @app.get("/cuentas/existe/{id_cuenta}")
 def cuenta_existe(
@@ -588,12 +574,24 @@ def cuenta_existe(
 ):
 
     cuenta = db.query(Cuenta).filter(
+
         Cuenta.id_cuenta == id_cuenta,
+
         Cuenta.estado == "activa"
+
     ).first()
 
-    return {"existe": cuenta is not None}
+    return {
 
+        "existe":
+        cuenta is not None
+
+    }
+
+
+# ==========================================================
+# MIS CUENTAS
+# ==========================================================
 
 @app.get("/cuentas/mis-cuentas")
 def mis_cuentas(
@@ -605,19 +603,86 @@ def mis_cuentas(
 ):
 
     cuentas = db.query(Cuenta).filter(
+
         Cuenta.id_usuario == current_user,
+
         Cuenta.estado == "activa"
+
+    ).order_by(
+
+        Cuenta.id_cuenta
+
     ).all()
 
     return [
+
         {
-            "id": cuenta.id_cuenta,
-            "tipo": cuenta.tipo_cuenta,
-            "saldo": float(cuenta.saldo or 0),
+
+            "id":
+            cuenta.id_cuenta,
+
+            "tipo":
+            cuenta.tipo_cuenta,
+
+            "saldo":
+            float(cuenta.saldo or 0)
+
         }
+
         for cuenta in cuentas
+
     ]
 
+
+# ==========================================================
+# SALDOS
+# ==========================================================
+
+@app.get("/cuentas/saldos")
+def saldos_cuentas(
+
+    current_user: int = Depends(token_required),
+
+    db: Session = Depends(get_db)
+
+):
+
+    cuentas = db.query(Cuenta).filter(
+
+        Cuenta.id_usuario == current_user,
+
+        Cuenta.estado == "activa"
+
+    ).all()
+
+    saldos = {
+
+        "cuenta_corriente": 0,
+
+        "cuenta_ahorro": 0
+
+    }
+
+    for cuenta in cuentas:
+
+        if cuenta.tipo_cuenta == "corriente":
+
+            saldos["cuenta_corriente"] = float(
+                cuenta.saldo or 0
+            )
+
+        elif cuenta.tipo_cuenta == "ahorros":
+
+            saldos["cuenta_ahorro"] = float(
+                cuenta.saldo or 0
+            )
+
+    return saldos
+
+
+# ==========================================================
+# CUENTAS DESTINO
+# ==========================================================
 
 @app.get("/cuentas/destino")
 def cuentas_destino(
@@ -629,17 +694,80 @@ def cuentas_destino(
 ):
 
     cuentas = db.query(Cuenta).filter(
-        Cuenta.estado == "activa"
-    ).order_by(Cuenta.id_cuenta).all()
+
+        Cuenta.estado == "activa",
+
+        Cuenta.id_usuario != current_user
+
+    ).order_by(
+
+        Cuenta.id_cuenta
+
+    ).all()
 
     return [
+
         {
-            "id": cuenta.id_cuenta,
-            "tipo": cuenta.tipo_cuenta,
+
+            "id":
+            cuenta.id_cuenta,
+
+            "tipo":
+            cuenta.tipo_cuenta
+
         }
+
         for cuenta in cuentas
+
     ]
 
+
+# ==========================================================
+# MODELO TRANSFERENCIA NORMAL
+# ==========================================================
+
+class Transferencia(BaseModel):
+
+    origen: str
+
+    destino: int
+
+    monto: Decimal
+
+    descripcion: str = ""
+
+
+# ==========================================================
+# CONVERTIR TIPO DE CUENTA
+# ==========================================================
+
+def tipo_cuenta(origen: str):
+
+    valores = {
+
+        "Cuenta de Ahorros":
+        "ahorros",
+
+        "Cuenta Corriente":
+        "corriente",
+
+        "ahorro":
+        "ahorros",
+
+        "ahorros":
+        "ahorros",
+
+        "corriente":
+        "corriente"
+
+    }
+
+    return valores.get(origen)
+
+
+# ==========================================================
+# TRANSFERENCIA NORMAL
+# ==========================================================
 
 @app.post("/transferencias")
 def realizar_transferencia(
@@ -652,87 +780,215 @@ def realizar_transferencia(
 
 ):
 
-    cuenta_origen_tipo = tipo_cuenta(data.origen)
+    try:
 
-    if not cuenta_origen_tipo:
-        raise HTTPException(status_code=400, detail="Cuenta de origen no válida.")
+        if data.monto <= Decimal("0"):
 
-    if data.monto <= Decimal("0"):
-        raise HTTPException(status_code=400, detail="El monto debe ser mayor que cero.")
+            raise HTTPException(
+                status_code=400,
+                detail="El monto debe ser mayor que cero."
+            )
 
-    monto = data.monto
+        cuenta_origen_tipo = tipo_cuenta(
+            data.origen
+        )
 
-    cuenta_origen = db.query(Cuenta).filter(
-        Cuenta.id_usuario == current_user,
-        Cuenta.tipo_cuenta == cuenta_origen_tipo,
-        Cuenta.estado == "activa"
-    ).with_for_update().first()
+        if not cuenta_origen_tipo:
 
-    if not cuenta_origen:
-        raise HTTPException(status_code=404, detail="La cuenta de origen no existe.")
+            raise HTTPException(
+                status_code=400,
+                detail="Cuenta de origen no válida."
+            )
 
-    cuenta_destino = db.query(Cuenta).filter(
-        Cuenta.id_cuenta == data.destino,
-        Cuenta.estado == "activa"
-    ).with_for_update().first()
+        cuenta_origen = db.query(Cuenta).filter(
 
-    if not cuenta_destino:
-        raise HTTPException(status_code=404, detail="La cuenta destino no existe.")
+            Cuenta.id_usuario == current_user,
 
-    if cuenta_origen.id_cuenta == cuenta_destino.id_cuenta:
-        raise HTTPException(status_code=400, detail="No puede transferir a la misma cuenta.")
+            Cuenta.tipo_cuenta ==
+            cuenta_origen_tipo,
 
-    if Decimal(str(cuenta_origen.saldo or 0)) < monto:
-        raise HTTPException(status_code=400, detail="Saldo insuficiente.")
+            Cuenta.estado == "activa"
 
-    cuenta_origen.saldo -= monto
-    cuenta_destino.saldo += monto
+        ).with_for_update().first()
 
-    db.add_all([
-        Transaccion(
-            id_cuenta=cuenta_origen.id_cuenta,
-            monto=monto,
-            tipo="Transferencia",
-            descripcion=data.descripcion or "Transferencia enviada",
-        ),
-        Transaccion(
-            id_cuenta=cuenta_destino.id_cuenta,
-            monto=monto,
-            tipo="Ingreso",
-            descripcion=data.descripcion or "Transferencia recibida",
-        ),
-    ])
+        if not cuenta_origen:
 
-    db.commit()
+            raise HTTPException(
+                status_code=404,
+                detail="La cuenta de origen no existe."
+            )
 
-    return {"mensaje": "Transferencia realizada correctamente."}
+        cuenta_destino = db.query(Cuenta).filter(
 
+            Cuenta.id_cuenta == data.destino,
+
+            Cuenta.estado == "activa"
+
+        ).with_for_update().first()
+
+        if not cuenta_destino:
+
+            raise HTTPException(
+                status_code=404,
+                detail="La cuenta destino no existe."
+            )
+
+        if cuenta_destino.id_usuario == current_user:
+
+            raise HTTPException(
+                status_code=400,
+                detail="La cuenta destino pertenece al mismo usuario."
+            )
+
+        saldo_origen = Decimal(
+            str(cuenta_origen.saldo or 0)
+        )
+
+        if saldo_origen < data.monto:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Saldo insuficiente."
+            )
+
+        cuenta_origen.saldo = (
+            saldo_origen -
+            data.monto
+        )
+
+        saldo_destino = Decimal(
+            str(cuenta_destino.saldo or 0)
+        )
+
+        cuenta_destino.saldo = (
+            saldo_destino +
+            data.monto
+        )
+
+        transaccion_salida = Transaccion(
+
+            id_cuenta=
+            cuenta_origen.id_cuenta,
+
+            monto=
+            data.monto,
+
+            tipo=
+            "Transferencia",
+
+            descripcion=
+            data.descripcion or
+            "Transferencia"
+
+        )
+
+        transaccion_entrada = Transaccion(
+
+            id_cuenta=
+            cuenta_destino.id_cuenta,
+
+            monto=
+            data.monto,
+
+            tipo=
+            "Ingreso",
+
+            descripcion=
+            data.descripcion or
+            "Ingreso por transferencia"
+
+        )
+
+        db.add(transaccion_salida)
+
+        db.add(transaccion_entrada)
+
+        db.commit()
+
+        db.refresh(cuenta_origen)
+
+        db.refresh(cuenta_destino)
+
+        return {
+
+            "mensaje":
+            "Transferencia realizada correctamente.",
+
+            "monto":
+            float(data.monto),
+
+            "saldo_origen":
+            float(cuenta_origen.saldo),
+
+            "saldo_destino":
+            float(cuenta_destino.saldo)
+
+        }
+
+    except HTTPException:
+
+        db.rollback()
+
+        raise
+
+    except Exception as error:
+
+        db.rollback()
+
+        print(
+            "ERROR TRANSFERENCIA:",
+            error
+        )
+
+        raise HTTPException(
+
+            status_code=500,
+
+            detail=
+            "Error interno al realizar la transferencia."
+
+        )
+
+
+# ==========================================================
+# REPORTAR TRANSACCIÓN FALLIDA
+# ==========================================================
 
 @app.post("/reportes/transaccion-fallida")
 def reportar_transaccion_fallida(
 
     data: dict,
 
-    current_user: int = Depends(token_required),
+    current_user: int = Depends(token_required)
 
 ):
 
     print(
+
         "Transacción fallida reportada",
-        {"usuario": current_user, **data}
+
+        {
+
+            "usuario":
+            current_user,
+
+            **data
+
+        }
+
     )
 
-    return {"mensaje": "Reporte registrado correctamente."}
+    return {
+
+        "mensaje":
+        "Reporte registrado correctamente."
+
+    }
 
 
 # ==========================================================
-#                  BRE-B
+#                    BRE-B
 # ==========================================================
-
-
-# =======================
-# MODELO TRANSFERENCIA
-# =======================
 
 class TransferenciaBreB(BaseModel):
 
@@ -740,14 +996,14 @@ class TransferenciaBreB(BaseModel):
 
     llave_destino: str
 
-    monto: float
+    monto: Decimal
 
     descripcion: str = ""
 
 
-# =======================
+# ==========================================================
 # REGISTRAR LLAVE BRE-B
-# =======================
+# ==========================================================
 
 @app.put("/bre-b/llave")
 def registrar_llave_bre_b(
@@ -760,7 +1016,7 @@ def registrar_llave_bre_b(
 
 ):
 
-    llave = data.get("llave")
+    llave = (data or {}).get("llave")
 
     if not llave:
 
@@ -768,10 +1024,12 @@ def registrar_llave_bre_b(
 
             status_code=400,
 
-            detail="Debe ingresar una llave Bre-B."
+            detail=
+            "Debe ingresar una llave Bre-B."
 
         )
 
+    llave = llave.strip()
 
     if len(llave) < 4:
 
@@ -779,37 +1037,19 @@ def registrar_llave_bre_b(
 
             status_code=400,
 
-            detail="La llave Bre-B no es válida."
+            detail=
+            "La llave Bre-B no es válida."
 
         )
 
+    usuario = db.query(
+        Usuario
+    ).filter(
 
-    # Verificar si la llave ya existe
-
-    usuario_llave = db.query(Usuario).filter(
-
-        Usuario.llave_bre_b == llave
-
-    ).first()
-
-
-    if usuario_llave and usuario_llave.id_usuario != current_user:
-
-        raise HTTPException(
-
-            status_code=409,
-
-            detail="Esta llave Bre-B ya está registrada."
-
-        )
-
-
-    usuario = db.query(Usuario).filter(
-
-        Usuario.id_usuario == current_user
+        Usuario.id_usuario ==
+        current_user
 
     ).first()
-
 
     if not usuario:
 
@@ -817,30 +1057,92 @@ def registrar_llave_bre_b(
 
             status_code=404,
 
-            detail="Usuario no encontrado."
+            detail=
+            "Usuario no encontrado."
 
         )
 
+    llave_existente = db.query(LlaveBreb).filter(
+        LlaveBreb.llave == llave,
+        LlaveBreb.estado == "activa"
+    ).first()
 
-    usuario.llave_bre_b = llave
+    if llave_existente and llave_existente.id_usuario != current_user:
 
+        raise HTTPException(
+
+            status_code=409,
+
+            detail=
+            "Esta llave Bre-B ya está registrada."
+
+        )
+
+    cuenta_usuario = db.query(Cuenta).filter(
+        Cuenta.id_usuario == current_user,
+        Cuenta.estado == "activa"
+    ).order_by(Cuenta.id_cuenta).first()
+
+    if not cuenta_usuario:
+
+        raise HTTPException(
+
+            status_code=404,
+
+            detail=
+            "Debe tener al menos una cuenta activa para registrar una llave Bre-B."
+
+        )
+
+    llave_actual = db.query(LlaveBreb).filter(
+        LlaveBreb.id_usuario == current_user,
+        LlaveBreb.estado == "activa"
+    ).order_by(LlaveBreb.id_llave.desc()).first()
+
+    if llave_actual:
+
+        llave_actual.llave = llave
+        llave_actual.id_cuenta = cuenta_usuario.id_cuenta
+        llave_actual.tipo_llave = "alfanumerica"
+        db.commit()
+        db.refresh(llave_actual)
+
+        return {
+
+            "mensaje":
+            "Llave Bre-B registrada correctamente.",
+
+            "llave":
+            llave_actual.llave
+
+        }
+
+    nueva_llave = LlaveBreb(
+        id_usuario=current_user,
+        id_cuenta=cuenta_usuario.id_cuenta,
+        tipo_llave="alfanumerica",
+        llave=llave,
+        estado="activa"
+    )
+
+    db.add(nueva_llave)
     db.commit()
-
-    db.refresh(usuario)
-
+    db.refresh(nueva_llave)
 
     return {
 
-        "mensaje": "Llave Bre-B registrada correctamente.",
+        "mensaje":
+        "Llave Bre-B registrada correctamente.",
 
-        "llave": usuario.llave_bre_b
+        "llave":
+        nueva_llave.llave
 
     }
 
 
-# =======================
+# ==========================================================
 # CONSULTAR LLAVE BRE-B
-# =======================
+# ==========================================================
 
 @app.get("/bre-b/consultar/{llave}")
 def consultar_llave_bre_b(
@@ -853,12 +1155,27 @@ def consultar_llave_bre_b(
 
 ):
 
-    usuario = db.query(Usuario).filter(
+    llave = llave.strip()
 
-        Usuario.llave_bre_b == llave
-
+    llave_breb = db.query(LlaveBreb).filter(
+        LlaveBreb.llave == llave,
+        LlaveBreb.estado == "activa"
     ).first()
 
+    if not llave_breb:
+
+        raise HTTPException(
+
+            status_code=404,
+
+            detail=
+            "No se encontró un usuario asociado a esta llave Bre-B."
+
+        )
+
+    usuario = db.query(Usuario).filter(
+        Usuario.id_usuario == llave_breb.id_usuario
+    ).first()
 
     if not usuario:
 
@@ -866,10 +1183,10 @@ def consultar_llave_bre_b(
 
             status_code=404,
 
-            detail="No se encontró un usuario asociado a esta llave Bre-B."
+            detail=
+            "No se encontró un usuario asociado a esta llave Bre-B."
 
         )
-
 
     if usuario.id_usuario == current_user:
 
@@ -877,25 +1194,41 @@ def consultar_llave_bre_b(
 
             status_code=400,
 
-            detail="Esta llave pertenece a su propio usuario."
+            detail=
+            "Esta llave pertenece a su propio usuario."
 
         )
 
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_cuenta == llave_breb.id_cuenta
+    ).first()
 
     return {
 
-        "nombre": usuario.nombre,
+        "nombre":
+        usuario.nombre,
 
-        "documento": usuario.documento,
+        "documento":
+        usuario.documento,
 
-        "llave": usuario.llave_bre_b
+        "llave":
+        llave_breb.llave,
+
+        "tipo_llave":
+        llave_breb.tipo_llave,
+
+        "id_cuenta":
+        llave_breb.id_cuenta,
+
+        "tipo_cuenta":
+        cuenta.tipo_cuenta if cuenta else None
 
     }
 
 
-# =======================
+# ==========================================================
 # TRANSFERENCIA BRE-B
-# =======================
+# ==========================================================
 
 @app.post("/transferencias/bre-b")
 def transferencia_bre_b(
@@ -908,103 +1241,480 @@ def transferencia_bre_b(
 
 ):
 
-    # =======================
-    # VALIDAR MONTO
-    # =======================
+    try:
 
-    if data.monto <= 0:
+        # ==================================================
+        # VALIDAR MONTO
+        # ==================================================
 
-        raise HTTPException(
+        if data.monto <= Decimal("0"):
 
-            status_code=400,
+            raise HTTPException(
 
-            detail="El monto debe ser mayor a cero."
+                status_code=400,
+
+                detail=
+                "El monto debe ser mayor que cero."
+
+            )
+
+
+        # ==================================================
+        # VALIDAR LLAVE
+        # ==================================================
+
+        llave = data.llave_destino.strip()
+
+        if not llave:
+
+            raise HTTPException(
+
+                status_code=400,
+
+                detail=
+                "Debe ingresar una llave Bre-B."
+
+            )
+
+
+        # ==================================================
+        # VALIDAR ORIGEN
+        # ==================================================
+
+        if data.origen not in [
+
+            "corriente",
+
+            "ahorro",
+
+            "ahorros"
+
+        ]:
+
+            raise HTTPException(
+
+                status_code=400,
+
+                detail=
+                "Cuenta de origen no válida."
+
+            )
+
+        tipo_origen = (
+
+            "ahorros"
+
+            if data.origen in [
+                "ahorro",
+                "ahorros"
+            ]
+
+            else
+
+            "corriente"
 
         )
 
 
-    # =======================
-    # VALIDAR ORIGEN
-    # =======================
+        # ==================================================
+        # BUSCAR DESTINATARIO
+        # ==================================================
 
-    if data.origen not in [
+        llave_breb = db.query(LlaveBreb).filter(
+            LlaveBreb.llave == llave,
+            LlaveBreb.estado == "activa"
+        ).first()
 
-        "corriente",
+        if not llave_breb:
 
-        "ahorro"
+            raise HTTPException(
 
-    ]:
+                status_code=404,
 
-        raise HTTPException(
+                detail=
+                "No se encontró el destinatario."
 
-            status_code=400,
+            )
 
-            detail="Cuenta de origen no válida."
+        destinatario = db.query(Usuario).filter(
+            Usuario.id_usuario == llave_breb.id_usuario
+        ).first()
+
+        if not destinatario:
+
+            raise HTTPException(
+
+                status_code=404,
+
+                detail=
+                "No se encontró el destinatario."
+
+            )
+
+
+        # ==================================================
+        # EVITAR AUTO TRANSFERENCIA
+        # ==================================================
+
+        if (
+
+            destinatario.id_usuario ==
+            current_user
+
+        ):
+
+            raise HTTPException(
+
+                status_code=400,
+
+                detail=
+                "No puede realizar una transferencia a usted mismo."
+
+            )
+
+
+        # ==================================================
+        # BUSCAR CUENTA ORIGEN
+        # ==================================================
+
+        cuenta_origen = db.query(
+            Cuenta
+        ).filter(
+
+            Cuenta.id_usuario ==
+            current_user,
+
+            Cuenta.tipo_cuenta ==
+            tipo_origen,
+
+            Cuenta.estado ==
+            "activa"
+
+        ).with_for_update().first()
+
+        if not cuenta_origen:
+
+            raise HTTPException(
+
+                status_code=404,
+
+                detail=
+                "La cuenta de origen no existe."
+
+            )
+
+
+        # ==================================================
+        # BUSCAR CUENTA DESTINO
+        # ==================================================
+        #
+        # Para nuestra simulación Bre-B vamos a recibir
+        # el dinero en la CUENTA DE AHORROS del destinatario.
+        #
+        # ==================================================
+
+        cuenta_destino = db.query(
+            Cuenta
+        ).filter(
+
+            Cuenta.id_usuario ==
+            destinatario.id_usuario,
+
+            Cuenta.tipo_cuenta ==
+            "ahorros",
+
+            Cuenta.estado ==
+            "activa"
+
+        ).with_for_update().first()
+
+
+        # ==================================================
+        # SI NO TIENE AHORROS, BUSCAR CORRIENTE
+        # ==================================================
+
+        if not cuenta_destino:
+
+            cuenta_destino = db.query(
+                Cuenta
+            ).filter(
+
+                Cuenta.id_usuario ==
+                destinatario.id_usuario,
+
+                Cuenta.tipo_cuenta ==
+                "corriente",
+
+                Cuenta.estado ==
+                "activa"
+
+            ).with_for_update().first()
+
+
+        if not cuenta_destino:
+
+            raise HTTPException(
+
+                status_code=404,
+
+                detail=
+                "El destinatario no tiene una cuenta activa."
+
+            )
+
+
+        # ==================================================
+        # VALIDAR SALDO
+        # ==================================================
+
+        saldo_origen = Decimal(
+
+            str(
+                cuenta_origen.saldo or 0
+            )
+
+        )
+
+        if saldo_origen < data.monto:
+
+            raise HTTPException(
+
+                status_code=400,
+
+                detail=(
+
+                    "Saldo insuficiente. "
+
+                    f"Saldo disponible: "
+                    f"${saldo_origen:,.0f}"
+
+                )
+
+            )
+
+
+        # ==================================================
+        # VALIDAR TOPE DE LA CUENTA ORIGEN
+        # ==================================================
+
+        usuario_origen = db.query(
+            Usuario
+        ).filter(
+
+            Usuario.id_usuario ==
+            current_user
+
+        ).first()
+
+        if not usuario_origen:
+
+            raise HTTPException(
+
+                status_code=404,
+
+                detail=
+                "Usuario de origen no encontrado."
+
+            )
+
+
+        if tipo_origen == "ahorros":
+
+            tope = Decimal(
+
+                str(
+                    usuario_origen.tope_ahorros or 0
+                )
+
+            )
+
+        else:
+
+            tope = Decimal(
+
+                str(
+                    usuario_origen.tope_corriente or 0
+                )
+
+            )
+
+
+        # ==================================================
+        # VALIDAR TOPE
+        # ==================================================
+
+        if tope > 0 and data.monto > tope:
+
+            raise HTTPException(
+
+                status_code=400,
+
+                detail=(
+
+                    "El monto supera el tope "
+                    "permitido para esta cuenta."
+
+                )
+
+            )
+
+
+        # ==================================================
+        # DESCONTAR ORIGEN
+        # ==================================================
+
+        cuenta_origen.saldo = (
+
+            saldo_origen -
+            data.monto
 
         )
 
 
-    # =======================
-    # BUSCAR DESTINATARIO
-    # =======================
+        # ==================================================
+        # SUMAR DESTINO
+        # ==================================================
 
-    destinatario = db.query(Usuario).filter(
+        saldo_destino = Decimal(
 
-        Usuario.llave_bre_b == data.llave_destino
+            str(
+                cuenta_destino.saldo or 0
+            )
 
-    ).first()
+        )
 
+        cuenta_destino.saldo = (
 
-    if not destinatario:
-
-        raise HTTPException(
-
-            status_code=404,
-
-            detail="No se encontró el destinatario."
+            saldo_destino +
+            data.monto
 
         )
 
 
-    # =======================
-    # EVITAR AUTO TRANSFERENCIA
-    # =======================
+        # ==================================================
+        # TRANSACCIÓN SALIDA
+        # ==================================================
 
-    if destinatario.id_usuario == current_user:
+        transaccion_salida = Transaccion(
 
-        raise HTTPException(
+            id_cuenta=
+            cuenta_origen.id_cuenta,
 
-            status_code=400,
+            monto=
+            data.monto,
 
-            detail="No puede realizar una transferencia a usted mismo."
+            tipo=
+            "Transferencia",
+
+            descripcion=
+            data.descripcion or
+            "Transferencia Bre-B enviada"
 
         )
 
 
-    # ==================================================
-    # IMPORTANTE
-    # ==================================================
-    #
-    # Aquí debemos modificar el saldo real de las cuentas.
-    #
-    # Como tu modelo Cuenta todavía no está incluido
-    # en el main.py que me enviaste, no voy a inventar
-    # nombres de columnas.
-    #
-    # Por ahora verificamos que el destinatario existe.
-    #
+        # ==================================================
+        # TRANSACCIÓN ENTRADA
+        # ==================================================
+
+        transaccion_entrada = Transaccion(
+
+            id_cuenta=
+            cuenta_destino.id_cuenta,
+
+            monto=
+            data.monto,
+
+            tipo=
+            "Ingreso",
+
+            descripcion=
+            data.descripcion or
+            "Transferencia Bre-B recibida"
+
+        )
 
 
-    return {
+        db.add(
+            transaccion_salida
+        )
 
-        "mensaje": "Transferencia Bre-B preparada correctamente.",
+        db.add(
+            transaccion_entrada
+        )
 
-        "destinatario": destinatario.nombre,
 
-        "llave_destino": data.llave_destino,
+        # ==================================================
+        # GUARDAR TODO
+        # ==================================================
 
-        "monto": data.monto,
+        db.commit()
 
-        "descripcion": data.descripcion
+        db.refresh(
+            cuenta_origen
+        )
 
-    }
+        db.refresh(
+            cuenta_destino
+        )
+
+
+        # ==================================================
+        # RESPUESTA
+        # ==================================================
+
+        return {
+
+            "mensaje":
+            "Transferencia Bre-B realizada correctamente.",
+
+            "destinatario":
+            destinatario.nombre,
+
+            "llave_destino":
+            llave,
+
+            "monto":
+            float(data.monto),
+
+            "descripcion":
+            data.descripcion,
+
+            "cuenta_origen":
+            cuenta_origen.tipo_cuenta,
+
+            "cuenta_destino":
+            cuenta_destino.tipo_cuenta,
+
+            "saldo_restante":
+            float(
+                cuenta_origen.saldo
+            )
+
+        }
+
+
+    except HTTPException:
+
+        db.rollback()
+
+        raise
+
+
+    except Exception as error:
+
+        db.rollback()
+
+        print(
+            "ERROR BRE-B:",
+            error
+        )
+
+        raise HTTPException(
+
+            status_code=500,
+
+            detail=
+            "Error interno al realizar la transferencia Bre-B."
+
+        )
