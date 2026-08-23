@@ -681,6 +681,41 @@ def saldos_cuentas(
 
 
 # ==========================================================
+# HISTORIAL DE TRANSACCIONES
+# ==========================================================
+
+@app.get("/transacciones")
+def transacciones_usuario(
+
+    current_user: int = Depends(token_required),
+
+    db: Session = Depends(get_db)
+
+):
+
+    transacciones = db.query(Transaccion).join(
+        Cuenta,
+        Transaccion.id_cuenta == Cuenta.id_cuenta
+    ).filter(
+        Cuenta.id_usuario == current_user
+    ).order_by(
+        Transaccion.fecha.desc()
+    ).all()
+
+    return [
+        {
+            "id_transaccion": transaccion.id_transaccion,
+            "id_cuenta": transaccion.id_cuenta,
+            "monto": float(transaccion.monto or 0),
+            "tipo": transaccion.tipo,
+            "fecha": transaccion.fecha,
+            "descripcion": transaccion.descripcion,
+        }
+        for transaccion in transacciones
+    ]
+
+
+# ==========================================================
 # CUENTAS DESTINO
 # ==========================================================
 

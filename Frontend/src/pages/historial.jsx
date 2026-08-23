@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/historial.css";
 
+const HISTORIAL_LOCAL_KEY = "historial_transferencias";
+const HISTORIAL_LEGACY_KEY = "historial";
+
 function Historial() {
 
     const [transacciones, setTransacciones] = useState([]);
@@ -70,6 +73,13 @@ function Historial() {
 
             const token = localStorage.getItem("token");
 
+            const historialLocal = JSON.parse(
+                localStorage.getItem(HISTORIAL_LOCAL_KEY) || "[]"
+            );
+            const historialAnterior = JSON.parse(
+                localStorage.getItem(HISTORIAL_LEGACY_KEY) || "[]"
+            );
+
             const respuesta = await fetch(
                 "http://127.0.0.1:8000/transacciones",
                 {
@@ -93,12 +103,32 @@ function Historial() {
                 ? datos
                 : datos.transacciones || datos.data || [];
 
-            setTransacciones(lista);
+            setTransacciones([
+                ...historialLocal,
+                ...historialAnterior,
+                ...lista,
+            ]);
 
         } catch (error) {
 
             console.error(error);
-            setError("No fue posible cargar el historial.");
+
+            const historialLocal = JSON.parse(
+                localStorage.getItem(HISTORIAL_LOCAL_KEY) || "[]"
+            );
+            const historialAnterior = JSON.parse(
+                localStorage.getItem(HISTORIAL_LEGACY_KEY) || "[]"
+            );
+            const historialCompleto = [
+                ...historialLocal,
+                ...historialAnterior,
+            ];
+
+            if (historialCompleto.length > 0) {
+                setTransacciones(historialCompleto);
+            } else {
+                setError("No fue posible cargar el historial.");
+            }
 
         } finally {
 
@@ -146,6 +176,40 @@ function Historial() {
         }
 
         return "salida";
+    };
+
+    const obtenerEstado = (transaccion) => {
+
+        const estado = String(
+            transaccion.estado ||
+            transaccion.estado_transferencia ||
+            "completada"
+        ).toLowerCase();
+
+        if (["rechazada", "fallida", "cancelada", "error"].some(
+            (estadoFallido) => estado.includes(estadoFallido)
+        )) {
+            return "rechazada";
+        }
+
+        if (["pendiente", "procesando"].some(
+            (estadoPendiente) => estado.includes(estadoPendiente)
+        )) {
+            return "pendiente";
+        }
+
+        return "procesada";
+    };
+
+    const mostrarEstado = (estado) => {
+
+        const estados = {
+            procesada: "Procesada",
+            rechazada: "Rechazada",
+            pendiente: "Pendiente",
+        };
+
+        return estados[estado] || "Procesada";
     };
 
     const obtenerDescripcion = (transaccion) => {
@@ -483,6 +547,7 @@ function Historial() {
 
                                 const tipo = obtenerTipo(transaccion);
                                 const monto = obtenerMonto(transaccion);
+                                const estado = obtenerEstado(transaccion);
 
                                 return (
 
@@ -524,13 +589,11 @@ function Historial() {
 
                                             <span
                                                 className={`estado ${
-                                                    String(
-                                                        transaccion.estado || "Completada"
-                                                    ).toLowerCase()
+                                                        estado
                                                 }`}
                                             >
 
-                                                {transaccion.estado || "Completada"}
+                                                {mostrarEstado(estado)}
 
                                             </span>
 

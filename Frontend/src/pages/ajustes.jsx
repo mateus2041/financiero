@@ -17,6 +17,7 @@ function AjustesPerfil() {
   const [llaveBreB, setLlaveBreB] = useState("");
   const [guardandoLlave, setGuardandoLlave] = useState(false);
   const [mensajeLlave, setMensajeLlave] = useState("");
+  const [mensajePerfil, setMensajePerfil] = useState("");
 
   useEffect(() => {
     const obtenerUsuario = async () => {
@@ -111,13 +112,15 @@ function AjustesPerfil() {
   };
 
   const guardarCambios = async () => {
+    setMensajePerfil("");
+
     if (!password) {
-      alert("Debes ingresar tu contraseña para guardar los cambios.");
+      setMensajePerfil("Debes ingresar tu contraseña para guardar los cambios.");
       return;
     }
 
     if (usuario.tope_ahorros < 0 || usuario.tope_corriente < 0) {
-      alert("Los topes no pueden ser negativos.");
+      setMensajePerfil("Los topes no pueden ser negativos.");
       return;
     }
 
@@ -153,7 +156,7 @@ function AjustesPerfil() {
         );
       }
 
-      alert("Perfil actualizado correctamente.");
+      setMensajePerfil("Perfil actualizado correctamente.");
 
       setUsuario((usuarioActual) => ({
         ...usuarioActual,
@@ -168,10 +171,7 @@ function AjustesPerfil() {
       setEditando(false);
     } catch (error) {
       console.error(error);
-      alert(
-        error.message ||
-          "Error al actualizar el perfil."
-      );
+      setMensajePerfil(error.message || "Error al actualizar el perfil.");
     }
   };
 
@@ -186,7 +186,7 @@ function AjustesPerfil() {
         type="text"
         placeholder="Nombre"
         value={usuario.nombre}
-        disabled={!editando}
+        disabled
         onChange={(e) =>
           setUsuario({
             ...usuario,
@@ -324,6 +324,8 @@ function AjustesPerfil() {
           Guardar cambios
         </button>
       )}
+
+      {mensajePerfil && <p>{mensajePerfil}</p>}
 
     </div>
   );

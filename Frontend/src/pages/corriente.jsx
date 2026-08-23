@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import "../styles/corriente.css";
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = "http://localhost:8000";
+const HISTORIAL_LOCAL_KEY = "historial_transferencias";
 
 export default function Transferencia() {
 
@@ -22,6 +23,35 @@ export default function Transferencia() {
   const [loading, setLoading] = useState(false);
   const [consultando, setConsultando] = useState(false);
 
+  // =====================================================
+  // GUARDAR EN HISTORIAL LOCAL
+  // =====================================================
+
+  const guardarEnHistorial = (transferencia) => {
+
+    const historial = JSON.parse(
+      localStorage.getItem(HISTORIAL_LOCAL_KEY) || "[]"
+    );
+
+    const nuevaTransferencia = {
+      id_transaccion: `local-${Date.now()}`,
+      tipo: "Transferencia",
+      monto: transferencia.monto,
+      descripcion:
+        transferencia.descripcion || "Transferencia Bre-B",
+      estado: transferencia.estado,
+      fecha: new Date().toISOString(),
+      referencia: transferencia.referencia || "",
+    };
+
+    localStorage.setItem(
+      HISTORIAL_LOCAL_KEY,
+      JSON.stringify([
+        nuevaTransferencia,
+        ...historial,
+      ])
+    );
+  };
 
   // =====================================================
   // FORMATO DE PESOS COLOMBIANOS
@@ -38,7 +68,6 @@ export default function Transferencia() {
 
   };
 
-
   // =====================================================
   // OBTENER SALDOS
   // =====================================================
@@ -54,7 +83,6 @@ export default function Transferencia() {
         setMensaje("No hay una sesión activa.");
 
         return;
-
       }
 
       const res = await axios.get(
@@ -81,10 +109,22 @@ export default function Transferencia() {
         err
       );
 
+      if (err.response) {
+
+        setMensaje(
+          err.response.data.detail ||
+          "No se pudieron obtener los saldos."
+        );
+
+      } else {
+
+        setMensaje(
+          "Error al conectar con el servidor."
+        );
+
+      }
     }
-
   };
-
 
   // =====================================================
   // CARGAR SALDOS
@@ -96,7 +136,6 @@ export default function Transferencia() {
 
   }, []);
 
-
   // =====================================================
   // CAMBIAR CAMPOS
   // =====================================================
@@ -105,10 +144,10 @@ export default function Transferencia() {
 
     const { name, value } = e.target;
 
-    setForm({
-      ...form,
+    setForm((prev) => ({
+      ...prev,
       [name]: value,
-    });
+    }));
 
     if (name === "origen") {
 
@@ -123,9 +162,7 @@ export default function Transferencia() {
       setMensaje("");
 
     }
-
   };
-
 
   // =====================================================
   // CAMBIAR MONTO
@@ -135,13 +172,12 @@ export default function Transferencia() {
 
     const valor = e.target.value.replace(/\D/g, "");
 
-    setForm({
-      ...form,
+    setForm((prev) => ({
+      ...prev,
       monto: valor,
-    });
+    }));
 
   };
-
 
   // =====================================================
   // CONSULTAR LLAVE BRE-B
@@ -158,19 +194,15 @@ export default function Transferencia() {
       );
 
       return;
-
     }
 
     try {
 
       setConsultando(true);
-
       setMensaje("");
-
       setDestinatario("");
 
-      const token =
-        localStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
 
@@ -179,21 +211,17 @@ export default function Transferencia() {
         );
 
         return;
-
       }
 
       const res = await axios.get(
-
         `${API_BASE_URL}/bre-b/consultar/${encodeURIComponent(
           llave
         )}`,
-
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
-
       );
 
       setDestinatario(
@@ -223,7 +251,6 @@ export default function Transferencia() {
         setMensaje(
           "Error al conectar con el servidor."
         );
-
       }
 
       setDestinatario("");
@@ -233,9 +260,7 @@ export default function Transferencia() {
       setConsultando(false);
 
     }
-
   };
-
 
   // =====================================================
   // REALIZAR TRANSFERENCIA
@@ -247,21 +272,26 @@ export default function Transferencia() {
 
     setMensaje("");
 
-
     // ===================================================
     // VALIDAR LLAVE
     // ===================================================
 
     if (!form.llave.trim()) {
 
+      guardarEnHistorial({
+        monto: Number(form.monto) || 0,
+        descripcion:
+          form.descripcion.trim() ||
+          "Transferencia Bre-B",
+        estado: "rechazada",
+      });
+
       setMensaje(
         "Ingrese la llave Bre-B del destinatario."
       );
 
       return;
-
     }
-
 
     // ===================================================
     // VALIDAR DESTINATARIO
@@ -269,14 +299,20 @@ export default function Transferencia() {
 
     if (!destinatario) {
 
+      guardarEnHistorial({
+        monto: Number(form.monto) || 0,
+        descripcion:
+          form.descripcion.trim() ||
+          "Transferencia Bre-B",
+        estado: "rechazada",
+      });
+
       setMensaje(
         "Primero debe consultar la llave Bre-B."
       );
 
       return;
-
     }
-
 
     // ===================================================
     // VALIDAR MONTO
@@ -286,14 +322,19 @@ export default function Transferencia() {
 
     if (!monto || monto <= 0) {
 
+      guardarEnHistorial({
+        monto: monto || 0,
+        descripcion:
+          "Transferencia Bre-B",
+        estado: "rechazada",
+      });
+
       setMensaje(
         "Ingrese un monto válido."
       );
 
       return;
-
     }
-
 
     // ===================================================
     // OBTENER SALDO
@@ -304,12 +345,19 @@ export default function Transferencia() {
         ? saldoCorriente
         : saldoAhorro;
 
-
     // ===================================================
     // VALIDAR SALDO
     // ===================================================
 
     if (monto > saldoDisponible) {
+
+      guardarEnHistorial({
+        monto,
+        descripcion:
+          form.descripcion.trim() ||
+          "Transferencia Bre-B",
+        estado: "rechazada",
+      });
 
       setMensaje(
         `No tiene saldo suficiente en ${
@@ -320,37 +368,38 @@ export default function Transferencia() {
       );
 
       return;
-
     }
-
 
     try {
 
       setLoading(true);
-
 
       const token =
         localStorage.getItem("token");
 
       if (!token) {
 
+        guardarEnHistorial({
+          monto,
+          descripcion:
+            form.descripcion.trim() ||
+            "Transferencia Bre-B",
+          estado: "rechazada",
+        });
+
         setMensaje(
           "No hay una sesión activa."
         );
 
         return;
-
       }
-
 
       // =================================================
       // ENVIAR TRANSFERENCIA
       // =================================================
 
       const res = await axios.post(
-
         `${API_BASE_URL}/transferencias/bre-b`,
-
         {
           origen: form.origen,
 
@@ -361,18 +410,31 @@ export default function Transferencia() {
 
           descripcion:
             form.descripcion.trim(),
-
         },
-
         {
           headers: {
             Authorization:
               `Bearer ${token}`,
           },
         }
-
       );
 
+      // =================================================
+      // GUARDAR TRANSFERENCIA EXITOSA
+      // =================================================
+
+      guardarEnHistorial({
+        monto: monto,
+
+        descripcion:
+          form.descripcion.trim() ||
+          "Transferencia Bre-B",
+
+        estado: "procesada",
+
+        referencia:
+          res.data.referencia || "",
+      });
 
       // =================================================
       // MENSAJE DE ÉXITO
@@ -383,32 +445,24 @@ export default function Transferencia() {
         "Transferencia realizada correctamente."
       );
 
-
       // =================================================
       // LIMPIAR FORMULARIO
       // =================================================
 
       setForm({
-
         origen: form.origen,
-
         llave: "",
-
         monto: "",
-
         descripcion: "",
-
       });
 
       setDestinatario("");
-
 
       // =================================================
       // ACTUALIZAR SALDOS
       // =================================================
 
       await obtenerSaldos();
-
 
     } catch (err) {
 
@@ -417,32 +471,27 @@ export default function Transferencia() {
         err
       );
 
-      if (err.response) {
-
-        setMensaje(
-
-          err.response.data.detail ||
-
+      const detalle = err.response
+        ? err.response.data.detail ||
           "Error al realizar la transferencia."
+        : "Error al conectar con el servidor.";
 
-        );
+      guardarEnHistorial({
+        monto,
+        descripcion:
+          form.descripcion.trim() ||
+          "Transferencia Bre-B",
+        estado: "rechazada",
+      });
 
-      } else {
-
-        setMensaje(
-          "Error al conectar con el servidor."
-        );
-
-      }
+      setMensaje(detalle);
 
     } finally {
 
       setLoading(false);
 
     }
-
   };
-
 
   // =====================================================
   // RENDER
@@ -458,9 +507,7 @@ export default function Transferencia() {
           Transferencia Bre-B
         </h2>
 
-
         <form onSubmit={transferir}>
-
 
           {/* =================================================
               CUENTA ORIGEN
@@ -498,7 +545,6 @@ export default function Transferencia() {
 
           </select>
 
-
           {/* =================================================
               LLAVE BRE-B
           ================================================= */}
@@ -515,7 +561,6 @@ export default function Transferencia() {
             placeholder="Ej: @maria456"
             required
           />
-
 
           {/* =================================================
               CONSULTAR DESTINATARIO
@@ -536,7 +581,6 @@ export default function Transferencia() {
 
           </button>
 
-
           {/* =================================================
               DESTINATARIO
           ================================================= */}
@@ -556,7 +600,6 @@ export default function Transferencia() {
             </div>
 
           )}
-
 
           {/* =================================================
               MONTO
@@ -581,7 +624,6 @@ export default function Transferencia() {
             required
           />
 
-
           {/* =================================================
               SALDO DISPONIBLE
           ================================================= */}
@@ -602,7 +644,6 @@ export default function Transferencia() {
 
           </div>
 
-
           {/* =================================================
               DESCRIPCIÓN
           ================================================= */}
@@ -617,7 +658,6 @@ export default function Transferencia() {
             onChange={cambiar}
             placeholder="Descripción de la transferencia"
           />
-
 
           {/* =================================================
               BOTÓN TRANSFERIR
@@ -640,7 +680,6 @@ export default function Transferencia() {
 
         </form>
 
-
         {/* =================================================
             MENSAJE
         ================================================= */}
@@ -654,7 +693,6 @@ export default function Transferencia() {
           </p>
 
         )}
-
 
         {/* =================================================
             VOLVER

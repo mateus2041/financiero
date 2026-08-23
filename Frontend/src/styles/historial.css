@@ -166,6 +166,16 @@
     color: #22c55e;
 }
 
+.estado.rechazada {
+    background-color: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+
+.estado.pendiente {
+    background-color: rgba(245, 197, 66, 0.15);
+    color: #f5c542;
+}
+
 /* MONTO */
 
 .transaccion-monto {

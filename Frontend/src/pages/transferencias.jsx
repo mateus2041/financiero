@@ -4,12 +4,35 @@ import axios from "axios";
 import "../styles/corriente.css";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
+const HISTORIAL_LOCAL_KEY = "historial_transferencias";
 
 export default function Transferencia() {
 
+  const guardarEnHistorial = (transferencia) => {
+
+    const historial = JSON.parse(
+      localStorage.getItem(HISTORIAL_LOCAL_KEY) || "[]"
+    );
+
+    localStorage.setItem(
+      HISTORIAL_LOCAL_KEY,
+      JSON.stringify([
+        {
+          id_transaccion: `local-${Date.now()}`,
+          tipo: "Transferencia",
+          monto: transferencia.monto,
+          descripcion: transferencia.descripcion,
+          estado: transferencia.estado,
+          fecha: new Date().toISOString(),
+        },
+        ...historial,
+      ])
+    );
+  };
+
   const [form, setForm] = useState({
     origen: "corriente",
-    llave: "",
+    destino: "ahorro",
     monto: "",
     descripcion: "",
   });
@@ -17,11 +40,8 @@ export default function Transferencia() {
   const [saldoCorriente, setSaldoCorriente] = useState(0);
   const [saldoAhorro, setSaldoAhorro] = useState(0);
 
-  const [destinatario, setDestinatario] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [loading, setLoading] = useState(false);
-  const [consultando, setConsultando] = useState(false);
-
 
   // =====================================================
   // FORMATO DE PESOS COLOMBIANOS
@@ -37,7 +57,6 @@ export default function Transferencia() {
     }).format(Number(valor) || 0);
 
   };
-
 
   // =====================================================
   // OBTENER SALDOS
@@ -81,10 +100,13 @@ export default function Transferencia() {
         err
       );
 
+      setMensaje(
+        "No fue posible obtener los saldos."
+      );
+
     }
 
   };
-
 
   // =====================================================
   // CARGAR SALDOS
@@ -96,36 +118,28 @@ export default function Transferencia() {
 
   }, []);
 
-
   // =====================================================
-  // CAMBIAR CAMPOS
+  // CAMBIAR CUENTA ORIGEN
   // =====================================================
 
-  const cambiar = (e) => {
+  const cambiarOrigen = (e) => {
 
-    const { name, value } = e.target;
+    const origen = e.target.value;
+
+    const destino =
+      origen === "corriente"
+        ? "ahorro"
+        : "corriente";
 
     setForm({
       ...form,
-      [name]: value,
+      origen: origen,
+      destino: destino,
     });
 
-    if (name === "origen") {
-
-      setDestinatario("");
-      setMensaje("");
-
-    }
-
-    if (name === "llave") {
-
-      setDestinatario("");
-      setMensaje("");
-
-    }
+    setMensaje("");
 
   };
-
 
   // =====================================================
   // CAMBIAR MONTO
@@ -140,102 +154,22 @@ export default function Transferencia() {
       monto: valor,
     });
 
-  };
-
-
-  // =====================================================
-  // CONSULTAR LLAVE BRE-B
-  // =====================================================
-
-  const consultarLlave = async () => {
-
-    const llave = form.llave.trim();
-
-    if (!llave) {
-
-      setMensaje(
-        "Ingrese una llave Bre-B."
-      );
-
-      return;
-
-    }
-
-    try {
-
-      setConsultando(true);
-
-      setMensaje("");
-
-      setDestinatario("");
-
-      const token =
-        localStorage.getItem("token");
-
-      if (!token) {
-
-        setMensaje(
-          "No hay una sesión activa."
-        );
-
-        return;
-
-      }
-
-      const res = await axios.get(
-
-        `${API_BASE_URL}/bre-b/consultar/${encodeURIComponent(
-          llave
-        )}`,
-
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-
-      );
-
-      setDestinatario(
-        res.data.nombre
-      );
-
-      setMensaje(
-        "Destinatario encontrado correctamente."
-      );
-
-    } catch (err) {
-
-      console.error(
-        "Error consultando llave:",
-        err
-      );
-
-      if (err.response) {
-
-        setMensaje(
-          err.response.data.detail ||
-          "No se encontró la llave Bre-B."
-        );
-
-      } else {
-
-        setMensaje(
-          "Error al conectar con el servidor."
-        );
-
-      }
-
-      setDestinatario("");
-
-    } finally {
-
-      setConsultando(false);
-
-    }
+    setMensaje("");
 
   };
 
+  // =====================================================
+  // CAMBIAR DESCRIPCIÓN
+  // =====================================================
+
+  const cambiarDescripcion = (e) => {
+
+    setForm({
+      ...form,
+      descripcion: e.target.value,
+    });
+
+  };
 
   // =====================================================
   // REALIZAR TRANSFERENCIA
@@ -247,37 +181,6 @@ export default function Transferencia() {
 
     setMensaje("");
 
-
-    // ===================================================
-    // VALIDAR LLAVE
-    // ===================================================
-
-    if (!form.llave.trim()) {
-
-      setMensaje(
-        "Ingrese la llave Bre-B del destinatario."
-      );
-
-      return;
-
-    }
-
-
-    // ===================================================
-    // VALIDAR DESTINATARIO
-    // ===================================================
-
-    if (!destinatario) {
-
-      setMensaje(
-        "Primero debe consultar la llave Bre-B."
-      );
-
-      return;
-
-    }
-
-
     // ===================================================
     // VALIDAR MONTO
     // ===================================================
@@ -285,6 +188,12 @@ export default function Transferencia() {
     const monto = Number(form.monto);
 
     if (!monto || monto <= 0) {
+
+      guardarEnHistorial({
+        monto: monto || 0,
+        descripcion: form.descripcion.trim() || "Transferencia entre cuentas",
+        estado: "rechazada",
+      });
 
       setMensaje(
         "Ingrese un monto válido."
@@ -294,9 +203,8 @@ export default function Transferencia() {
 
     }
 
-
     // ===================================================
-    // OBTENER SALDO
+    // OBTENER SALDO DE LA CUENTA ORIGEN
     // ===================================================
 
     const saldoDisponible =
@@ -304,58 +212,70 @@ export default function Transferencia() {
         ? saldoCorriente
         : saldoAhorro;
 
-
     // ===================================================
     // VALIDAR SALDO
     // ===================================================
 
     if (monto > saldoDisponible) {
 
+      guardarEnHistorial({
+        monto,
+        descripcion: form.descripcion.trim() || "Transferencia entre cuentas",
+        estado: "rechazada",
+      });
+
       setMensaje(
+
         `No tiene saldo suficiente en ${
           form.origen === "corriente"
             ? "Cuenta Corriente"
             : "Cuenta de Ahorros"
         }.`
+
       );
 
       return;
 
     }
 
+    // ===================================================
+    // TOKEN
+    // ===================================================
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+
+      guardarEnHistorial({
+        monto,
+        descripcion: form.descripcion.trim() || "Transferencia entre cuentas",
+        estado: "rechazada",
+      });
+
+      setMensaje(
+        "No hay una sesión activa."
+      );
+
+      return;
+
+    }
 
     try {
 
       setLoading(true);
 
-
-      const token =
-        localStorage.getItem("token");
-
-      if (!token) {
-
-        setMensaje(
-          "No hay una sesión activa."
-        );
-
-        return;
-
-      }
-
-
       // =================================================
-      // ENVIAR TRANSFERENCIA BRE-B
+      // ENVIAR TRANSFERENCIA
       // =================================================
 
       const res = await axios.post(
 
-        `${API_BASE_URL}/transferencias/bre-b`,
+        `${API_BASE_URL}/transferencias/entre-cuentas`,
 
         {
           origen: form.origen,
 
-          llave_destino:
-            form.llave.trim(),
+          destino: form.destino,
 
           monto: monto,
 
@@ -372,7 +292,6 @@ export default function Transferencia() {
 
       );
 
-
       // =================================================
       // MENSAJE DE ÉXITO
       // =================================================
@@ -380,20 +299,19 @@ export default function Transferencia() {
       setMensaje(
 
         res.data.mensaje ||
-        "Transferencia Bre-B realizada correctamente."
+        "Transferencia realizada correctamente."
 
       );
 
-
       // =================================================
-      // LIMPIAR FORMULARIO
+      // LIMPIAR MONTO Y DESCRIPCIÓN
       // =================================================
 
       setForm({
 
         origen: form.origen,
 
-        llave: "",
+        destino: form.destino,
 
         monto: "",
 
@@ -401,15 +319,11 @@ export default function Transferencia() {
 
       });
 
-      setDestinatario("");
-
-
       // =================================================
       // ACTUALIZAR SALDOS
       // =================================================
 
       await obtenerSaldos();
-
 
     } catch (err) {
 
@@ -423,7 +337,6 @@ export default function Transferencia() {
         setMensaje(
 
           err.response.data.detail ||
-
           "Error al realizar la transferencia."
 
         );
@@ -436,6 +349,12 @@ export default function Transferencia() {
 
       }
 
+      guardarEnHistorial({
+        monto,
+        descripcion: form.descripcion.trim() || "Transferencia entre cuentas",
+        estado: "rechazada",
+      });
+
     } finally {
 
       setLoading(false);
@@ -443,7 +362,6 @@ export default function Transferencia() {
     }
 
   };
-
 
   // =====================================================
   // RENDER
@@ -455,14 +373,11 @@ export default function Transferencia() {
 
       <div className="transfer-card">
 
-
         <h2>
-          Transferencia Bre-B
+          Transferencia entre cuentas
         </h2>
 
-
         <form onSubmit={transferir}>
-
 
           {/* =================================================
               CUENTA ORIGEN
@@ -473,93 +388,60 @@ export default function Transferencia() {
           </label>
 
           <select
-            name="origen"
             value={form.origen}
-            onChange={cambiar}
+            onChange={cambiarOrigen}
           >
 
             <option value="corriente">
 
-              Cuenta Corriente (
-              {formatoMoneda(
-                saldoCorriente
-              )}
-              )
+              Cuenta Corriente -{" "}
+              {formatoMoneda(saldoCorriente)}
 
             </option>
 
-
             <option value="ahorro">
 
-              Cuenta de Ahorros (
-              {formatoMoneda(
-                saldoAhorro
-              )}
-              )
+              Cuenta de Ahorros -{" "}
+              {formatoMoneda(saldoAhorro)}
 
             </option>
 
           </select>
 
-
           {/* =================================================
-              LLAVE BRE-B
+              CUENTA DESTINO
           ================================================= */}
 
           <label>
-            Llave Bre-B del destinatario
+            Cuenta destino
           </label>
 
-          <input
-            type="text"
-            name="llave"
-            value={form.llave}
-            onChange={cambiar}
-            placeholder="Ej: @3162715547"
-            required
-          />
-
-
-          {/* =================================================
-              CONSULTAR DESTINATARIO
-          ================================================= */}
-
-          <button
-            type="button"
-            onClick={consultarLlave}
-            disabled={
-              consultando ||
-              !form.llave.trim()
-            }
+          <select
+            value={form.destino}
+            disabled
           >
 
-            {consultando
-              ? "Consultando..."
-              : "Consultar destinatario"}
+            {form.destino === "corriente" ? (
 
-          </button>
+              <option value="corriente">
 
+                Cuenta Corriente -{" "}
+                {formatoMoneda(saldoCorriente)}
 
-          {/* =================================================
-              DESTINATARIO
-          ================================================= */}
+              </option>
 
-          {destinatario && (
+            ) : (
 
-            <div className="destinatario">
+              <option value="ahorro">
 
-              <strong>
-                Destinatario:
-              </strong>
+                Cuenta de Ahorros -{" "}
+                {formatoMoneda(saldoAhorro)}
 
-              <span>
-                {destinatario}
-              </span>
+              </option>
 
-            </div>
+            )}
 
-          )}
-
+          </select>
 
           {/* =================================================
               MONTO
@@ -584,27 +466,27 @@ export default function Transferencia() {
             required
           />
 
-
           {/* =================================================
               SALDO DISPONIBLE
           ================================================= */}
 
           <div className="saldo-disponible">
 
-            Saldo disponible:
+            Saldo disponible en{" "}
 
-            {" "}
+            {form.origen === "corriente"
+              ? "Cuenta Corriente"
+              : "Cuenta de Ahorros"}
+
+            :{" "}
 
             {formatoMoneda(
-
               form.origen === "corriente"
                 ? saldoCorriente
                 : saldoAhorro
-
             )}
 
           </div>
-
 
           {/* =================================================
               DESCRIPCIÓN
@@ -617,32 +499,26 @@ export default function Transferencia() {
           <textarea
             name="descripcion"
             value={form.descripcion}
-            onChange={cambiar}
+            onChange={cambiarDescripcion}
             placeholder="Descripción de la transferencia"
           />
 
-
           {/* =================================================
-              BOTÓN TRANSFERIR
+              BOTÓN
           ================================================= */}
 
           <button
             type="submit"
-            disabled={
-              loading ||
-              consultando ||
-              !destinatario
-            }
+            disabled={loading}
           >
 
             {loading
               ? "Procesando..."
-              : "Transferir por Bre-B"}
+              : "Realizar transferencia"}
 
           </button>
 
         </form>
-
 
         {/* =================================================
             MENSAJE
@@ -658,7 +534,6 @@ export default function Transferencia() {
 
         )}
 
-
         {/* =================================================
             VOLVER
         ================================================= */}
@@ -671,7 +546,6 @@ export default function Transferencia() {
           Volver
 
         </Link>
-
 
       </div>
 
