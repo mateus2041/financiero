@@ -42,6 +42,7 @@ services:
 
       - billetera_net
 
+
   backend:
 
     build:
@@ -92,6 +93,7 @@ services:
 
       - billetera_net
 
+
   frontend:
 
     build:
@@ -138,11 +140,13 @@ services:
 
       - billetera_net
 
+
 volumes:
 
   mysql_data:
 
   frontend_node_modules:
+
 
 networks:
 

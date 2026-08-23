@@ -78,7 +78,8 @@ function Login() {
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("documento", documento);
-      localStorage.setItem("usuario_id", data.id);
+      localStorage.setItem("usuario_id", data.usuario.id);
+      localStorage.setItem("nombre_usuario", data.usuario.nombre);
 
       setTimeout(() => {
         navigate("/cuenta");

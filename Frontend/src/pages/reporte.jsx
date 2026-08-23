@@ -13,6 +13,12 @@ function Reporte() {
       setMensaje("");
 
       const token = localStorage.getItem("token");
+      const historialLocal = JSON.parse(
+        localStorage.getItem("historial_transferencias") || "[]"
+      );
+      const historialAnterior = JSON.parse(
+        localStorage.getItem("historial") || "[]"
+      );
 
       const respuesta = await axios.get(
         "http://127.0.0.1:8000/transacciones",
@@ -23,22 +29,106 @@ function Reporte() {
         }
       );
 
-      setReporte(respuesta.data);
+      const datos = respuesta.data;
+      const lista = Array.isArray(datos)
+        ? datos
+        : datos.transacciones || datos.data || [];
+      const transacciones = [
+        ...historialLocal,
+        ...historialAnterior,
+        ...lista,
+      ];
 
-      if (respuesta.data.length === 0) {
+      setReporte(transacciones);
+
+      if (transacciones.length === 0) {
         setMensaje("No hay transacciones para generar el reporte.");
       }
     } catch (error) {
       console.error("Error al generar el reporte:", error);
 
-      setMensaje(
-        error.response?.data?.detail ||
-          "No se pudo obtener el reporte."
+      const historialLocal = JSON.parse(
+        localStorage.getItem("historial_transferencias") || "[]"
       );
+      const historialAnterior = JSON.parse(
+        localStorage.getItem("historial") || "[]"
+      );
+      const historialCompleto = [
+        ...historialLocal,
+        ...historialAnterior,
+      ];
+
+      setReporte(historialCompleto);
+
+      setMensaje(historialCompleto.length > 0
+        ? "Reporte generado con los movimientos guardados localmente."
+        : error.response?.data?.detail || "No se pudo obtener el reporte.");
     } finally {
       setLoading(false);
     }
   };
+
+  const formatearFecha = (fecha) => {
+    if (!fecha) return "Fecha no disponible";
+
+    const fechaConvertida = new Date(fecha);
+    if (Number.isNaN(fechaConvertida.getTime())) return fecha;
+
+    return fechaConvertida.toLocaleString("es-CO", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const obtenerTipo = (transaccion) => {
+    const tipo = String(
+      transaccion.tipo ||
+      transaccion.tipo_transaccion ||
+      transaccion.type ||
+      ""
+    ).toLowerCase();
+
+    return tipo.includes("ingreso") || tipo.includes("recib") || tipo.includes("deposit")
+      ? "Ingreso"
+      : "Salida";
+  };
+
+  const obtenerEstado = (transaccion) => {
+    const estado = String(
+      transaccion.estado ||
+      transaccion.estado_transferencia ||
+      "completada"
+    ).toLowerCase();
+
+    if (["rechazada", "fallida", "cancelada", "error"].some((valor) => estado.includes(valor))) {
+      return "Rechazada";
+    }
+
+    if (["pendiente", "procesando"].some((valor) => estado.includes(valor))) {
+      return "Pendiente";
+    }
+
+    return "Procesada";
+  };
+
+  const obtenerDescripcion = (transaccion) => (
+    transaccion.descripcion ||
+    transaccion.concepto ||
+    transaccion.nombre ||
+    transaccion.destinatario ||
+    transaccion.remitente ||
+    "Transacción"
+  );
+
+  const obtenerMonto = (transaccion) => Number(
+    transaccion.monto ||
+    transaccion.valor ||
+    transaccion.amount ||
+    0
+  );
 
   const formatoDinero = (valor) => {
     return new Intl.NumberFormat("es-CO", {
@@ -83,23 +173,32 @@ function Reporte() {
             <thead>
               <tr>
                 <th>Fecha</th>
+                <th>Descripción</th>
                 <th>Tipo</th>
                 <th>Origen</th>
                 <th>Destino</th>
                 <th>Monto</th>
-                <th>Descripción</th>
+                <th>Estado</th>
               </tr>
             </thead>
 
             <tbody>
               {reporte.map((transaccion, index) => (
-                <tr key={transaccion.id || index}>
+                <tr key={transaccion.id || transaccion.id_transaccion || index}>
                   <td>
-                    {transaccion.fecha || "Sin fecha"}
+                    {formatearFecha(
+                      transaccion.fecha ||
+                      transaccion.fecha_transaccion ||
+                      transaccion.created_at
+                    )}
+                  </td>
+
+                  <td className="descripcion-reporte">
+                    {obtenerDescripcion(transaccion)}
                   </td>
 
                   <td>
-                    {transaccion.tipo || "Transacción"}
+                    {obtenerTipo(transaccion)}
                   </td>
 
                   <td>
@@ -112,12 +211,12 @@ function Reporte() {
 
                   <td>
                     {formatoDinero(
-                      Number(transaccion.monto || 0)
+                      obtenerMonto(transaccion)
                     )}
                   </td>
 
                   <td>
-                    {transaccion.descripcion || "-"}
+                    {obtenerEstado(transaccion)}
                   </td>
                 </tr>
               ))}
