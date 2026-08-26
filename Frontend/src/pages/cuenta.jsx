@@ -11,6 +11,8 @@ const Cuenta = () => {
   const [documento, setDocumento] = useState("");
   const [totalIngresos, setTotalIngresos] = useState(0);
   const [totalGastos, setTotalGastos] = useState(0);
+  const [saldoCorriente, setSaldoCorriente] = useState(0);
+  const [saldoAhorro, setSaldoAhorro] = useState(0);
   const [openTransfer, setOpenTransfer] = useState(false);
   const [id, setId] = useState("");
 
@@ -103,129 +105,112 @@ const Cuenta = () => {
 
   useEffect(() => {
 
+    const cargarDatosFinancieros = async () => {
+      try {
+        const [respuestaSaldos, respuestaTransacciones] = await Promise.all([
+          fetch("http://127.0.0.1:8000/cuentas/saldos", {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`
+            }
+          }),
+          fetch("http://127.0.0.1:8000/transacciones", {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`
+            }
+          })
+        ]);
 
-    setTotalIngresos(1200);
+        if (!respuestaSaldos.ok || !respuestaTransacciones.ok) {
+          throw new Error("No se pudieron obtener los datos financieros");
+        }
 
-    setTotalGastos(500);
+        const datosSaldos = await respuestaSaldos.json();
+        const datosTransacciones = await respuestaTransacciones.json();
+        const transacciones = Array.isArray(datosTransacciones)
+          ? datosTransacciones
+          : datosTransacciones.transacciones || datosTransacciones.data || [];
 
+        setSaldoCorriente(Number(datosSaldos.cuenta_corriente || 0));
+        setSaldoAhorro(Number(datosSaldos.cuenta_ahorro || 0));
 
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        const fechas = Array.from({ length: 7 }, (_, indice) => {
+          const fecha = new Date(hoy);
+          fecha.setDate(hoy.getDate() - (6 - indice));
+          return fecha;
+        });
+        const clavesFechas = fechas.map((fecha) => fecha.toISOString().slice(0, 10));
+        const ingresosPorDia = Array(7).fill(0);
+        const gastosPorDia = Array(7).fill(0);
+        let ingresos = 0;
+        let gastos = 0;
 
-    const canvas = document.getElementById(
-      "salesChart"
-    );
+        transacciones.forEach((transaccion) => {
+          const fecha = new Date(transaccion.fecha);
+          const tipo = String(transaccion.tipo || "").toLowerCase();
+          const monto = Number(transaccion.monto || 0);
+          const indice = clavesFechas.indexOf(fecha.toISOString().slice(0, 10));
 
-
-    if (!canvas) return;
-
-
-
-    if (window.chart) {
-
-      window.chart.destroy();
-
-    }
-
-
-
-    const ctx = canvas.getContext("2d");
-
-
-
-    window.chart = new Chart(ctx, {
-
-
-      type:"line",
-
-
-      data:{
-
-
-        labels:[
-          "Lun",
-          "Mar",
-          "Mié",
-          "Jue",
-          "Vie",
-          "Sáb",
-          "Dom"
-        ],
-
-
-        datasets:[
-
-
-          {
-
-            label:"Ingresos",
-
-            data:[
-              45,
-              60,
-              50,
-              80,
-              65,
-              90,
-              100
-            ],
-
-            tension:0.4,
-
-            fill:true
-
-          },
-
-
-          {
-
-            label:"Gastos",
-
-            data:[
-              25,
-              40,
-              35,
-              60,
-              45,
-              70,
-              80
-            ],
-
-            tension:0.4,
-
-            fill:true
-
+          if (tipo.includes("ingreso")) {
+            ingresos += monto;
+            if (indice >= 0) ingresosPorDia[indice] += monto;
           }
 
+          if (tipo.includes("gasto")) {
+            gastos += monto;
+            if (indice >= 0) gastosPorDia[indice] += monto;
+          }
+        });
 
-        ]
+        setTotalIngresos(ingresos);
+        setTotalGastos(gastos);
 
-      },
+        const canvas = document.getElementById("salesChart");
+        if (!canvas) return;
 
+        if (window.chart) window.chart.destroy();
 
-      options:{
-
-        responsive:true,
-
-        maintainAspectRatio:false
-
+        window.chart = new Chart(canvas.getContext("2d"), {
+          type: "line",
+          data: {
+            labels: fechas.map((fecha) =>
+              fecha.toLocaleDateString("es-CO", { weekday: "short" })
+            ),
+            datasets: [
+              {
+                label: "Ingresos",
+                data: ingresosPorDia,
+                tension: 0.4,
+                fill: true
+              },
+              {
+                label: "Gastos",
+                data: gastosPorDia,
+                tension: 0.4,
+                fill: true
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        });
+      } catch (error) {
+        console.error(error);
       }
-
-
-    });
-
-
-
-    return()=>{
-
-      if(window.chart){
-
-        window.chart.destroy();
-
-      }
-
     };
 
+    cargarDatosFinancieros();
 
-  },[]);
+    return () => {
+      if (window.chart) {
+        window.chart.destroy();
+        window.chart = null;
+      }
+    };
+  }, []);
 
 
 
@@ -513,7 +498,7 @@ const Cuenta = () => {
             <h3>Cuenta</h3>
 
             <span>
-              ${totalIngresos-totalGastos}
+              ${saldoCorriente}
             </span>
 
 
@@ -525,7 +510,7 @@ const Cuenta = () => {
             <h3>Ahorros</h3>
 
             <span>
-              $0
+              ${saldoAhorro}
             </span>
 
           </div>
