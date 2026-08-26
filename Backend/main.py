@@ -772,6 +772,17 @@ class Transferencia(BaseModel):
     descripcion: str = ""
 
 
+class TransferenciaEntreCuentas(BaseModel):
+
+    origen: str
+
+    destino: str
+
+    monto: Decimal
+
+    descripcion: str = ""
+
+
 # ==========================================================
 # CONVERTIR TIPO DE CUENTA
 # ==========================================================
@@ -803,6 +814,115 @@ def tipo_cuenta(origen: str):
 # ==========================================================
 # TRANSFERENCIA NORMAL
 # ==========================================================
+
+@app.post("/transferencias/entre-cuentas")
+def transferir_entre_cuentas(
+
+    data: TransferenciaEntreCuentas,
+
+    current_user: int = Depends(token_required),
+
+    db: Session = Depends(get_db)
+
+):
+
+    if data.monto <= Decimal("0"):
+
+        raise HTTPException(
+            status_code=400,
+            detail="El monto debe ser mayor que cero."
+        )
+
+    tipos = {
+        "corriente": "corriente",
+        "ahorro": "ahorros"
+    }
+
+    tipo_origen = tipos.get(data.origen)
+    tipo_destino = tipos.get(data.destino)
+
+    if not tipo_origen or not tipo_destino or tipo_origen == tipo_destino:
+
+        raise HTTPException(
+            status_code=400,
+            detail="Las cuentas de origen y destino deben ser diferentes."
+        )
+
+    try:
+
+        cuentas = db.query(Cuenta).filter(
+            Cuenta.id_usuario == current_user,
+            Cuenta.estado == "activa",
+            Cuenta.tipo_cuenta.in_([tipo_origen, tipo_destino])
+        ).with_for_update().all()
+
+        cuenta_origen = next(
+            (cuenta for cuenta in cuentas if cuenta.tipo_cuenta == tipo_origen),
+            None
+        )
+        cuenta_destino = next(
+            (cuenta for cuenta in cuentas if cuenta.tipo_cuenta == tipo_destino),
+            None
+        )
+
+        if not cuenta_origen or not cuenta_destino:
+
+            raise HTTPException(
+                status_code=404,
+                detail="No se encontraron ambas cuentas activas."
+            )
+
+        saldo_origen = Decimal(str(cuenta_origen.saldo or 0))
+
+        if saldo_origen < data.monto:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Saldo insuficiente."
+            )
+
+        cuenta_origen.saldo = saldo_origen - data.monto
+        cuenta_destino.saldo = Decimal(str(cuenta_destino.saldo or 0)) + data.monto
+
+        db.add_all([
+            Transaccion(
+                id_cuenta=cuenta_origen.id_cuenta,
+                monto=data.monto,
+                tipo="Transferencia",
+                descripcion=data.descripcion or "Transferencia entre cuentas"
+            ),
+            Transaccion(
+                id_cuenta=cuenta_destino.id_cuenta,
+                monto=data.monto,
+                tipo="Ingreso",
+                descripcion=data.descripcion or "Ingreso por transferencia"
+            )
+        ])
+
+        db.commit()
+
+        return {
+            "mensaje": "Transferencia realizada correctamente.",
+            "saldo_origen": float(cuenta_origen.saldo),
+            "saldo_destino": float(cuenta_destino.saldo)
+        }
+
+    except HTTPException:
+
+        db.rollback()
+
+        raise
+
+    except Exception as error:
+
+        db.rollback()
+
+        print("ERROR TRANSFERENCIA ENTRE CUENTAS:", error)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Error interno al realizar la transferencia."
+        )
 
 @app.post("/transferencias")
 def realizar_transferencia(
