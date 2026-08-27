@@ -12,6 +12,7 @@ import Recuperacion from "./pages/recuperacion";
 import Corriente from "./pages/corriente";
 import Historial from "./pages/historial";
 import Reporte from "./pages/reporte";
+import VerificacionIdentidad from "./pages/VerificacionIdentidad";
 
 function App() {
   return (
@@ -27,6 +28,10 @@ function App() {
       <Route path="/ajustes" element={<Ajustes />} />
       <Route path="/historial" element={<Historial />} />
       <Route path="/reporte" element={<Reporte />} />
+      <Route
+        path="/verificacion-identidad"
+        element={<VerificacionIdentidad />}
+      />
     </Routes>
   );
 }

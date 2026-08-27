@@ -18,7 +18,23 @@ const Cuenta = () => {
   const [openTransfer, setOpenTransfer] = useState(false);
   const [openCertificado, setOpenCertificado] = useState(false);
   const [id, setId] = useState("");
+  const [fotoPerfil, setFotoPerfil] = useState(
+    () => localStorage.getItem("fotoPerfil") || ""
+  );
 
+
+
+  useEffect(() => {
+
+    const actualizarFotoPerfil = () => {
+      setFotoPerfil(localStorage.getItem("fotoPerfil") || "");
+    };
+
+    window.addEventListener("storage", actualizarFotoPerfil);
+
+    return () => window.removeEventListener("storage", actualizarFotoPerfil);
+
+  }, []);
 
 
   useEffect(() => {
@@ -464,9 +480,9 @@ const Cuenta = () => {
 
             <img
 
-              src="https://i.pinimg.com/736x/e0/06/16/e00616c1e181f83b35b157f9281bd36e.jpg"
+              src={fotoPerfil || "https://i.pinimg.com/736x/e0/06/16/e00616c1e181f83b35b157f9281bd36e.jpg"}
 
-              alt="Usuario"
+              alt="Foto de perfil"
 
             />
 

@@ -13,12 +13,19 @@ function Login() {
   const [intentos, setIntentos] = useState(0);
   const [bloqueado, setBloqueado] = useState(false);
 
+  // Estados para verificación
+  const [loginExitoso, setLoginExitoso] = useState(false);
+
   const irRegistro = () => {
     navigate("/registro");
   };
 
   const irRecuperar = () => {
     navigate("/recuperacion");
+  };
+
+  const solicitarVerificacion = () => {
+    navigate("/verificacion-identidad");
   };
 
   const manejarSubmit = async (e) => {
@@ -54,6 +61,7 @@ function Login() {
 
         if (nuevosIntentos >= 3) {
           setBloqueado(true);
+
           setMensaje(
             "❌ Has agotado los 3 intentos. Intenta nuevamente en 30 segundos."
           );
@@ -65,7 +73,7 @@ function Login() {
           }, 30000);
         } else {
           setMensaje(
-            `❌ ${data.detail} (Intento ${nuevosIntentos} de 3)`
+            `❌ ${data.detail || "Documento o contraseña incorrectos"} (Intento ${nuevosIntentos} de 3)`
           );
         }
 
@@ -74,6 +82,7 @@ function Login() {
 
       // Login exitoso
       setIntentos(0);
+      setLoginExitoso(true);
       setMensaje("✅ Login exitoso");
 
       localStorage.setItem("token", data.token);
@@ -81,12 +90,12 @@ function Login() {
       localStorage.setItem("usuario_id", data.usuario.id);
       localStorage.setItem("nombre_usuario", data.usuario.nombre);
 
-      setTimeout(() => {
-        navigate("/cuenta");
-      }, 800);
+      // Ya no redirigimos inmediatamente.
+      // Mostramos las opciones al usuario.
+
     } catch (error) {
       console.error(error);
-      setMensaje("Error conectando con el servidor");
+      setMensaje("❌ Error conectando con el servidor");
     }
   };
 
@@ -95,82 +104,122 @@ function Login() {
       <form className="form-box" onSubmit={manejarSubmit}>
         <h1>Inicio de Sesión</h1>
 
-        <label>Documento</label>
-        <div className="input-icon">
-          <input
-            type="text"
-            value={documento}
-            onChange={(e) => setDocumento(e.target.value)}
-            disabled={bloqueado}
-          />
-        </div>
+        {!loginExitoso ? (
+          <>
+            <label>Documento</label>
 
-        <label>Contraseña</label>
-        <div className="input-icon">
-          <input
-            type={mostrarPass ? "text" : "password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={bloqueado}
-          />
+            <div className="input-icon">
+              <input
+                type="text"
+                value={documento}
+                onChange={(e) => setDocumento(e.target.value)}
+                disabled={bloqueado}
+                placeholder="Ingresa tu documento"
+              />
+            </div>
 
-          <button
-            type="button"
-            className="eye-btn"
-            onClick={() => setMostrarPass(!mostrarPass)}
-            disabled={bloqueado}
-          >
-            {mostrarPass ? "🙈" : "👁️"}
-          </button>
-        </div>
+            <label>Contraseña</label>
 
-        {mensaje && (
-          <p
-            style={{
-              color: mensaje.includes("Login exitoso")
-                ? "green"
-                : "#ff4c4c",
-              fontWeight: "bold",
-              marginTop: "10px",
-            }}
-          >
-            {mensaje}
-          </p>
+            <div className="input-icon">
+              <input
+                type={mostrarPass ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={bloqueado}
+                placeholder="Ingresa tu contraseña"
+              />
+
+              <button
+                type="button"
+                className="eye-btn"
+                onClick={() => setMostrarPass(!mostrarPass)}
+                disabled={bloqueado}
+              >
+                {mostrarPass ? "🙈" : "👁️"}
+              </button>
+            </div>
+
+            {mensaje && (
+              <p
+                style={{
+                  color: mensaje.includes("Login exitoso")
+                    ? "green"
+                    : "#ff4c4c",
+                  fontWeight: "bold",
+                  marginTop: "10px",
+                }}
+              >
+                {mensaje}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              className="btn"
+              disabled={bloqueado}
+            >
+              {bloqueado ? "Bloqueado" : "Acceder"}
+            </button>
+
+            <p className="login">
+              ¿No tienes cuenta?{" "}
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  irRegistro();
+                }}
+              >
+                Regístrate aquí
+              </a>
+            </p>
+
+            <p className="login">
+              ¿Olvidaste tu contraseña?{" "}
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  irRecuperar();
+                }}
+              >
+                Recupérala aquí
+              </a>
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="login-success">
+              <h2>✅ Bienvenido, {localStorage.getItem("nombre_usuario")}</h2>
+
+              <p>
+                Has iniciado sesión correctamente.
+              </p>
+
+              <p>
+                Puedes continuar a tu cuenta o solicitar una verificación
+                de identidad.
+              </p>
+
+              <button
+                type="button"
+                className="btn"
+                onClick={() => navigate("/cuenta")}
+              >
+                🏦 Ir a mi cuenta
+              </button>
+
+              <button
+                type="button"
+                className="btn"
+                onClick={solicitarVerificacion}
+                style={{ marginTop: "10px" }}
+              >
+                🪪 Solicitar verificación de identidad
+              </button>
+            </div>
+          </>
         )}
-
-        <button
-          type="submit"
-          className="btn"
-          disabled={bloqueado}
-        >
-          {bloqueado ? "Bloqueado" : "Acceder"}
-        </button>
-
-        <p className="login">
-          ¿No tienes cuenta?{" "}
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              irRegistro();
-            }}
-          >
-            Regístrate aquí
-          </a>
-        </p>
-
-        <p className="login">
-          ¿Olvidaste tu contraseña?{" "}
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              irRecuperar();
-            }}
-          >
-            Recupérala aquí
-          </a>
-        </p>
 
         <div className="footer">
           <p>

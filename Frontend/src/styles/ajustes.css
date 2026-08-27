@@ -62,6 +62,113 @@
   caret-color: #A8A9AD;
 }
 
+.boton-volver {
+  padding: 9px 16px;
+  border: 1px solid #f5b841;
+  border-radius: 7px;
+  background: transparent;
+  color: #f5b841;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.boton-volver:hover {
+  background: #f5b841;
+  color: #13294b;
+}
+
+.acciones-perfil {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.foto-perfil-section {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px;
+  margin-bottom: 24px;
+  border: 1px solid #2c4a70;
+  border-radius: 12px;
+  background: #102440;
+}
+
+.foto-perfil-preview {
+  width: 88px;
+  height: 88px;
+  flex: 0 0 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #f5b841;
+  color: #13294b;
+  font-size: 32px;
+  font-weight: bold;
+}
+
+.foto-perfil-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.foto-perfil-info h2 {
+  margin-bottom: 6px;
+  color: #f5b841;
+  font-size: 19px;
+}
+
+.foto-perfil-info p {
+  margin-bottom: 12px;
+  color: #cbd5e1;
+  font-size: 14px;
+}
+
+.foto-perfil-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.boton-foto,
+.boton-quitar-foto {
+  padding: 9px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.boton-foto {
+  background: #f5b841;
+  color: #13294b;
+}
+
+.boton-quitar-foto {
+  border: 1px solid #f5b841;
+  background: transparent;
+  color: #f5b841;
+}
+
+.input-foto-oculto {
+  display: none;
+}
+
+@media (max-width: 520px) {
+  .foto-perfil-section {
+    align-items: flex-start;
+  }
+
+  .foto-perfil-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
 /* CONTENIDO */
 .ajustes {
   flex: 1;
