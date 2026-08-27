@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import "../styles/ajustes.css";
 
 function AjustesPerfil() {
@@ -8,13 +7,13 @@ function AjustesPerfil() {
     correo: "",
     telefono: "",
     direccion: "",
+    llave_bre_b: "",
     tope_ahorros: 0,
     tope_corriente: 0,
   });
 
   const [editando, setEditando] = useState(false);
   const [password, setPassword] = useState("");
-  const [llaveBreB, setLlaveBreB] = useState("");
   const [guardandoLlave, setGuardandoLlave] = useState(false);
   const [mensajeLlave, setMensajeLlave] = useState("");
   const [mensajePerfil, setMensajePerfil] = useState("");
@@ -60,7 +59,6 @@ function AjustesPerfil() {
           tope_ahorros: data.tope_ahorros || 0,
           tope_corriente: data.tope_corriente || 0,
         });
-        setLlaveBreB(data.llave_bre_b || "");
       } catch (error) {
         console.error(error);
         alert(
@@ -78,7 +76,7 @@ function AjustesPerfil() {
   };
 
   const guardarLlaveBreB = async () => {
-    const llave = llaveBreB.trim();
+    const llave = usuario.llave_bre_b.trim();
 
     if (llave.length < 4) {
       setMensajeLlave("La llave Bre-B debe tener mínimo 4 caracteres.");
@@ -102,7 +100,10 @@ function AjustesPerfil() {
         throw new Error(data.detail || "No se pudo registrar la llave Bre-B.");
       }
 
-      setLlaveBreB(data.llave || llave);
+      setUsuario((usuarioActual) => ({
+        ...usuarioActual,
+        llave_bre_b: data.llave || llave,
+      }));
       setMensajeLlave(data.mensaje || "Llave Bre-B registrada correctamente.");
     } catch (error) {
       setMensajeLlave(error.message || "Error al registrar la llave Bre-B.");
@@ -245,9 +246,14 @@ function AjustesPerfil() {
       <input
         type="text"
         placeholder="Ej: 3001234567"
-        value={llaveBreB}
+        value={usuario.llave_bre_b}
         disabled={!editando}
-        onChange={(e) => setLlaveBreB(e.target.value)}
+        onChange={(e) =>
+          setUsuario({
+            ...usuario,
+            llave_bre_b: e.target.value,
+          })
+        }
       />
 
       {editando && (

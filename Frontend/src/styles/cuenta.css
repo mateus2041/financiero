@@ -127,6 +127,13 @@ body {
   font-weight: bold;
 }
 
+.card small {
+  display: block;
+  margin-top: 8px;
+  color: var(--texto-secundario);
+  font-size: 12px;
+}
+
 /* ========== GRÁFICA (CORREGIDA) ========== */
 .chart-card {
   background: var(--fondo-tarjeta);
