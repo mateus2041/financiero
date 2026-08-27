@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "../styles/ajustes.css";
 
 function AjustesPerfil() {
+  const navigate = useNavigate();
+
   const [usuario, setUsuario] = useState({
     nombre: "",
     correo: "",
@@ -17,6 +20,47 @@ function AjustesPerfil() {
   const [guardandoLlave, setGuardandoLlave] = useState(false);
   const [mensajeLlave, setMensajeLlave] = useState("");
   const [mensajePerfil, setMensajePerfil] = useState("");
+  const [fotoPerfil, setFotoPerfil] = useState(
+    () => localStorage.getItem("fotoPerfil") || ""
+  );
+
+  const cambiarFotoPerfil = (evento) => {
+    const archivo = evento.target.files?.[0];
+
+    if (!archivo) {
+      return;
+    }
+
+    if (!archivo.type.startsWith("image/")) {
+      setMensajePerfil("Selecciona un archivo de imagen válido.");
+      return;
+    }
+
+    if (archivo.size > 2 * 1024 * 1024) {
+      setMensajePerfil("La imagen no puede superar los 2 MB.");
+      return;
+    }
+
+    const lector = new FileReader();
+    lector.onload = () => {
+      const foto = lector.result;
+      setFotoPerfil(foto);
+      localStorage.setItem("fotoPerfil", foto);
+      setMensajePerfil("Foto de perfil actualizada automáticamente.");
+    };
+    lector.readAsDataURL(archivo);
+    evento.target.value = "";
+  };
+
+  const quitarFotoPerfil = () => {
+    setFotoPerfil("");
+    localStorage.removeItem("fotoPerfil");
+    setMensajePerfil("Foto de perfil eliminada.");
+  };
+
+  const volver = () => {
+    navigate("/cuenta");
+  };
 
   useEffect(() => {
     const obtenerUsuario = async () => {
@@ -181,6 +225,37 @@ function AjustesPerfil() {
 
       <h1>Ajustes del Perfil</h1>
 
+      <section className="foto-perfil-section" aria-labelledby="foto-perfil-titulo">
+        <div className="foto-perfil-preview">
+          {fotoPerfil ? (
+            <img src={fotoPerfil} alt="Foto de perfil" />
+          ) : (
+            <span>{usuario.nombre?.charAt(0).toUpperCase() || "U"}</span>
+          )}
+        </div>
+        <div className="foto-perfil-info">
+          <h2 id="foto-perfil-titulo">Foto de perfil</h2>
+          <p>Elige una imagen para personalizar tu perfil. Se guarda automáticamente.</p>
+          <div className="foto-perfil-actions">
+            <label className="boton-foto" htmlFor="foto-perfil">
+              Cambiar foto
+            </label>
+            {fotoPerfil && (
+              <button type="button" className="boton-quitar-foto" onClick={quitarFotoPerfil}>
+                Quitar foto
+              </button>
+            )}
+          </div>
+          <input
+            id="foto-perfil"
+            className="input-foto-oculto"
+            type="file"
+            accept="image/*"
+            onChange={cambiarFotoPerfil}
+          />
+        </div>
+      </section>
+
       <label>Nombre</label>
 
       <input
@@ -315,21 +390,27 @@ function AjustesPerfil() {
         </>
       )}
 
-      {!editando ? (
-        <button
-          type="button"
-          onClick={editarPerfil}
-        >
-          Editar
+      <div className="acciones-perfil">
+        <button type="button" className="boton-volver" onClick={volver}>
+          Volver
         </button>
-      ) : (
-        <button
-          type="button"
-          onClick={guardarCambios}
-        >
-          Guardar cambios
-        </button>
-      )}
+
+        {!editando ? (
+          <button
+            type="button"
+            onClick={editarPerfil}
+          >
+            Editar
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={guardarCambios}
+          >
+            Guardar cambios
+          </button>
+        )}
+      </div>
 
       {mensajePerfil && <p>{mensajePerfil}</p>}
 
