@@ -16,6 +16,7 @@ const Cuenta = () => {
   const [numeroCuentaCorriente, setNumeroCuentaCorriente] = useState(null);
   const [numeroCuentaAhorro, setNumeroCuentaAhorro] = useState(null);
   const [openTransfer, setOpenTransfer] = useState(false);
+  const [openCertificado, setOpenCertificado] = useState(false);
   const [id, setId] = useState("");
 
 
@@ -364,14 +365,13 @@ const Cuenta = () => {
 
           <li>
 
-            <Link
-              to="/certificado"
-              className="btn-nav"
+            <button
+              type="button"
+              className="sidebar-link"
+              onClick={() => setOpenCertificado(true)}
             >
-
               📄 Certificado Bancario
-
-            </Link>
+            </button>
 
           </li>
 
@@ -572,6 +572,52 @@ const Cuenta = () => {
 
 
       </main>
+
+      {openCertificado && (
+        <div
+          className="certificado-modal-overlay"
+          role="presentation"
+          onClick={() => setOpenCertificado(false)}
+        >
+          <section
+            className="certificado-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="certificado-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="certificado-modal-close"
+              aria-label="Cerrar modal"
+              onClick={() => setOpenCertificado(false)}
+            >
+              ×
+            </button>
+            <h2 id="certificado-modal-title">Certificado bancario</h2>
+            <p>
+              Puedes consultar tus datos y descargar el certificado bancario
+              en formato PDF.
+            </p>
+            <div className="certificado-modal-actions">
+              <button
+                type="button"
+                className="modal-secondary-button"
+                onClick={() => setOpenCertificado(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="modal-primary-button"
+                onClick={() => navigate("/certificado")}
+              >
+                Ver certificado
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
 
 
