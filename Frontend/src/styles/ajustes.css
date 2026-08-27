@@ -43,12 +43,23 @@
 
 .btn-registro {
   background: #f5b841;
-  color: black;
+  color: #A8A9AD;
   padding: 10px 18px;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   font-weight: bold;
+}
+
+.perfil-container label,
+.perfil-container input,
+.perfil-container input::placeholder,
+.perfil-container p {
+  color: #A8A9AD;
+}
+
+.perfil-container input {
+  caret-color: #A8A9AD;
 }
 
 /* CONTENIDO */
