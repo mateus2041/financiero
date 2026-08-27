@@ -4,8 +4,8 @@ START TRANSACTION;
 UPDATE cuentas AS c
 INNER JOIN usuario AS u
     ON u.id_usuario = c.id_usuario
-SET c.saldo = 1500000.00
-WHERE TRIM(LOWER(u.nombre)) = 'luis gabriel mateus'
+SET c.saldo = 50000
+WHERE TRIM(LOWER(u.nombre)) = 'JUAN pepe'
   AND c.tipo_cuenta IN ('corriente', 'ahorros');
 
 SELECT
@@ -18,7 +18,7 @@ SELECT
 FROM usuario AS u
 INNER JOIN cuentas AS c
     ON u.id_usuario = c.id_usuario
-WHERE TRIM(LOWER(u.nombre)) = 'luis gabriel mateus'
+WHERE TRIM(LOWER(u.nombre)) = 'JUAN pepe'
   AND c.tipo_cuenta IN ('corriente', 'ahorros')
 ORDER BY c.tipo_cuenta;
 
