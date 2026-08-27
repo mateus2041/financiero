@@ -659,7 +659,11 @@ def saldos_cuentas(
 
         "cuenta_corriente": 0,
 
-        "cuenta_ahorro": 0
+        "cuenta_corriente_numero": None,
+
+        "cuenta_ahorro": 0,
+
+        "cuenta_ahorro_numero": None
 
     }
 
@@ -671,11 +675,15 @@ def saldos_cuentas(
                 cuenta.saldo or 0
             )
 
+            saldos["cuenta_corriente_numero"] = cuenta.id_cuenta
+
         elif cuenta.tipo_cuenta == "ahorros":
 
             saldos["cuenta_ahorro"] = float(
                 cuenta.saldo or 0
             )
+
+            saldos["cuenta_ahorro_numero"] = cuenta.id_cuenta
 
     return saldos
 

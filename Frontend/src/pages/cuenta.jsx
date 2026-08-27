@@ -13,6 +13,8 @@ const Cuenta = () => {
   const [totalGastos, setTotalGastos] = useState(0);
   const [saldoCorriente, setSaldoCorriente] = useState(0);
   const [saldoAhorro, setSaldoAhorro] = useState(0);
+  const [numeroCuentaCorriente, setNumeroCuentaCorriente] = useState(null);
+  const [numeroCuentaAhorro, setNumeroCuentaAhorro] = useState(null);
   const [openTransfer, setOpenTransfer] = useState(false);
   const [id, setId] = useState("");
 
@@ -132,6 +134,8 @@ const Cuenta = () => {
 
         setSaldoCorriente(Number(datosSaldos.cuenta_corriente || 0));
         setSaldoAhorro(Number(datosSaldos.cuenta_ahorro || 0));
+        setNumeroCuentaCorriente(datosSaldos.cuenta_corriente_numero);
+        setNumeroCuentaAhorro(datosSaldos.cuenta_ahorro_numero);
 
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
@@ -157,7 +161,7 @@ const Cuenta = () => {
             if (indice >= 0) ingresosPorDia[indice] += monto;
           }
 
-          if (tipo.includes("gasto")) {
+          if (tipo.includes("gasto") || tipo.includes("transfer")) {
             gastos += monto;
             if (indice >= 0) gastosPorDia[indice] += monto;
           }
@@ -501,6 +505,8 @@ const Cuenta = () => {
               ${saldoCorriente}
             </span>
 
+            <small>Número de cuenta: {numeroCuentaCorriente || "No disponible"}</small>
+
 
           </div>
 
@@ -512,6 +518,8 @@ const Cuenta = () => {
             <span>
               ${saldoAhorro}
             </span>
+
+            <small>Número de cuenta: {numeroCuentaAhorro || "No disponible"}</small>
 
           </div>
 
