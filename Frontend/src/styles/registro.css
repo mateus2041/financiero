@@ -23,6 +23,27 @@ h1 {
   margin-bottom: 20px;
 }
 
+.registro-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.registro-tabs button {
+  flex: 1;
+  padding: 10px 6px;
+  border: 1px solid #555;
+  border-radius: 8px;
+  background: #1e2a4a;
+  color: white;
+  cursor: pointer;
+}
+
+.registro-tabs .tab-activa {
+  border-color: #f5c542;
+  color: #f5c542;
+}
+
 label {
   display: block;
   margin-top: 10px;
@@ -72,6 +93,21 @@ select {
   border: none;
   border-radius: 12px;
   cursor: pointer;
+}
+
+.codigo-registro {
+  padding: 12px;
+  border: 1px solid #f5c542;
+  border-radius: 10px;
+  color: #f5c542;
+  text-align: center;
+}
+
+.codigo-registro strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 24px;
+  letter-spacing: 2px;
 }
 
 .terms {

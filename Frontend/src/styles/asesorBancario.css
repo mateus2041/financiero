@@ -1,0 +1,774 @@
+/* ==========================================================
+   RESET
+   ========================================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: sans-serif;
+}
+
+/* ==========================================================
+   CONTAINER
+   ========================================================== */
+
+.asesor-container {
+  min-height: 100vh;
+  width: 100%;
+  min-width: 0;
+
+  background: linear-gradient(180deg, #0a192f, #0f2747);
+
+  color: white;
+
+  display: flex;
+  flex-direction: column;
+
+  padding: 0;
+}
+
+/* ==========================================================
+   NAVBAR
+   ========================================================== */
+
+.asesor-navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 20px clamp(20px, 5vw, 60px);
+
+  gap: 20px;
+}
+
+/* LOGO */
+
+.asesor-logo {
+  color: #f5b841;
+  font-weight: bold;
+  font-size: 20px;
+}
+
+/* MENU */
+
+.asesor-menu {
+  display: flex;
+  gap: 25px;
+
+  list-style: none;
+
+  align-items: center;
+
+  flex-wrap: wrap;
+
+  justify-content: flex-end;
+}
+
+.asesor-menu li {
+  cursor: pointer;
+}
+
+/* BOTÓN CERRAR SESIÓN */
+
+.asesor-btn-salir {
+  background: #f5b841;
+
+  border: none;
+
+  padding: 8px 15px;
+
+  border-radius: 6px;
+
+  cursor: pointer;
+
+  color: black;
+
+  font-weight: bold;
+
+  transition: 0.3s;
+}
+
+.asesor-btn-salir:hover {
+  background: #ffd166;
+  transform: translateY(-2px);
+}
+
+/* ==========================================================
+   HERO / ENCABEZADO
+   ========================================================== */
+
+.asesor-hero {
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  padding: clamp(36px, 7vw, 60px)
+           clamp(20px, 5vw, 60px);
+
+  gap: 40px;
+}
+
+.asesor-hero-text {
+  max-width: 650px;
+
+  min-width: 0;
+
+  text-align: center;
+}
+
+.asesor-title {
+  color: #f5b841;
+
+  font-size: clamp(32px, 5vw, 48px);
+
+  line-height: 1.1;
+
+  margin-bottom: 20px;
+}
+
+.asesor-description {
+  margin-bottom: 25px;
+
+  line-height: 1.6;
+
+  color: #cbd5e1;
+}
+
+/* ==========================================================
+   PANEL PRINCIPAL
+   ========================================================== */
+
+.asesor-panel {
+  width: 100%;
+
+  max-width: 1200px;
+
+  margin: 0 auto;
+
+  padding: 0 clamp(20px, 5vw, 60px) 60px;
+
+  min-width: 0;
+}
+
+/* ==========================================================
+   BUSCADOR
+   ========================================================== */
+
+.asesor-buscador {
+  display: flex;
+
+  gap: 12px;
+
+  width: 100%;
+
+  margin-bottom: 30px;
+}
+
+.asesor-verificacion {
+  background: #13294b;
+  border: 1px solid #1e3a5f;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.asesor-verificacion-cabecera {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  align-items: baseline;
+  margin-bottom: 15px;
+}
+
+.asesor-verificacion-etiqueta {
+  color: #f5b841;
+  font-weight: bold;
+}
+
+.asesor-verificacion-ayuda {
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.asesor-buscador select {
+  flex: 0 0 220px;
+
+  height: 45px;
+  padding: 0 12px;
+  border: 1px solid #1e3a5f;
+  border-radius: 8px;
+  background: #1e3a5f;
+  color: white;
+  font-weight: bold;
+}
+
+.usuario-dato-codigo {
+  border-color: #f5b841;
+}
+
+.asesor-buscador input {
+  flex: 1;
+
+  width: 100%;
+
+  min-width: 0;
+
+  height: 45px;
+
+  padding: 0 15px;
+
+  border-radius: 8px;
+
+  border: 1px solid #1e3a5f;
+
+  background: #13294b;
+
+  color: white;
+
+  outline: none;
+
+  font-size: 15px;
+}
+
+.asesor-buscador input::placeholder {
+  color: #A8A9AD;
+}
+
+.asesor-buscador input:focus {
+  border-color: #f5b841;
+}
+
+.asesor-buscador button {
+  height: 45px;
+
+  padding: 0 25px;
+
+  border: none;
+
+  border-radius: 8px;
+
+  background: #f5b841;
+
+  color: black;
+
+  font-weight: bold;
+
+  cursor: pointer;
+
+  transition: 0.3s;
+}
+
+.asesor-buscador button:hover {
+  background: #ffd166;
+
+  transform: translateY(-2px);
+}
+
+/* ==========================================================
+   MENSAJES
+   ========================================================== */
+
+.asesor-mensaje {
+  background: #13294b;
+
+  border-left: 4px solid #f5b841;
+
+  padding: 15px 18px;
+
+  border-radius: 8px;
+
+  margin-bottom: 25px;
+
+  color: #cbd5e1;
+}
+
+.asesor-error {
+  background: #13294b;
+
+  border-left: 4px solid #ef4444;
+
+  padding: 15px 18px;
+
+  border-radius: 8px;
+
+  margin-bottom: 25px;
+
+  color: #fca5a5;
+}
+
+/* ==========================================================
+   INFORMACIÓN DEL USUARIO
+   ========================================================== */
+
+.usuario-info {
+  background: #13294b;
+
+  padding: 25px;
+
+  border-radius: 15px;
+
+  margin-bottom: 30px;
+
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.usuario-info h2 {
+  color: #f5b841;
+
+  font-size: 22px;
+
+  margin-bottom: 20px;
+}
+
+.usuario-datos {
+  display: grid;
+
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  gap: 15px;
+}
+
+.usuario-dato {
+  background: #1e3a5f;
+
+  padding: 15px;
+
+  border-radius: 10px;
+
+  min-width: 0;
+}
+
+.usuario-dato span {
+  display: block;
+
+  color: #A8A9AD;
+
+  font-size: 12px;
+
+  margin-bottom: 6px;
+}
+
+.usuario-dato strong {
+  color: white;
+
+  font-size: 15px;
+
+  word-break: break-word;
+}
+
+/* ==========================================================
+   TÍTULO CUENTAS
+   ========================================================== */
+
+.cuentas-titulo {
+  color: #f5b841;
+
+  margin-bottom: 25px;
+
+  font-size: 24px;
+}
+
+/* ==========================================================
+   GRID CUENTAS
+   ========================================================== */
+
+.cuentas-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 25px;
+}
+
+/* ==========================================================
+   CARD CUENTA
+   ========================================================== */
+
+.cuenta-card {
+  background: #13294b;
+
+  padding: 20px;
+
+  border-radius: 15px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 15px;
+
+  transition: 0.3s;
+
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+
+  min-width: 0;
+}
+
+.cuenta-card:hover {
+  transform: translateY(-5px);
+}
+
+/* ==========================================================
+   CABECERA CUENTA
+   ========================================================== */
+
+.cuenta-card-header {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  gap: 15px;
+}
+
+.cuenta-card-header h3 {
+  color: #f5b841;
+
+  font-size: 18px;
+
+  margin: 0;
+}
+
+/* ==========================================================
+   ESTADOS
+   ========================================================== */
+
+.estado {
+  padding: 6px 12px;
+
+  border-radius: 20px;
+
+  font-size: 11px;
+
+  font-weight: bold;
+
+  text-transform: uppercase;
+
+  white-space: nowrap;
+}
+
+.estado-activa {
+  background: #1e3a5f;
+
+  color: #4ade80;
+
+  border: 1px solid #4ade80;
+}
+
+.estado-inactiva {
+  background: #1e3a5f;
+
+  color: #facc15;
+
+  border: 1px solid #facc15;
+}
+
+.estado-bloqueada {
+  background: #1e3a5f;
+
+  color: #f87171;
+
+  border: 1px solid #f87171;
+}
+
+/* ==========================================================
+   DATOS CUENTA
+   ========================================================== */
+
+.cuenta-datos {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 5px;
+}
+
+.cuenta-dato {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  gap: 15px;
+
+  padding: 10px 0;
+
+  border-bottom: 1px solid #1e3a5f;
+}
+
+.cuenta-dato:last-child {
+  border-bottom: none;
+}
+
+.cuenta-dato span {
+  color: #cbd5e1;
+
+  font-size: 14px;
+}
+
+.cuenta-dato strong {
+  color: white;
+
+  font-size: 15px;
+
+  text-align: right;
+}
+
+/* ==========================================================
+   SALDO
+   ========================================================== */
+
+.cuenta-saldo {
+  background: #1e3a5f;
+
+  padding: 15px;
+
+  border-radius: 10px;
+
+  margin-top: 5px;
+}
+
+.cuenta-saldo span {
+  display: block;
+
+  color: #A8A9AD;
+
+  font-size: 12px;
+
+  margin-bottom: 5px;
+}
+
+.cuenta-saldo strong {
+  color: #f5b841;
+
+  font-size: 23px;
+}
+
+/* ==========================================================
+   ACCIONES
+   ========================================================== */
+
+.cuenta-acciones {
+  display: flex;
+
+  gap: 10px;
+
+  margin-top: 5px;
+}
+
+/* ==========================================================
+   BOTÓN HABILITAR
+   ========================================================== */
+
+.btn-habilitar {
+  flex: 1;
+
+  background: #f5b841;
+
+  border: none;
+
+  padding: 12px;
+
+  border-radius: 8px;
+
+  color: black;
+
+  font-weight: bold;
+
+  cursor: pointer;
+
+  transition: 0.3s;
+}
+
+.btn-habilitar:hover {
+  background: #ffd166;
+
+  transform: translateY(-2px);
+}
+
+/* ==========================================================
+   BOTÓN DESHABILITAR
+   ========================================================== */
+
+.btn-deshabilitar {
+  flex: 1;
+
+  background: black;
+
+  border: none;
+
+  padding: 12px;
+
+  border-radius: 8px;
+
+  color: white;
+
+  font-weight: bold;
+
+  cursor: pointer;
+
+  transition: 0.3s;
+}
+
+.btn-deshabilitar:hover {
+  background: #1e1e1e;
+
+  transform: translateY(-2px);
+}
+
+/* ==========================================================
+   CARGANDO
+   ========================================================== */
+
+.asesor-cargando {
+  text-align: center;
+
+  padding: 40px;
+
+  color: #cbd5e1;
+
+  font-size: 15px;
+}
+
+/* ==========================================================
+   SIN RESULTADOS
+   ========================================================== */
+
+.asesor-sin-resultados {
+  background: #13294b;
+
+  padding: 30px;
+
+  border-radius: 15px;
+
+  text-align: center;
+
+  color: #cbd5e1;
+
+  border: 1px solid #1e3a5f;
+}
+
+/* ==========================================================
+   RESPONSIVE
+   ========================================================== */
+
+@media (max-width: 900px) {
+
+  .asesor-hero {
+    flex-direction: column;
+
+    text-align: center;
+  }
+
+  .saldo-edicion {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+    color: #cbd5e1;
+    font-size: 13px;
+    text-align: left;
+  }
+
+  .saldo-edicion input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #1e3a5f;
+    border-radius: 8px;
+    background: #0f2747;
+    color: white;
+    font-size: 15px;
+  }
+
+  .btn-guardar-saldo {
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background: #f5b841;
+    color: black;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .asesor-hero-text {
+    max-width: 620px;
+  }
+
+  .cuentas-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+
+  .usuario-datos {
+    grid-template-columns: 1fr;
+  }
+
+  .cuentas-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .asesor-navbar {
+    align-items: flex-start;
+  }
+
+  .asesor-menu {
+    gap: 12px;
+
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 600px) {
+
+  .asesor-navbar {
+    padding: 20px;
+  }
+
+  .asesor-panel {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .asesor-hero {
+    padding-left: 20px;
+    padding-right: 20px;
+
+    gap: 28px;
+  }
+
+  .asesor-title {
+    font-size: 32px;
+  }
+
+  .asesor-buscador {
+    flex-direction: column;
+  }
+
+  .asesor-buscador button {
+    width: 100%;
+  }
+
+  .cuenta-acciones {
+    flex-direction: column;
+  }
+
+  .btn-habilitar,
+  .btn-deshabilitar {
+    width: 100%;
+  }
+
+  .cuenta-card {
+    padding: 16px;
+  }
+}

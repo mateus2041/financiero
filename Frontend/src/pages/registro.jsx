@@ -6,6 +6,7 @@ function Registro() {
   const navigate = useNavigate();
 
   const [paso, setPaso] = useState(1);
+  const [tipoRegistro, setTipoRegistro] = useState("usuario");
 
   const [tipo, setTipo] = useState("");
   const [nombre, setNombre] = useState("");
@@ -19,6 +20,8 @@ function Registro() {
   const [localidad, setLocalidad] = useState("");
   const [barrio, setBarrio] = useState("");
   const [codigoCorrespondencia, setCodigoCorrespondencia] = useState("");
+  const [codigoRegistro, setCodigoRegistro] = useState("");
+  const [codigoAutorizacion, setCodigoAutorizacion] = useState("");
 
   const [mensaje, setMensaje] = useState("");
 
@@ -51,7 +54,9 @@ function Registro() {
     }
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/register", {
+      const res = await fetch(
+        `http://127.0.0.1:8000/${tipoRegistro === "asesor" ? "register-asesor" : "register"}`,
+        {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -67,8 +72,12 @@ function Registro() {
           localidad,
           barrio,
           codigo_correspondencia: codigoCorrespondencia,
+          ...(tipoRegistro === "asesor" && {
+            codigo_autorizacion: codigoAutorizacion,
+          }),
         }),
-      });
+        }
+      );
 
       const data = await res.json();
 
@@ -78,6 +87,7 @@ function Registro() {
       }
 
       setMensaje("Usuario creado ✅");
+      setCodigoRegistro(data.codigo_registro);
 
       setTimeout(() => {
         navigate("/login");
@@ -92,6 +102,35 @@ function Registro() {
     <div className="container">
       <div className="form-box">
         <h1>REGISTRO</h1>
+
+        <div className="registro-tabs">
+          <button
+            type="button"
+            className={tipoRegistro === "usuario" ? "tab-activa" : ""}
+            onClick={() => {
+              setTipoRegistro("usuario");
+              setMensaje("");
+            }}
+          >
+            Cliente
+          </button>
+          <button
+            type="button"
+            className={tipoRegistro === "asesor" ? "tab-activa" : ""}
+            onClick={() => {
+              setTipoRegistro("asesor");
+              setMensaje("");
+            }}
+          >
+            Asesor bancario
+          </button>
+        </div>
+
+        {codigoRegistro && (
+          <p className="codigo-registro">
+            Tu código de registro es: <strong>{codigoRegistro}</strong>
+          </p>
+        )}
 
         {paso === 1 && (
           <>
@@ -149,6 +188,17 @@ function Registro() {
 
         {paso === 2 && (
           <>
+            {tipoRegistro === "asesor" && (
+              <>
+                <label>Código de autorización bancaria</label>
+                <input
+                  type="password"
+                  value={codigoAutorizacion}
+                  onChange={(e) => setCodigoAutorizacion(e.target.value)}
+                />
+              </>
+            )}
+
             <label>Dirección</label>
             <input
               type="text"
@@ -173,10 +223,12 @@ function Registro() {
             <label>Código de correspondencia</label>
             <input
               type="text"
+              inputMode="numeric"
+              maxLength={6}
               value={codigoCorrespondencia}
-              onChange={(e) =>
-                setCodigoCorrespondencia(e.target.value)
-              }
+              onChange={(e) => setCodigoCorrespondencia(
+                e.target.value.replace(/\D/g, "")
+              )}
             />
 
             <div

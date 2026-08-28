@@ -144,6 +144,12 @@ const CertificadoBancario = () => {
             </Link>
           </li>
 
+          <li>
+            <Link to="/reporte">
+              📊 Reportes
+            </Link>
+          </li>
+
           {/* MENÚ OTROS */}
           <li>
 
@@ -341,6 +347,13 @@ const CertificadoBancario = () => {
 
         {/* BOTÓN PDF */}
         <div className="pdf-btn-container">
+
+          <button
+            className="volver-btn"
+            onClick={() => navigate("/cuenta")}
+          >
+            Volver
+          </button>
 
           <button
             className="descargar-btn"

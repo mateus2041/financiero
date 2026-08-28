@@ -46,7 +46,7 @@
     box-sizing: border-box;
     border: 1px solid #33415f;
     border-radius: 10px;
-    background-color: #1e2a4a;
+    background-color: #1a2238;
     color: white;
     outline: none;
     font-size: 14px;
@@ -71,7 +71,7 @@
     padding: 12px 20px;
     border: 1px solid #33415f;
     border-radius: 9px;
-    background-color: #1e2a4a;
+    background-color: #1a2238;
     color: #ffffff;
     cursor: pointer;
     transition: 0.2s;
@@ -102,7 +102,7 @@
     display: flex;
     align-items: center;
     padding: 20px;
-    background-color: #1e2a4a;
+    background-color: #1a2238;
     border: 1px solid #2e3b59;
     border-radius: 14px;
     transition: 0.2s;
@@ -196,7 +196,7 @@
 
 .historial-mensaje,
 .historial-vacio {
-    background-color: #1e2a4a;
+    background-color: #1a2238;
     border: 1px solid #2e3b59;
     border-radius: 14px;
     padding: 50px;

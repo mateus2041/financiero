@@ -7,6 +7,7 @@ function Login() {
 
   const [documento, setDocumento] = useState("");
   const [password, setPassword] = useState("");
+  const [rol, setRol] = useState("usuario");
   const [mostrarPass, setMostrarPass] = useState(false);
   const [mensaje, setMensaje] = useState("");
 
@@ -50,6 +51,7 @@ function Login() {
         body: JSON.stringify({
           documento,
           password,
+          rol,
         }),
       });
 
@@ -89,9 +91,14 @@ function Login() {
       localStorage.setItem("documento", documento);
       localStorage.setItem("usuario_id", data.usuario.id);
       localStorage.setItem("nombre_usuario", data.usuario.nombre);
+      localStorage.setItem("rol", data.usuario.rol || "usuario");
 
-      // Ya no redirigimos inmediatamente.
-      // Mostramos las opciones al usuario.
+      if (rol === "asesor" && data.usuario.rol === "asesor") {
+        navigate("/asesor-bancario");
+        return;
+      }
+
+      // Mostramos las opciones al usuario normal.
 
     } catch (error) {
       console.error(error);
@@ -138,6 +145,17 @@ function Login() {
                 {mostrarPass ? "🙈" : "👁️"}
               </button>
             </div>
+
+            <label htmlFor="rol">Tipo de acceso</label>
+            <select
+              id="rol"
+              value={rol}
+              onChange={(e) => setRol(e.target.value)}
+              disabled={bloqueado}
+            >
+              <option value="usuario">Usuario</option>
+              <option value="asesor">Asesor bancario</option>
+            </select>
 
             {mensaje && (
               <p
@@ -193,7 +211,10 @@ function Login() {
               <h2>✅ Bienvenido, {localStorage.getItem("nombre_usuario")}</h2>
 
               <p>
-                Has iniciado sesión correctamente.
+                Has iniciado sesión como{" "}
+                {localStorage.getItem("rol") === "asesor"
+                  ? "asesor bancario"
+                  : "usuario"}.
               </p>
 
               <p>
