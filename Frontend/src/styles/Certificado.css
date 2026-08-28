@@ -147,10 +147,28 @@
 /* BOTÓN PDF */
 .pdf-btn-container {
   display: flex;
+  gap: 16px;
   justify-content: center;
   align-items: center;
   margin-top: 35px;
   margin-bottom: 30px;
+}
+
+.volver-btn {
+  background: #e8eef8;
+  color: #0a2a66;
+  border: 1px solid #b8c8e2;
+  padding: 16px 30px;
+  font-size: 17px;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.volver-btn:hover {
+  background: #d8e3f4;
+  transform: translateY(-3px);
 }
 
 .descargar-btn {
@@ -204,6 +222,16 @@
   .descargar-btn {
     width: 90%;
     justify-content: center;
+    font-size: 15px;
+    padding: 14px 20px;
+  }
+
+  .pdf-btn-container {
+    flex-direction: column;
+  }
+
+  .volver-btn {
+    width: 90%;
     font-size: 15px;
     padding: 14px 20px;
   }

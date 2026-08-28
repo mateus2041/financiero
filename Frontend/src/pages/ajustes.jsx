@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "../styles/ajustes.css";
 
 function AjustesPerfil() {
@@ -20,9 +20,17 @@ function AjustesPerfil() {
   const [guardandoLlave, setGuardandoLlave] = useState(false);
   const [mensajeLlave, setMensajeLlave] = useState("");
   const [mensajePerfil, setMensajePerfil] = useState("");
+
   const [fotoPerfil, setFotoPerfil] = useState(
     () => localStorage.getItem("fotoPerfil") || ""
   );
+
+  const [openTransfer, setOpenTransfer] = useState(false);
+  const [openCertificado, setOpenCertificado] = useState(false);
+
+  // =====================================================
+  // CAMBIAR FOTO DE PERFIL
+  // =====================================================
 
   const cambiarFotoPerfil = (evento) => {
     const archivo = evento.target.files?.[0];
@@ -42,25 +50,62 @@ function AjustesPerfil() {
     }
 
     const lector = new FileReader();
+
     lector.onload = () => {
       const foto = lector.result;
+
       setFotoPerfil(foto);
       localStorage.setItem("fotoPerfil", foto);
-      setMensajePerfil("Foto de perfil actualizada automáticamente.");
+
+      window.dispatchEvent(new Event("fotoPerfilCambio"));
+
+      setMensajePerfil(
+        "Foto de perfil actualizada automáticamente."
+      );
     };
+
     lector.readAsDataURL(archivo);
+
     evento.target.value = "";
   };
 
+  // =====================================================
+  // QUITAR FOTO DE PERFIL
+  // =====================================================
+
   const quitarFotoPerfil = () => {
     setFotoPerfil("");
+
     localStorage.removeItem("fotoPerfil");
+
+    window.dispatchEvent(new Event("fotoPerfilCambio"));
+
     setMensajePerfil("Foto de perfil eliminada.");
   };
+
+  // =====================================================
+  // VOLVER
+  // =====================================================
 
   const volver = () => {
     navigate("/cuenta");
   };
+
+  // =====================================================
+  // CERRAR SESIÓN
+  // =====================================================
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("documento");
+    localStorage.removeItem("usuario_id");
+
+    navigate("/login");
+  };
+
+  // =====================================================
+  // OBTENER INFORMACIÓN DEL USUARIO
+  // =====================================================
 
   useEffect(() => {
     const obtenerUsuario = async () => {
@@ -69,6 +114,7 @@ function AjustesPerfil() {
 
         if (!token) {
           alert("No hay una sesión iniciada.");
+          navigate("/login");
           return;
         }
 
@@ -105,6 +151,7 @@ function AjustesPerfil() {
         });
       } catch (error) {
         console.error(error);
+
         alert(
           error.message ||
             "Error al cargar los datos del usuario."
@@ -113,59 +160,97 @@ function AjustesPerfil() {
     };
 
     obtenerUsuario();
-  }, []);
+  }, [navigate]);
+
+  // =====================================================
+  // EDITAR PERFIL
+  // =====================================================
 
   const editarPerfil = () => {
     setEditando(true);
   };
 
+  // =====================================================
+  // GUARDAR LLAVE BRE-B
+  // =====================================================
+
   const guardarLlaveBreB = async () => {
     const llave = usuario.llave_bre_b.trim();
 
     if (llave.length < 4) {
-      setMensajeLlave("La llave Bre-B debe tener mínimo 4 caracteres.");
+      setMensajeLlave(
+        "La llave Bre-B debe tener mínimo 4 caracteres."
+      );
       return;
     }
 
     try {
       setGuardandoLlave(true);
       setMensajeLlave("");
-      const respuesta = await fetch("http://127.0.0.1:8000/bre-b/llave", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ llave }),
-      });
+
+      const respuesta = await fetch(
+        "http://127.0.0.1:8000/bre-b/llave",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            llave,
+          }),
+        }
+      );
+
       const data = await respuesta.json();
 
       if (!respuesta.ok) {
-        throw new Error(data.detail || "No se pudo registrar la llave Bre-B.");
+        throw new Error(
+          data.detail ||
+            "No se pudo registrar la llave Bre-B."
+        );
       }
 
       setUsuario((usuarioActual) => ({
         ...usuarioActual,
         llave_bre_b: data.llave || llave,
       }));
-      setMensajeLlave(data.mensaje || "Llave Bre-B registrada correctamente.");
+
+      setMensajeLlave(
+        data.mensaje ||
+          "Llave Bre-B registrada correctamente."
+      );
     } catch (error) {
-      setMensajeLlave(error.message || "Error al registrar la llave Bre-B.");
+      setMensajeLlave(
+        error.message ||
+          "Error al registrar la llave Bre-B."
+      );
     } finally {
       setGuardandoLlave(false);
     }
   };
 
+  // =====================================================
+  // GUARDAR CAMBIOS DEL PERFIL
+  // =====================================================
+
   const guardarCambios = async () => {
     setMensajePerfil("");
 
     if (!password) {
-      setMensajePerfil("Debes ingresar tu contraseña para guardar los cambios.");
+      setMensajePerfil(
+        "Debes ingresar tu contraseña para guardar los cambios."
+      );
       return;
     }
 
-    if (usuario.tope_ahorros < 0 || usuario.tope_corriente < 0) {
-      setMensajePerfil("Los topes no pueden ser negativos.");
+    if (
+      Number(usuario.tope_ahorros) < 0 ||
+      Number(usuario.tope_corriente) < 0
+    ) {
+      setMensajePerfil(
+        "Los topes no pueden ser negativos."
+      );
       return;
     }
 
@@ -201,218 +286,472 @@ function AjustesPerfil() {
         );
       }
 
-      setMensajePerfil("Perfil actualizado correctamente.");
+      setMensajePerfil(
+        "Perfil actualizado correctamente."
+      );
 
       setUsuario((usuarioActual) => ({
         ...usuarioActual,
-        nombre: data.usuario?.nombre ?? usuarioActual.nombre,
-        correo: data.usuario?.email ?? usuarioActual.correo,
-        telefono: data.usuario?.telefono ?? usuarioActual.telefono,
-        direccion: data.usuario?.direccion ?? usuarioActual.direccion,
-        tope_ahorros: data.usuario?.tope_ahorros ?? usuarioActual.tope_ahorros,
-        tope_corriente: data.usuario?.tope_corriente ?? usuarioActual.tope_corriente,
+
+        nombre:
+          data.usuario?.nombre ??
+          usuarioActual.nombre,
+
+        correo:
+          data.usuario?.email ??
+          usuarioActual.correo,
+
+        telefono:
+          data.usuario?.telefono ??
+          usuarioActual.telefono,
+
+        direccion:
+          data.usuario?.direccion ??
+          usuarioActual.direccion,
+
+        tope_ahorros:
+          data.usuario?.tope_ahorros ??
+          usuarioActual.tope_ahorros,
+
+        tope_corriente:
+          data.usuario?.tope_corriente ??
+          usuarioActual.tope_corriente,
       }));
+
       setPassword("");
       setEditando(false);
     } catch (error) {
       console.error(error);
-      setMensajePerfil(error.message || "Error al actualizar el perfil.");
+
+      setMensajePerfil(
+        error.message ||
+          "Error al actualizar el perfil."
+      );
     }
   };
 
+  // =====================================================
+  // VISTA
+  // =====================================================
+
   return (
-    <div className="perfil-container">
+    <div className="panel-financiero">
 
-      <h1>Ajustes del Perfil</h1>
+      {/* =====================================================
+          SIDEBAR
+      ===================================================== */}
 
-      <section className="foto-perfil-section" aria-labelledby="foto-perfil-titulo">
-        <div className="foto-perfil-preview">
-          {fotoPerfil ? (
-            <img src={fotoPerfil} alt="Foto de perfil" />
-          ) : (
-            <span>{usuario.nombre?.charAt(0).toUpperCase() || "U"}</span>
-          )}
-        </div>
-        <div className="foto-perfil-info">
-          <h2 id="foto-perfil-titulo">Foto de perfil</h2>
-          <p>Elige una imagen para personalizar tu perfil. Se guarda automáticamente.</p>
-          <div className="foto-perfil-actions">
-            <label className="boton-foto" htmlFor="foto-perfil">
-              Cambiar foto
-            </label>
-            {fotoPerfil && (
-              <button type="button" className="boton-quitar-foto" onClick={quitarFotoPerfil}>
-                Quitar foto
-              </button>
+      <aside className="sidebar">
+
+        <ul>
+
+          <li>
+            <Link
+              to="/cuenta"
+              className="active"
+            >
+              💷 Cuenta
+            </Link>
+          </li>
+
+          <li>
+            <Link to="/historial">
+              📜 Historial Monetario
+            </Link>
+          </li>
+
+          <li>
+            <Link to="/reporte">
+              📜 Reportes
+            </Link>
+          </li>
+
+          <li>
+
+            <div
+              className="menu-item"
+              onClick={() =>
+                setOpenTransfer(!openTransfer)
+              }
+            >
+              💳 Otros{" "}
+              {openTransfer ? "▲" : "▼"}
+            </div>
+
+            {openTransfer && (
+              <ul className="submenu">
+
+                <li>
+                  <Link to="/transferencias">
+                    ➡ Enviar dinero
+                  </Link>
+                </li>
+
+                <li>
+                  <Link to="/corriente">
+                    🧾 Transferir
+                  </Link>
+                </li>
+
+              </ul>
             )}
-          </div>
-          <input
-            id="foto-perfil"
-            className="input-foto-oculto"
-            type="file"
-            accept="image/*"
-            onChange={cambiarFotoPerfil}
-          />
-        </div>
-      </section>
 
-      <label>Nombre</label>
+          </li>
 
-      <input
-        type="text"
-        placeholder="Nombre"
-        value={usuario.nombre}
-        disabled
-        onChange={(e) =>
-          setUsuario({
-            ...usuario,
-            nombre: e.target.value,
-          })
-        }
-      />
+          <li>
 
-      <label>Correo</label>
+            <button
+              type="button"
+              className="sidebar-link"
+              onClick={() =>
+                setOpenCertificado(true)
+              }
+            >
+              📄 Certificado Bancario
+            </button>
 
-      <input
-        type="email"
-        placeholder="Correo"
-        value={usuario.correo}
-        disabled={!editando}
-        onChange={(e) =>
-          setUsuario({
-            ...usuario,
-            correo: e.target.value,
-          })
-        }
-      />
+          </li>
 
-      <label>Teléfono</label>
+          <li>
+            <Link
+              to="/ajustes"
+              className="btn-nav"
+            >
+              ⚙️ Ajustes
+            </Link>
+          </li>
 
-      <input
-        type="text"
-        placeholder="Teléfono"
-        value={usuario.telefono}
-        disabled={!editando}
-        onChange={(e) =>
-          setUsuario({
-            ...usuario,
-            telefono: e.target.value,
-          })
-        }
-      />
+          <li>
+            <Link
+              to="/ChatIA"
+              className="btn-nav"
+            >
+              🤖 Asistente IA
+            </Link>
+          </li>
 
-      <label>Dirección</label>
+        </ul>
 
-      <input
-        type="text"
-        placeholder="Dirección"
-        value={usuario.direccion}
-        disabled={!editando}
-        onChange={(e) =>
-          setUsuario({
-            ...usuario,
-            direccion: e.target.value,
-          })
-        }
-      />
-
-      <label>Tu llave Bre-B</label>
-
-      <input
-        type="text"
-        placeholder="Ej: 3001234567"
-        value={usuario.llave_bre_b}
-        disabled={!editando}
-        onChange={(e) =>
-          setUsuario({
-            ...usuario,
-            llave_bre_b: e.target.value,
-          })
-        }
-      />
-
-      {editando && (
         <button
-          type="button"
-          onClick={guardarLlaveBreB}
-          disabled={guardandoLlave}
+          className="logout"
+          onClick={handleLogout}
         >
-          {guardandoLlave ? "Guardando..." : "Guardar llave Bre-B"}
-        </button>
-      )}
-
-      {mensajeLlave && <p>{mensajeLlave}</p>}
-
-      <label>Tope cuenta de ahorros</label>
-
-      <input
-        type="number"
-        placeholder="Tope de cuenta de ahorros"
-        value={usuario.tope_ahorros}
-        disabled={!editando}
-        min="0"
-        onChange={(e) =>
-          setUsuario({
-            ...usuario,
-            tope_ahorros: e.target.value,
-          })
-        }
-      />
-
-      <label>Tope cuenta corriente</label>
-
-      <input
-        type="number"
-        placeholder="Tope de cuenta corriente"
-        value={usuario.tope_corriente}
-        disabled={!editando}
-        min="0"
-        onChange={(e) =>
-          setUsuario({
-            ...usuario,
-            tope_corriente: e.target.value,
-          })
-        }
-      />
-
-      {editando && (
-        <>
-          <label>Contraseña</label>
-
-          <input
-            type="password"
-            placeholder="Ingresa tu contraseña"
-            value={password}
-            onChange={(e) =>
-              setPassword(e.target.value)
-            }
-          />
-        </>
-      )}
-
-      <div className="acciones-perfil">
-        <button type="button" className="boton-volver" onClick={volver}>
-          Volver
+          🚪 Cerrar sesión
         </button>
 
-        {!editando ? (
+      </aside>
+
+      {/* =====================================================
+          CONTENIDO DE AJUSTES
+      ===================================================== */}
+
+      <main className="perfil-container">
+
+        <h1>Ajustes del Perfil</h1>
+
+        {/* FOTO DE PERFIL */}
+
+        <section
+          className="foto-perfil-section"
+          aria-labelledby="foto-perfil-titulo"
+        >
+
+          <div className="foto-perfil-preview">
+
+            {fotoPerfil ? (
+              <img
+                src={fotoPerfil}
+                alt="Foto de perfil"
+              />
+            ) : (
+              <span>
+                {usuario.nombre
+                  ?.charAt(0)
+                  .toUpperCase() || "U"}
+              </span>
+            )}
+
+          </div>
+
+          <div className="foto-perfil-info">
+
+            <h2 id="foto-perfil-titulo">
+              Foto de perfil
+            </h2>
+
+            <p>
+              Elige una imagen para personalizar tu
+              perfil. Se guarda automáticamente.
+            </p>
+
+            <div className="foto-perfil-actions">
+
+              <label
+                className="boton-foto"
+                htmlFor="foto-perfil"
+              >
+                Cambiar foto
+              </label>
+
+              {fotoPerfil && (
+                <button
+                  type="button"
+                  className="boton-quitar-foto"
+                  onClick={quitarFotoPerfil}
+                >
+                  Quitar foto
+                </button>
+              )}
+
+            </div>
+
+            <input
+              id="foto-perfil"
+              className="input-foto-oculto"
+              type="file"
+              accept="image/*"
+              onChange={cambiarFotoPerfil}
+            />
+
+          </div>
+
+        </section>
+
+        {/* NOMBRE */}
+
+        <label>Nombre</label>
+
+        <input
+          type="text"
+          placeholder="Nombre"
+          value={usuario.nombre}
+          disabled
+          onChange={(e) =>
+            setUsuario({
+              ...usuario,
+              nombre: e.target.value,
+            })
+          }
+        />
+
+        {/* CORREO */}
+
+        <label>Correo</label>
+
+        <input
+          type="email"
+          placeholder="Correo"
+          value={usuario.correo}
+          disabled={!editando}
+          onChange={(e) =>
+            setUsuario({
+              ...usuario,
+              correo: e.target.value,
+            })
+          }
+        />
+
+        {/* TELÉFONO */}
+
+        <label>Teléfono</label>
+
+        <input
+          type="text"
+          placeholder="Teléfono"
+          value={usuario.telefono}
+          disabled={!editando}
+          onChange={(e) =>
+            setUsuario({
+              ...usuario,
+              telefono: e.target.value,
+            })
+          }
+        />
+
+        {/* DIRECCIÓN */}
+
+        <label>Dirección</label>
+
+        <input
+          type="text"
+          placeholder="Dirección"
+          value={usuario.direccion}
+          disabled={!editando}
+          onChange={(e) =>
+            setUsuario({
+              ...usuario,
+              direccion: e.target.value,
+            })
+          }
+        />
+
+        {/* LLAVE BRE-B */}
+
+        <label>Tu llave Bre-B</label>
+
+        <input
+          type="text"
+          placeholder="Ej: 3001234567"
+          value={usuario.llave_bre_b}
+          disabled={!editando}
+          onChange={(e) =>
+            setUsuario({
+              ...usuario,
+              llave_bre_b: e.target.value,
+            })
+          }
+        />
+
+        {editando && (
           <button
             type="button"
-            onClick={editarPerfil}
+            onClick={guardarLlaveBreB}
+            disabled={guardandoLlave}
           >
-            Editar
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={guardarCambios}
-          >
-            Guardar cambios
+            {guardandoLlave
+              ? "Guardando..."
+              : "Guardar llave Bre-B"}
           </button>
         )}
-      </div>
 
-      {mensajePerfil && <p>{mensajePerfil}</p>}
+        {mensajeLlave && (
+          <p>{mensajeLlave}</p>
+        )}
+
+        {/* TOPE AHORROS */}
+
+        <label>
+          Tope cuenta de ahorros
+        </label>
+
+        <input
+          type="number"
+          placeholder="Tope de cuenta de ahorros"
+          value={usuario.tope_ahorros}
+          disabled={!editando}
+          min="0"
+          onChange={(e) =>
+            setUsuario({
+              ...usuario,
+              tope_ahorros: e.target.value,
+            })
+          }
+        />
+
+        {/* TOPE CORRIENTE */}
+
+        <label>
+          Tope cuenta corriente
+        </label>
+
+        <input
+          type="number"
+          placeholder="Tope de cuenta corriente"
+          value={usuario.tope_corriente}
+          disabled={!editando}
+          min="0"
+          onChange={(e) =>
+            setUsuario({
+              ...usuario,
+              tope_corriente: e.target.value,
+            })
+          }
+        />
+
+        {/* CONTRASEÑA */}
+
+        {editando && (
+          <>
+            <label>Contraseña</label>
+
+            <input
+              type="password"
+              placeholder="Ingresa tu contraseña"
+              value={password}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
+            />
+          </>
+        )}
+
+        {/* ACCIONES */}
+
+        <div className="acciones-perfil">
+
+          <button
+            type="button"
+            className="boton-volver"
+            onClick={volver}
+          >
+            Volver
+          </button>
+
+          {!editando ? (
+            <button
+              type="button"
+              onClick={editarPerfil}
+            >
+              Editar
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={guardarCambios}
+            >
+              Guardar cambios
+            </button>
+          )}
+
+        </div>
+
+        {mensajePerfil && (
+          <p>{mensajePerfil}</p>
+        )}
+
+      </main>
+
+      {/* =====================================================
+          CERTIFICADO BANCARIO
+      ===================================================== */}
+
+      {openCertificado && (
+        <div className="modal-certificado">
+
+          <div className="modal-certificado-contenido">
+
+            <h2>
+              Certificado Bancario
+            </h2>
+
+            <p>
+              Puedes consultar tu certificado bancario
+              desde la sección correspondiente.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => {
+                setOpenCertificado(false);
+                navigate("/certificado");
+              }}
+            >
+              Ir al certificado
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setOpenCertificado(false)
+              }
+            >
+              Cerrar
+            </button>
+
+          </div>
+
+        </div>
+      )}
 
     </div>
   );

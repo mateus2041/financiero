@@ -7,9 +7,39 @@ const API_BASE_URL = "http://127.0.0.1:8000";
 const HISTORIAL_LOCAL_KEY = "historial_transferencias";
 
 export default function Transferencia() {
+  // =====================================================
+  // ESTADOS DEL MENÚ
+  // =====================================================
+
+  const [openTransfer, setOpenTransfer] = useState(false);
+  const [openCertificado, setOpenCertificado] = useState(false);
+
+  // =====================================================
+  // FORMULARIO
+  // =====================================================
+
+  const [form, setForm] = useState({
+    origen: "corriente",
+    destino: "ahorro",
+    monto: "",
+    descripcion: "",
+  });
+
+  // =====================================================
+  // SALDOS
+  // =====================================================
+
+  const [saldoCorriente, setSaldoCorriente] = useState(0);
+  const [saldoAhorro, setSaldoAhorro] = useState(0);
+
+  const [mensaje, setMensaje] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // =====================================================
+  // GUARDAR EN HISTORIAL
+  // =====================================================
 
   const guardarEnHistorial = (transferencia) => {
-
     const historial = JSON.parse(
       localStorage.getItem(HISTORIAL_LOCAL_KEY) || "[]"
     );
@@ -30,32 +60,17 @@ export default function Transferencia() {
     );
   };
 
-  const [form, setForm] = useState({
-    origen: "corriente",
-    destino: "ahorro",
-    monto: "",
-    descripcion: "",
-  });
-
-  const [saldoCorriente, setSaldoCorriente] = useState(0);
-  const [saldoAhorro, setSaldoAhorro] = useState(0);
-
-  const [mensaje, setMensaje] = useState("");
-  const [loading, setLoading] = useState(false);
-
   // =====================================================
   // FORMATO DE PESOS COLOMBIANOS
   // =====================================================
 
   const formatoMoneda = (valor) => {
-
     return new Intl.NumberFormat("es-CO", {
       style: "currency",
       currency: "COP",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(Number(valor) || 0);
-
   };
 
   // =====================================================
@@ -63,17 +78,12 @@ export default function Transferencia() {
   // =====================================================
 
   const obtenerSaldos = async () => {
-
     try {
-
       const token = localStorage.getItem("token");
 
       if (!token) {
-
         setMensaje("No hay una sesión activa.");
-
         return;
-
       }
 
       const res = await axios.get(
@@ -92,30 +102,21 @@ export default function Transferencia() {
       setSaldoAhorro(
         Number(res.data.cuenta_ahorro || 0)
       );
-
     } catch (err) {
-
-      console.error(
-        "Error obteniendo saldos:",
-        err
-      );
+      console.error("Error obteniendo saldos:", err);
 
       setMensaje(
         "No fue posible obtener los saldos."
       );
-
     }
-
   };
 
   // =====================================================
-  // CARGAR SALDOS
+  // CARGAR SALDOS AL INICIAR
   // =====================================================
 
   useEffect(() => {
-
     obtenerSaldos();
-
   }, []);
 
   // =====================================================
@@ -123,7 +124,6 @@ export default function Transferencia() {
   // =====================================================
 
   const cambiarOrigen = (e) => {
-
     const origen = e.target.value;
 
     const destino =
@@ -133,12 +133,11 @@ export default function Transferencia() {
 
     setForm({
       ...form,
-      origen: origen,
-      destino: destino,
+      origen,
+      destino,
     });
 
     setMensaje("");
-
   };
 
   // =====================================================
@@ -146,7 +145,6 @@ export default function Transferencia() {
   // =====================================================
 
   const cambiarMonto = (e) => {
-
     const valor = e.target.value.replace(/\D/g, "");
 
     setForm({
@@ -155,7 +153,6 @@ export default function Transferencia() {
     });
 
     setMensaje("");
-
   };
 
   // =====================================================
@@ -163,12 +160,20 @@ export default function Transferencia() {
   // =====================================================
 
   const cambiarDescripcion = (e) => {
-
     setForm({
       ...form,
       descripcion: e.target.value,
     });
+  };
 
+  // =====================================================
+  // CERRAR SESIÓN
+  // =====================================================
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+
+    window.location.href = "/login";
   };
 
   // =====================================================
@@ -176,191 +181,169 @@ export default function Transferencia() {
   // =====================================================
 
   const transferir = async (e) => {
-
     e.preventDefault();
 
     setMensaje("");
 
-    // ===================================================
+    // -----------------------------------------------------
     // VALIDAR MONTO
-    // ===================================================
+    // -----------------------------------------------------
 
     const monto = Number(form.monto);
 
     if (!monto || monto <= 0) {
-
       guardarEnHistorial({
         monto: monto || 0,
-        descripcion: form.descripcion.trim() || "Transferencia entre cuentas",
+        descripcion:
+          form.descripcion.trim() ||
+          "Transferencia entre cuentas",
         estado: "rechazada",
       });
 
-      setMensaje(
-        "Ingrese un monto válido."
-      );
+      setMensaje("Ingrese un monto válido.");
 
       return;
-
     }
 
-    // ===================================================
+    // -----------------------------------------------------
     // OBTENER SALDO DE LA CUENTA ORIGEN
-    // ===================================================
+    // -----------------------------------------------------
 
     const saldoDisponible =
       form.origen === "corriente"
         ? saldoCorriente
         : saldoAhorro;
 
-    // ===================================================
+    // -----------------------------------------------------
     // VALIDAR SALDO
-    // ===================================================
+    // -----------------------------------------------------
 
     if (monto > saldoDisponible) {
-
       guardarEnHistorial({
         monto,
-        descripcion: form.descripcion.trim() || "Transferencia entre cuentas",
+        descripcion:
+          form.descripcion.trim() ||
+          "Transferencia entre cuentas",
         estado: "rechazada",
       });
 
       setMensaje(
-
         `No tiene saldo suficiente en ${
           form.origen === "corriente"
             ? "Cuenta Corriente"
             : "Cuenta de Ahorros"
         }.`
-
       );
 
       return;
-
     }
 
-    // ===================================================
-    // TOKEN
-    // ===================================================
+    // -----------------------------------------------------
+    // OBTENER TOKEN
+    // -----------------------------------------------------
 
     const token = localStorage.getItem("token");
 
     if (!token) {
-
       guardarEnHistorial({
         monto,
-        descripcion: form.descripcion.trim() || "Transferencia entre cuentas",
+        descripcion:
+          form.descripcion.trim() ||
+          "Transferencia entre cuentas",
         estado: "rechazada",
       });
 
-      setMensaje(
-        "No hay una sesión activa."
-      );
+      setMensaje("No hay una sesión activa.");
 
       return;
-
     }
 
     try {
-
       setLoading(true);
 
-      // =================================================
+      // ---------------------------------------------------
       // ENVIAR TRANSFERENCIA
-      // =================================================
+      // ---------------------------------------------------
 
       const res = await axios.post(
-
         `${API_BASE_URL}/transferencias/entre-cuentas`,
-
         {
           origen: form.origen,
-
           destino: form.destino,
-
           monto: monto,
-
-          descripcion:
-            form.descripcion.trim(),
+          descripcion: form.descripcion.trim(),
         },
-
         {
           headers: {
-            Authorization:
-              `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
         }
-
       );
 
-      // =================================================
-      // MENSAJE DE ÉXITO
-      // =================================================
+      // ---------------------------------------------------
+      // GUARDAR TRANSFERENCIA EXITOSA
+      // ---------------------------------------------------
 
-      setMensaje(
-
-        res.data.mensaje ||
-        "Transferencia realizada correctamente."
-
-      );
-
-      // =================================================
-      // LIMPIAR MONTO Y DESCRIPCIÓN
-      // =================================================
-
-      setForm({
-
-        origen: form.origen,
-
-        destino: form.destino,
-
-        monto: "",
-
-        descripcion: "",
-
+      guardarEnHistorial({
+        monto,
+        descripcion:
+          form.descripcion.trim() ||
+          "Transferencia entre cuentas",
+        estado: "exitosa",
       });
 
-      // =================================================
+      // ---------------------------------------------------
+      // MENSAJE DE ÉXITO
+      // ---------------------------------------------------
+
+      setMensaje(
+        res.data.mensaje ||
+          "Transferencia realizada correctamente."
+      );
+
+      // ---------------------------------------------------
+      // LIMPIAR FORMULARIO
+      // ---------------------------------------------------
+
+      setForm({
+        origen: form.origen,
+        destino: form.destino,
+        monto: "",
+        descripcion: "",
+      });
+
+      // ---------------------------------------------------
       // ACTUALIZAR SALDOS
-      // =================================================
+      // ---------------------------------------------------
 
       await obtenerSaldos();
-
     } catch (err) {
-
       console.error(
         "Error realizando transferencia:",
         err
       );
 
       if (err.response) {
-
         setMensaje(
-
           err.response.data.detail ||
-          "Error al realizar la transferencia."
-
+            "Error al realizar la transferencia."
         );
-
       } else {
-
         setMensaje(
           "Error al conectar con el servidor."
         );
-
       }
 
       guardarEnHistorial({
         monto,
-        descripcion: form.descripcion.trim() || "Transferencia entre cuentas",
+        descripcion:
+          form.descripcion.trim() ||
+          "Transferencia entre cuentas",
         estado: "rechazada",
       });
-
     } finally {
-
       setLoading(false);
-
     }
-
   };
 
   // =====================================================
@@ -368,189 +351,300 @@ export default function Transferencia() {
   // =====================================================
 
   return (
+    <div className="panel-financiero">
 
-    <div className="transfer-container">
+      {/* =================================================
+          BARRA LATERAL
+      ================================================= */}
 
-      <div className="transfer-card">
+      <aside className="sidebar">
+        <ul>
 
-        <h2>
-          Transferencia entre cuentas
-        </h2>
+          {/* CUENTA */}
 
-        <form onSubmit={transferir}>
+          <li>
+            <Link
+              to="/cuenta"
+              className="active"
+            >
+              💷 Cuenta
+            </Link>
+          </li>
 
-          {/* =================================================
-              CUENTA ORIGEN
-          ================================================= */}
+          {/* HISTORIAL */}
 
-          <label>
-            Cuenta origen
-          </label>
+          <li>
+            <Link to="/historial">
+              📜 Historial Monetario
+            </Link>
+          </li>
 
-          <select
-            value={form.origen}
-            onChange={cambiarOrigen}
-          >
+          {/* REPORTES */}
 
-            <option value="corriente">
+          <li>
+            <Link to="/reporte">
+              📊 Reportes
+            </Link>
+          </li>
 
-              Cuenta Corriente -{" "}
-              {formatoMoneda(saldoCorriente)}
+          {/* OTROS */}
 
-            </option>
+          <li>
+            <div
+              className="menu-item"
+              onClick={() =>
+                setOpenTransfer(!openTransfer)
+              }
+            >
+              💳 Otros{" "}
+              {openTransfer ? "▲" : "▼"}
+            </div>
 
-            <option value="ahorro">
+            {openTransfer && (
+              <ul className="submenu">
 
-              Cuenta de Ahorros -{" "}
-              {formatoMoneda(saldoAhorro)}
+                <li>
+                  <Link to="/transferencias">
+                    ➡ Enviar dinero
+                  </Link>
+                </li>
 
-            </option>
+                <li>
+                  <Link to="/corriente">
+                    🧾 Transferir
+                  </Link>
+                </li>
 
-          </select>
+              </ul>
+            )}
+          </li>
 
-          {/* =================================================
-              CUENTA DESTINO
-          ================================================= */}
+          {/* CERTIFICADO */}
 
-          <label>
-            Cuenta destino
-          </label>
+          <li>
+            <button
+              type="button"
+              className="sidebar-link"
+              onClick={() =>
+                setOpenCertificado(true)
+              }
+            >
+              📄 Certificado Bancario
+            </button>
+          </li>
 
-          <select
-            value={form.destino}
-            disabled
-          >
+          {/* AJUSTES */}
 
-            {form.destino === "corriente" ? (
+          <li>
+            <Link
+              to="/ajustes"
+              className="btn-nav"
+            >
+              ⚙️ Ajustes
+            </Link>
+          </li>
 
+          {/* ASISTENTE IA */}
+
+          <li>
+            <Link
+              to="/ChatIA"
+              className="btn-nav"
+            >
+              🤖 Asistente IA
+            </Link>
+          </li>
+
+        </ul>
+
+        {/* CERRAR SESIÓN */}
+
+        <button
+          className="logout"
+          onClick={handleLogout}
+        >
+          🚪 Cerrar sesión
+        </button>
+      </aside>
+
+      {/* =================================================
+          CONTENIDO DE TRANSFERENCIA
+      ================================================= */}
+
+      <main className="transfer-container">
+
+        <div className="transfer-card">
+
+          <h2>
+            Transferencia entre cuentas
+          </h2>
+
+          <form onSubmit={transferir}>
+
+            {/* CUENTA ORIGEN */}
+
+            <label>
+              Cuenta origen
+            </label>
+
+            <select
+              value={form.origen}
+              onChange={cambiarOrigen}
+            >
               <option value="corriente">
-
                 Cuenta Corriente -{" "}
                 {formatoMoneda(saldoCorriente)}
-
               </option>
-
-            ) : (
 
               <option value="ahorro">
-
                 Cuenta de Ahorros -{" "}
                 {formatoMoneda(saldoAhorro)}
-
               </option>
+            </select>
 
-            )}
+            {/* CUENTA DESTINO */}
 
-          </select>
+            <label>
+              Cuenta destino
+            </label>
 
-          {/* =================================================
-              MONTO
-          ================================================= */}
+            <select
+              value={form.destino}
+              disabled
+            >
+              {form.destino === "corriente" ? (
+                <option value="corriente">
+                  Cuenta Corriente -{" "}
+                  {formatoMoneda(
+                    saldoCorriente
+                  )}
+                </option>
+              ) : (
+                <option value="ahorro">
+                  Cuenta de Ahorros -{" "}
+                  {formatoMoneda(
+                    saldoAhorro
+                  )}
+                </option>
+              )}
+            </select>
 
-          <label>
-            Monto
-          </label>
+            {/* MONTO */}
 
-          <input
-            type="text"
-            name="monto"
-            value={
-              form.monto
-                ? formatoMoneda(
-                    Number(form.monto)
-                  )
-                : ""
-            }
-            onChange={cambiarMonto}
-            placeholder="$0"
-            required
-          />
+            <label>
+              Monto
+            </label>
 
-          {/* =================================================
-              SALDO DISPONIBLE
-          ================================================= */}
+            <input
+              type="text"
+              name="monto"
+              value={
+                form.monto
+                  ? formatoMoneda(
+                      Number(form.monto)
+                    )
+                  : ""
+              }
+              onChange={cambiarMonto}
+              placeholder="$0"
+              required
+            />
 
-          <div className="saldo-disponible">
+            {/* SALDO DISPONIBLE */}
 
-            Saldo disponible en{" "}
+            <div className="saldo-disponible">
+              Saldo disponible en{" "}
+              {form.origen === "corriente"
+                ? "Cuenta Corriente"
+                : "Cuenta de Ahorros"}
+              :{" "}
+              {formatoMoneda(
+                form.origen === "corriente"
+                  ? saldoCorriente
+                  : saldoAhorro
+              )}
+            </div>
 
-            {form.origen === "corriente"
-              ? "Cuenta Corriente"
-              : "Cuenta de Ahorros"}
+            {/* DESCRIPCIÓN */}
 
-            :{" "}
+            <label>
+              Descripción
+            </label>
 
-            {formatoMoneda(
-              form.origen === "corriente"
-                ? saldoCorriente
-                : saldoAhorro
-            )}
+            <textarea
+              name="descripcion"
+              value={form.descripcion}
+              onChange={cambiarDescripcion}
+              placeholder="Descripción de la transferencia"
+            />
+
+            {/* BOTÓN */}
+
+            <button
+              type="submit"
+              disabled={loading}
+            >
+              {loading
+                ? "Procesando..."
+                : "Realizar transferencia"}
+            </button>
+
+          </form>
+
+          {/* MENSAJE */}
+
+          {mensaje && (
+            <p className="mensaje">
+              {mensaje}
+            </p>
+          )}
+
+          {/* VOLVER */}
+
+          <Link
+            to="/cuenta"
+            className="volver"
+          >
+            Volver
+          </Link>
+
+        </div>
+
+      </main>
+
+      {/* =================================================
+          MODAL CERTIFICADO
+      ================================================= */}
+
+      {openCertificado && (
+        <div className="modal-overlay">
+
+          <div className="modal-certificado">
+
+            <h3>
+              📄 Certificado Bancario
+            </h3>
+
+            <p>
+              Aquí puedes consultar o descargar
+              tu certificado bancario.
+            </p>
+
+            <button
+              type="button"
+              onClick={() =>
+                setOpenCertificado(false)
+              }
+            >
+              Cerrar
+            </button>
 
           </div>
 
-          {/* =================================================
-              DESCRIPCIÓN
-          ================================================= */}
-
-          <label>
-            Descripción
-          </label>
-
-          <textarea
-            name="descripcion"
-            value={form.descripcion}
-            onChange={cambiarDescripcion}
-            placeholder="Descripción de la transferencia"
-          />
-
-          {/* =================================================
-              BOTÓN
-          ================================================= */}
-
-          <button
-            type="submit"
-            disabled={loading}
-          >
-
-            {loading
-              ? "Procesando..."
-              : "Realizar transferencia"}
-
-          </button>
-
-        </form>
-
-        {/* =================================================
-            MENSAJE
-        ================================================= */}
-
-        {mensaje && (
-
-          <p className="mensaje">
-
-            {mensaje}
-
-          </p>
-
-        )}
-
-        {/* =================================================
-            VOLVER
-        ================================================= */}
-
-        <Link
-          to="/cuenta"
-          className="volver"
-        >
-
-          Volver
-
-        </Link>
-
-      </div>
+        </div>
+      )}
 
     </div>
-
   );
-
 }
+

@@ -158,7 +158,53 @@
   display: none;
 }
 
+/* CENTRAR CONTENIDO DEL PERFIL */
+.perfil-container {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.perfil-container h1,
+.perfil-container > label,
+.perfil-container > input,
+.perfil-container > button,
+.perfil-container > p,
+.foto-perfil-section,
+.acciones-perfil {
+  width: min(100%, 600px);
+}
+
+.perfil-container h1 {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.perfil-container > label {
+  margin-bottom: 4px;
+}
+
+.perfil-container > input {
+  margin-bottom: 12px;
+}
+
+.perfil-container > button {
+  margin-bottom: 12px;
+}
+
+.acciones-perfil {
+  justify-content: center;
+}
+
 @media (max-width: 520px) {
+  .perfil-container {
+    padding: 20px 16px;
+  }
+
   .foto-perfil-section {
     align-items: flex-start;
   }

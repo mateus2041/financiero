@@ -28,26 +28,50 @@ label {
   margin-top: 10px;
   margin-bottom: 5px;
   font-size: 14px;
+  color: white;
 }
 
 input,
 select {
   width: 100%;
   padding: 10px;
-  padding-right: 50px; /* espacio para el ojo */
+  padding-right: 50px;
   border-radius: 10px;
   border: 1px solid #555;
   background-color: #1e2a4a;
-  color: white;
+  color: black !important;
   outline: none;
+  box-sizing: border-box;
 }
 
+/* Texto escrito dentro de los inputs */
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="email"] {
+  color: black !important;
+  -webkit-text-fill-color: black !important;
+}
+
+/* Texto de ejemplo */
+input::placeholder {
+  color: #cccccc;
+  opacity: 1;
+}
+
+/* Campo de contraseña */
 .input-icon {
   position: relative;
   display: flex;
   align-items: center;
 }
 
+.input-icon input {
+  width: 100%;
+  padding-right: 50px;
+}
+
+/* Botón para mostrar/ocultar contraseña */
 .eye-btn {
   position: absolute;
   right: 5px;
@@ -63,15 +87,24 @@ select {
   justify-content: center;
 }
 
+.eye-btn:hover {
+  background-color: #1b2a4d;
+}
+
+/* Botón Acceder */
 .btn {
   width: 100%;
   margin-top: 20px;
   padding: 12px;
-  background-color: black;
+  background: linear-gradient(to right, #1e2a4a, #f5c542);
   color: white;
   border: none;
   border-radius: 12px;
   cursor: pointer;
+}
+
+.btn:hover {
+  opacity: 0.9;
 }
 
 .terms {
@@ -87,4 +120,8 @@ select {
 .login a {
   color: #3b82f6;
   text-decoration: none;
+}
+
+.login a:hover {
+  text-decoration: underline;
 }

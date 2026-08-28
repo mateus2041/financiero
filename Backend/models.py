@@ -86,6 +86,20 @@ class Usuario(Base):
         unique=True
     )
 
+    rol = Column(
+        String(20),
+        nullable=False,
+        default="usuario",
+        server_default="usuario"
+    )
+
+    codigo_registro = Column(
+        String(6),
+        unique=True,
+        nullable=True,
+        index=True
+    )
+
     tope_ahorros = Column(
         DECIMAL(15, 2),
         nullable=False,

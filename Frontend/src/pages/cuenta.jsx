@@ -15,9 +15,13 @@ const Cuenta = () => {
   const [saldoAhorro, setSaldoAhorro] = useState(0);
   const [numeroCuentaCorriente, setNumeroCuentaCorriente] = useState(null);
   const [numeroCuentaAhorro, setNumeroCuentaAhorro] = useState(null);
+  const [estadoCuentaCorriente, setEstadoCuentaCorriente] = useState("inactiva");
+  const [estadoCuentaAhorro, setEstadoCuentaAhorro] = useState("inactiva");
   const [openTransfer, setOpenTransfer] = useState(false);
   const [openCertificado, setOpenCertificado] = useState(false);
   const [id, setId] = useState("");
+  const [actualizando, setActualizando] = useState(false);
+  const [actualizacion, setActualizacion] = useState(0);
   const [fotoPerfil, setFotoPerfil] = useState(
     () => localStorage.getItem("fotoPerfil") || ""
   );
@@ -31,8 +35,12 @@ const Cuenta = () => {
     };
 
     window.addEventListener("storage", actualizarFotoPerfil);
+    window.addEventListener("fotoPerfilCambio", actualizarFotoPerfil);
 
-    return () => window.removeEventListener("storage", actualizarFotoPerfil);
+    return () => {
+      window.removeEventListener("storage", actualizarFotoPerfil);
+      window.removeEventListener("fotoPerfilCambio", actualizarFotoPerfil);
+    };
 
   }, []);
 
@@ -116,7 +124,7 @@ const Cuenta = () => {
     obtenerUsuario();
 
 
-  }, [id]);
+  }, [id, actualizacion]);
 
 
 
@@ -125,6 +133,7 @@ const Cuenta = () => {
   useEffect(() => {
 
     const cargarDatosFinancieros = async () => {
+      setActualizando(true);
       try {
         const [respuestaSaldos, respuestaTransacciones] = await Promise.all([
           fetch("http://127.0.0.1:8000/cuentas/saldos", {
@@ -153,6 +162,8 @@ const Cuenta = () => {
         setSaldoAhorro(Number(datosSaldos.cuenta_ahorro || 0));
         setNumeroCuentaCorriente(datosSaldos.cuenta_corriente_numero);
         setNumeroCuentaAhorro(datosSaldos.cuenta_ahorro_numero);
+        setEstadoCuentaCorriente(datosSaldos.cuenta_corriente_estado || "inactiva");
+        setEstadoCuentaAhorro(datosSaldos.cuenta_ahorro_estado || "inactiva");
 
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
@@ -220,21 +231,40 @@ const Cuenta = () => {
         });
       } catch (error) {
         console.error(error);
+      } finally {
+        setActualizando(false);
       }
     };
 
     cargarDatosFinancieros();
 
+    const actualizarCuentas = () => cargarDatosFinancieros();
+
+    window.addEventListener("cuentas-actualizadas", actualizarCuentas);
+    window.addEventListener("storage", actualizarCuentas);
+
     return () => {
+      window.removeEventListener("cuentas-actualizadas", actualizarCuentas);
+      window.removeEventListener("storage", actualizarCuentas);
+
       if (window.chart) {
         window.chart.destroy();
         window.chart = null;
       }
     };
-  }, []);
+  }, [actualizacion]);
 
 
 
+
+
+
+  const actualizarCuenta = () => {
+    setDocumento(localStorage.getItem("documento") || "");
+    setId(localStorage.getItem("usuario_id") || "");
+    setFotoPerfil(localStorage.getItem("fotoPerfil") || "");
+    setActualizacion((valor) => valor + 1);
+  };
 
 
 
@@ -477,14 +507,13 @@ const Cuenta = () => {
 
           <div className="profile">
 
-
-            <img
-
-              src={fotoPerfil || "https://i.pinimg.com/736x/e0/06/16/e00616c1e181f83b35b157f9281bd36e.jpg"}
-
-              alt="Foto de perfil"
-
-            />
+            {fotoPerfil ? (
+              <img src={fotoPerfil} alt="Foto de perfil" />
+            ) : (
+              <span className="profile-fallback" aria-label="Sin foto de perfil">
+                {usuario.charAt(0).toUpperCase() || "U"}
+              </span>
+            )}
 
 
           </div>
@@ -517,6 +546,10 @@ const Cuenta = () => {
 
             <h3>Cuenta</h3>
 
+            <small className={estadoCuentaCorriente === "activa" ? "cuenta-activa" : "cuenta-inactiva"}>
+              {estadoCuentaCorriente === "activa" ? "Cuenta activa" : "Cuenta deshabilitada"}
+            </small>
+
             <span>
               ${saldoCorriente}
             </span>
@@ -530,6 +563,10 @@ const Cuenta = () => {
           <div className="card">
 
             <h3>Ahorros</h3>
+
+            <small className={estadoCuentaAhorro === "activa" ? "cuenta-activa" : "cuenta-inactiva"}>
+              {estadoCuentaAhorro === "activa" ? "Cuenta activa" : "Cuenta deshabilitada"}
+            </small>
 
             <span>
               ${saldoAhorro}
@@ -567,9 +604,18 @@ const Cuenta = () => {
         <section className="chart-card">
 
 
-          <h3>
-            Porcentaje de dinero
-          </h3>
+          <div className="chart-header">
+            <h3>Porcentaje de dinero</h3>
+            <button
+              type="button"
+              className="refresh-button"
+              onClick={actualizarCuenta}
+              disabled={actualizando}
+              aria-label="Actualizar datos financieros"
+            >
+              {actualizando ? "Actualizando..." : "Actualizar"}
+            </button>
+          </div>
 
 
 

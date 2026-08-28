@@ -13,6 +13,7 @@ import Corriente from "./pages/corriente";
 import Historial from "./pages/historial";
 import Reporte from "./pages/reporte";
 import VerificacionIdentidad from "./pages/VerificacionIdentidad";
+import AsesorBancario from "./pages/AsesorBancario";
 
 function App() {
   return (
@@ -31,6 +32,10 @@ function App() {
       <Route
         path="/verificacion-identidad"
         element={<VerificacionIdentidad />}
+      />
+      <Route
+        path="/asesor-bancario"
+        element={<AsesorBancario />}
       />
     </Routes>
   );

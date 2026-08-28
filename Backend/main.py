@@ -1,10 +1,21 @@
 from fastapi import FastAPI, Depends, HTTPException
 from decimal import Decimal
+import secrets
+import os
+import hmac
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
+import json
+
 from Backend.database.database import Base, engine
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import inspect, text
 from pydantic import BaseModel
+
+
+class SaldoCuenta(BaseModel):
+    saldo: float
 
 from Backend.ai.router import router as ia_router
 from Backend.models import Usuario, Cuenta, Transaccion, LlaveBreb
@@ -89,19 +100,68 @@ def startup():
                 "ADD COLUMN llave_bre_b VARCHAR(100) UNIQUE NULL"
             ))
 
+        if "rol" not in columnas_usuario:
+
+            conexion.execute(text(
+                "ALTER TABLE usuario "
+                "ADD COLUMN rol VARCHAR(20) NOT NULL DEFAULT 'usuario'"
+            ))
+
+        if "codigo_registro" not in columnas_usuario:
+
+            conexion.execute(text(
+                "ALTER TABLE usuario "
+                "ADD COLUMN codigo_registro VARCHAR(6) UNIQUE NULL"
+            ))
+
 
 # ==========================================================
 # UTILIDAD LLAVE BRE-B
 # ==========================================================
 
-def obtener_llave_bre_b_actual(db: Session, usuario_id: int):
+def obtener_llave_bre_b_actual(
+    db: Session,
+    usuario_id: int
+):
 
     llave = db.query(LlaveBreb).filter(
         LlaveBreb.id_usuario == usuario_id,
         LlaveBreb.estado == "activa"
-    ).order_by(LlaveBreb.id_llave.desc()).first()
+    ).order_by(
+        LlaveBreb.id_llave.desc()
+    ).first()
 
     return llave.llave if llave else None
+
+
+# ==========================================================
+# VALIDAR ASESOR BANCARIO
+# ==========================================================
+
+def asesor_requerido(
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+
+    asesor = db.query(Usuario).filter(
+        Usuario.id_usuario == current_user
+    ).first()
+
+    if not asesor:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Asesor no encontrado."
+        )
+
+    if asesor.rol != "asesor":
+
+        raise HTTPException(
+            status_code=403,
+            detail="No tienes permisos de asesor bancario."
+        )
+
+    return asesor
 
 
 # ==========================================================
@@ -120,10 +180,86 @@ def inicio():
 # REGISTRO
 # ==========================================================
 
+def ubicacion_real(
+    direccion: str,
+    localidad: str,
+    barrio: str,
+    codigo: str
+) -> bool:
+
+    if not codigo.isdigit() or len(codigo) != 6:
+        return False
+
+    parametros = urlencode({
+        "street": direccion,
+        "neighbourhood": barrio,
+        "city": localidad,
+        "country": "Colombia",
+        "postalcode": codigo,
+        "format": "jsonv2",
+        "limit": 1,
+    })
+
+    solicitud = Request(
+        f"https://nominatim.openstreetmap.org/search?{parametros}",
+        headers={
+            "User-Agent": "Financiero/1.0"
+        }
+    )
+
+    try:
+
+        with urlopen(
+            solicitud,
+            timeout=5
+        ) as respuesta:
+
+            resultados = json.loads(
+                respuesta.read().decode("utf-8")
+            )
+
+        return bool(resultados)
+
+    except Exception:
+
+        return False
+
+
 @app.post("/register")
 def register(
     data: dict,
     db: Session = Depends(get_db)
+):
+    return registrar_usuario(data, db, "usuario")
+
+
+@app.post("/register-asesor")
+def register_asesor(
+    data: dict,
+    db: Session = Depends(get_db)
+):
+    codigo_autorizacion = os.getenv("ASESOR_REGISTRATION_CODE")
+    codigo_recibido = str(data.get("codigo_autorizacion", ""))
+
+    if not codigo_autorizacion:
+        raise HTTPException(
+            status_code=503,
+            detail="El registro de asesores no está configurado"
+        )
+
+    if not hmac.compare_digest(codigo_recibido, codigo_autorizacion):
+        raise HTTPException(
+            status_code=403,
+            detail="Código de autorización de asesor inválido"
+        )
+
+    return registrar_usuario(data, db, "asesor")
+
+
+def registrar_usuario(
+    data: dict,
+    db: Session,
+    rol: str
 ):
 
     usuario_existente = db.query(Usuario).filter(
@@ -136,6 +272,27 @@ def register(
             status_code=409,
             detail="Usuario ya existe"
         )
+
+    codigo_correspondencia = str(
+        data.get(
+            "codigo_correspondencia",
+            ""
+        )
+    ).strip()
+
+    if not ubicacion_real(
+        data.get("direccion", "").strip(),
+        data.get("localidad", "").strip(),
+        data.get("barrio", "").strip(),
+        codigo_correspondencia,
+    ):
+
+        raise HTTPException(
+            status_code=400,
+            detail="El código de correspondencia no coincide con una ubicación real"
+        )
+
+    codigo_registro = generar_codigo_registro(db)
 
     nuevo_usuario = Usuario(
 
@@ -151,7 +308,11 @@ def register(
 
         telefono=data.get("telefono"),
 
-        direccion=data.get("direccion")
+        direccion=data.get("direccion"),
+
+        rol=rol,
+
+        codigo_registro=codigo_registro
 
     )
 
@@ -193,17 +354,37 @@ def register(
         "token":
         token,
 
+        "codigo_registro":
+        codigo_registro,
+
         "usuario": {
 
             "id":
             nuevo_usuario.id_usuario,
 
             "nombre":
-            nuevo_usuario.nombre
+            nuevo_usuario.nombre,
+
+            "rol":
+            nuevo_usuario.rol
 
         }
 
     }
+
+
+def generar_codigo_registro(db: Session) -> str:
+
+    while True:
+
+        codigo = f"{secrets.randbelow(1000000):06d}"
+
+        existe = db.query(Usuario.id_usuario).filter(
+            Usuario.codigo_registro == codigo
+        ).first()
+
+        if not existe:
+            return codigo
 
 
 # ==========================================================
@@ -218,6 +399,21 @@ def login(
     db: Session = Depends(get_db)
 
 ):
+
+    rol_solicitado = data.get(
+        "rol",
+        "usuario"
+    )
+
+    if rol_solicitado not in (
+        "usuario",
+        "asesor"
+    ):
+
+        raise HTTPException(
+            status_code=400,
+            detail="Tipo de acceso inválido"
+        )
 
     usuario = db.query(Usuario).filter(
 
@@ -242,6 +438,13 @@ def login(
             detail="Credenciales inválidas"
         )
 
+    if usuario.rol != rol_solicitado:
+
+        raise HTTPException(
+            status_code=403,
+            detail="El documento no corresponde al tipo de acceso seleccionado"
+        )
+
     token = generate_token(
         usuario.id_usuario
     )
@@ -263,7 +466,10 @@ def login(
             usuario.nombre,
 
             "documento":
-            usuario.documento
+            usuario.documento,
+
+            "rol":
+            usuario.rol
 
         }
 
@@ -323,7 +529,10 @@ def perfil(
         float(usuario.tope_corriente or 0),
 
         "llave_bre_b":
-        obtener_llave_bre_b_actual(db, current_user)
+        obtener_llave_bre_b_actual(
+            db,
+            current_user
+        )
 
     }
 
@@ -381,7 +590,10 @@ def obtener_usuario(
         float(usuario.tope_corriente or 0),
 
         "llave_bre_b":
-        obtener_llave_bre_b_actual(db, current_user)
+        obtener_llave_bre_b_actual(
+            db,
+            current_user
+        )
 
     }
 
@@ -432,31 +644,24 @@ def actualizar_perfil(
         )
 
     if "nombre" in data:
-
         usuario.nombre = data["nombre"]
 
     if "email" in data:
-
         usuario.email = data["email"]
 
     elif "correo" in data:
-
         usuario.email = data["correo"]
 
     if "telefono" in data:
-
         usuario.telefono = data["telefono"]
 
     if "direccion" in data:
-
         usuario.direccion = data["direccion"]
 
     if "tope_ahorros" in data:
-
         usuario.tope_ahorros = data["tope_ahorros"]
 
     if "tope_corriente" in data:
-
         usuario.tope_corriente = data["tope_corriente"]
 
     db.commit()
@@ -553,8 +758,10 @@ def test_db(
     )
 
     return {
+
         "message":
         "Base de datos funcionando"
+
     }
 
 
@@ -635,6 +842,537 @@ def mis_cuentas(
 
 
 # ==========================================================
+# ==========================================================
+#                  ASESOR BANCARIO
+# ==========================================================
+# ==========================================================
+
+
+# ==========================================================
+# CONSULTAR USUARIO Y SUS CUENTAS
+# ==========================================================
+
+@app.get("/asesor-bancario/usuario/{documento}")
+def asesor_consultar_usuario(
+
+    documento: str,
+
+    asesor: Usuario = Depends(
+        asesor_requerido
+    ),
+
+    db: Session = Depends(get_db)
+
+):
+
+    usuario = db.query(Usuario).filter(
+
+        Usuario.documento == documento
+
+    ).first()
+
+    if not usuario:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Usuario no encontrado."
+        )
+
+    cuentas = db.query(Cuenta).filter(
+
+        Cuenta.id_usuario ==
+        usuario.id_usuario
+
+    ).order_by(
+
+        Cuenta.id_cuenta
+
+    ).all()
+
+    return {
+
+        "usuario": {
+
+            "id_usuario":
+            usuario.id_usuario,
+
+            "nombre":
+            usuario.nombre,
+
+            "documento":
+            usuario.documento,
+
+            "email":
+            usuario.email,
+
+            "telefono":
+            usuario.telefono,
+
+            "direccion":
+            usuario.direccion,
+
+            "id_tipo_doc":
+            usuario.id_tipo_doc,
+
+            "rol":
+            usuario.rol,
+
+            "codigo_registro":
+            usuario.codigo_registro,
+
+            "tope_ahorros":
+            float(usuario.tope_ahorros or 0),
+
+            "tope_corriente":
+            float(usuario.tope_corriente or 0),
+
+            "fecha_creacion":
+            usuario.fecha_creacion.isoformat()
+            if usuario.fecha_creacion else None
+
+        },
+
+        "cuentas": [
+
+            {
+
+                "id_cuenta":
+                cuenta.id_cuenta,
+
+                "tipo_cuenta":
+                cuenta.tipo_cuenta,
+
+                "saldo":
+                float(cuenta.saldo or 0),
+
+                "estado":
+                cuenta.estado
+
+            }
+
+            for cuenta in cuentas
+
+        ]
+
+    }
+
+
+@app.get("/asesor-bancario/codigo/{codigo_registro}")
+def asesor_consultar_por_codigo(
+
+    codigo_registro: str,
+
+    asesor: Usuario = Depends(
+        asesor_requerido
+    ),
+
+    db: Session = Depends(get_db)
+
+):
+
+    if not codigo_registro.strip().isdigit() or len(codigo_registro.strip()) != 6:
+
+        raise HTTPException(
+            status_code=400,
+            detail="El código de registro debe tener seis dígitos."
+        )
+
+    usuario = db.query(Usuario).filter(
+        Usuario.codigo_registro == codigo_registro.strip()
+    ).first()
+
+    if not usuario:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Código de registro no encontrado."
+        )
+
+    cuentas = db.query(Cuenta).filter(
+        Cuenta.id_usuario == usuario.id_usuario
+    ).order_by(
+        Cuenta.id_cuenta
+    ).all()
+
+    return {
+        "usuario": {
+            "id_usuario": usuario.id_usuario,
+            "nombre": usuario.nombre,
+            "documento": usuario.documento,
+            "email": usuario.email,
+            "telefono": usuario.telefono,
+            "direccion": usuario.direccion,
+            "rol": usuario.rol,
+            "codigo_registro": usuario.codigo_registro,
+            "id_tipo_doc": usuario.id_tipo_doc,
+            "tope_ahorros": float(usuario.tope_ahorros or 0),
+            "tope_corriente": float(usuario.tope_corriente or 0),
+            "fecha_creacion": usuario.fecha_creacion.isoformat()
+            if usuario.fecha_creacion else None
+        },
+        "cuentas": [
+            {
+                "id_cuenta": cuenta.id_cuenta,
+                "tipo_cuenta": cuenta.tipo_cuenta,
+                "saldo": float(cuenta.saldo or 0),
+                "estado": cuenta.estado
+            }
+            for cuenta in cuentas
+        ]
+    }
+
+
+# ==========================================================
+# HABILITAR UNA CUENTA
+# ==========================================================
+
+@app.put("/asesor-bancario/cuenta/{id_cuenta}/saldo")
+def asesor_actualizar_saldo(
+    id_cuenta: int,
+    datos: SaldoCuenta,
+    asesor: Usuario = Depends(asesor_requerido),
+    db: Session = Depends(get_db)
+):
+    if datos.saldo < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="El saldo no puede ser negativo."
+        )
+
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_cuenta == id_cuenta
+    ).first()
+
+    if not cuenta:
+        raise HTTPException(
+            status_code=404,
+            detail="Cuenta no encontrada."
+        )
+
+    cuenta.saldo = Decimal(str(datos.saldo))
+    db.commit()
+    db.refresh(cuenta)
+
+    return {
+        "mensaje": "Saldo actualizado correctamente.",
+        "id_cuenta": cuenta.id_cuenta,
+        "saldo": float(cuenta.saldo or 0),
+        "estado": cuenta.estado
+    }
+
+@app.put(
+    "/asesor-bancario/cuenta/{id_cuenta}/habilitar"
+)
+def asesor_habilitar_cuenta(
+
+    id_cuenta: int,
+
+    asesor: Usuario = Depends(
+        asesor_requerido
+    ),
+
+    db: Session = Depends(get_db)
+
+):
+
+    cuenta = db.query(Cuenta).filter(
+
+        Cuenta.id_cuenta == id_cuenta
+
+    ).first()
+
+    if not cuenta:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Cuenta no encontrada."
+        )
+
+    if cuenta.estado == "activa":
+
+        return {
+
+            "mensaje":
+            "La cuenta ya se encuentra habilitada.",
+
+            "id_cuenta":
+            cuenta.id_cuenta,
+
+            "tipo_cuenta":
+            cuenta.tipo_cuenta,
+
+            "estado":
+            cuenta.estado
+
+        }
+
+    cuenta.estado = "activa"
+
+    db.commit()
+
+    db.refresh(cuenta)
+
+    return {
+
+        "mensaje":
+        "Cuenta habilitada correctamente.",
+
+        "id_cuenta":
+        cuenta.id_cuenta,
+
+        "tipo_cuenta":
+        cuenta.tipo_cuenta,
+
+        "estado":
+        cuenta.estado
+
+    }
+
+
+# ==========================================================
+# DESHABILITAR UNA CUENTA
+# ==========================================================
+
+@app.put(
+    "/asesor-bancario/cuenta/{id_cuenta}/deshabilitar"
+)
+def asesor_deshabilitar_cuenta(
+
+    id_cuenta: int,
+
+    asesor: Usuario = Depends(
+        asesor_requerido
+    ),
+
+    db: Session = Depends(get_db)
+
+):
+
+    cuenta = db.query(Cuenta).filter(
+
+        Cuenta.id_cuenta == id_cuenta
+
+    ).first()
+
+    if not cuenta:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Cuenta no encontrada."
+        )
+
+    if cuenta.estado == "inactiva":
+
+        return {
+
+            "mensaje":
+            "La cuenta ya se encuentra deshabilitada.",
+
+            "id_cuenta":
+            cuenta.id_cuenta,
+
+            "tipo_cuenta":
+            cuenta.tipo_cuenta,
+
+            "estado":
+            cuenta.estado
+
+        }
+
+    cuenta.estado = "inactiva"
+
+    db.commit()
+
+    db.refresh(cuenta)
+
+    return {
+
+        "mensaje":
+        "Cuenta deshabilitada correctamente.",
+
+        "id_cuenta":
+        cuenta.id_cuenta,
+
+        "tipo_cuenta":
+        cuenta.tipo_cuenta,
+
+        "estado":
+        cuenta.estado
+
+    }
+
+
+# ==========================================================
+# HABILITAR TODAS LAS CUENTAS
+# ==========================================================
+
+@app.put(
+    "/asesor-bancario/usuario/{documento}/habilitar-cuentas"
+)
+def asesor_habilitar_todas(
+
+    documento: str,
+
+    asesor: Usuario = Depends(
+        asesor_requerido
+    ),
+
+    db: Session = Depends(get_db)
+
+):
+
+    usuario = db.query(Usuario).filter(
+
+        Usuario.documento == documento
+
+    ).first()
+
+    if not usuario:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Usuario no encontrado."
+        )
+
+    cuentas = db.query(Cuenta).filter(
+
+        Cuenta.id_usuario ==
+        usuario.id_usuario
+
+    ).all()
+
+    if not cuentas:
+
+        raise HTTPException(
+            status_code=404,
+            detail="El usuario no tiene cuentas registradas."
+        )
+
+    for cuenta in cuentas:
+
+        cuenta.estado = "activa"
+
+    db.commit()
+
+    return {
+
+        "mensaje":
+        "Todas las cuentas fueron habilitadas correctamente.",
+
+        "usuario":
+        usuario.nombre,
+
+        "documento":
+        usuario.documento,
+
+        "cuentas": [
+
+            {
+
+                "id_cuenta":
+                cuenta.id_cuenta,
+
+                "tipo_cuenta":
+                cuenta.tipo_cuenta,
+
+                "estado":
+                cuenta.estado
+
+            }
+
+            for cuenta in cuentas
+
+        ]
+
+    }
+
+
+# ==========================================================
+# DESHABILITAR TODAS LAS CUENTAS
+# ==========================================================
+
+@app.put(
+    "/asesor-bancario/usuario/{documento}/deshabilitar-cuentas"
+)
+def asesor_deshabilitar_todas(
+
+    documento: str,
+
+    asesor: Usuario = Depends(
+        asesor_requerido
+    ),
+
+    db: Session = Depends(get_db)
+
+):
+
+    usuario = db.query(Usuario).filter(
+
+        Usuario.documento == documento
+
+    ).first()
+
+    if not usuario:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Usuario no encontrado."
+        )
+
+    cuentas = db.query(Cuenta).filter(
+
+        Cuenta.id_usuario ==
+        usuario.id_usuario
+
+    ).all()
+
+    if not cuentas:
+
+        raise HTTPException(
+            status_code=404,
+            detail="El usuario no tiene cuentas registradas."
+        )
+
+    for cuenta in cuentas:
+
+        cuenta.estado = "inactiva"
+
+    db.commit()
+
+    return {
+
+        "mensaje":
+        "Todas las cuentas fueron deshabilitadas correctamente.",
+
+        "usuario":
+        usuario.nombre,
+
+        "documento":
+        usuario.documento,
+
+        "cuentas": [
+
+            {
+
+                "id_cuenta":
+                cuenta.id_cuenta,
+
+                "tipo_cuenta":
+                cuenta.tipo_cuenta,
+
+                "estado":
+                cuenta.estado
+
+            }
+
+            for cuenta in cuentas
+
+        ]
+
+    }
+
+
+# ==========================================================
 # SALDOS
 # ==========================================================
 
@@ -649,21 +1387,29 @@ def saldos_cuentas(
 
     cuentas = db.query(Cuenta).filter(
 
-        Cuenta.id_usuario == current_user,
-
-        Cuenta.estado == "activa"
+        Cuenta.id_usuario == current_user
 
     ).all()
 
     saldos = {
 
-        "cuenta_corriente": 0,
+        "cuenta_corriente":
+        0,
 
-        "cuenta_corriente_numero": None,
+        "cuenta_corriente_numero":
+        None,
 
-        "cuenta_ahorro": 0,
+        "cuenta_corriente_estado":
+        "inactiva",
 
-        "cuenta_ahorro_numero": None
+        "cuenta_ahorro":
+        0,
+
+        "cuenta_ahorro_numero":
+        None,
+
+        "cuenta_ahorro_estado":
+        "inactiva"
 
     }
 
@@ -671,19 +1417,37 @@ def saldos_cuentas(
 
         if cuenta.tipo_cuenta == "corriente":
 
-            saldos["cuenta_corriente"] = float(
+            saldos["cuenta_corriente_estado"] = cuenta.estado
+
+            if cuenta.estado != "activa":
+                continue
+
+            saldos[
+                "cuenta_corriente"
+            ] = float(
                 cuenta.saldo or 0
             )
 
-            saldos["cuenta_corriente_numero"] = cuenta.id_cuenta
+            saldos[
+                "cuenta_corriente_numero"
+            ] = cuenta.id_cuenta
 
         elif cuenta.tipo_cuenta == "ahorros":
 
-            saldos["cuenta_ahorro"] = float(
+            saldos["cuenta_ahorro_estado"] = cuenta.estado
+
+            if cuenta.estado != "activa":
+                continue
+
+            saldos[
+                "cuenta_ahorro"
+            ] = float(
                 cuenta.saldo or 0
             )
 
-            saldos["cuenta_ahorro_numero"] = cuenta.id_cuenta
+            saldos[
+                "cuenta_ahorro_numero"
+            ] = cuenta.id_cuenta
 
     return saldos
 
@@ -701,25 +1465,49 @@ def transacciones_usuario(
 
 ):
 
-    transacciones = db.query(Transaccion).join(
+    transacciones = db.query(
+        Transaccion
+    ).join(
         Cuenta,
-        Transaccion.id_cuenta == Cuenta.id_cuenta
+        Transaccion.id_cuenta ==
+        Cuenta.id_cuenta
     ).filter(
-        Cuenta.id_usuario == current_user
+
+        Cuenta.id_usuario ==
+        current_user
+
     ).order_by(
+
         Transaccion.fecha.desc()
+
     ).all()
 
     return [
+
         {
-            "id_transaccion": transaccion.id_transaccion,
-            "id_cuenta": transaccion.id_cuenta,
-            "monto": float(transaccion.monto or 0),
-            "tipo": transaccion.tipo,
-            "fecha": transaccion.fecha,
-            "descripcion": transaccion.descripcion,
+
+            "id_transaccion":
+            transaccion.id_transaccion,
+
+            "id_cuenta":
+            transaccion.id_cuenta,
+
+            "monto":
+            float(transaccion.monto or 0),
+
+            "tipo":
+            transaccion.tipo,
+
+            "fecha":
+            transaccion.fecha,
+
+            "descripcion":
+            transaccion.descripcion,
+
         }
+
         for transaccion in transacciones
+
     ]
 
 
@@ -766,7 +1554,7 @@ def cuentas_destino(
 
 
 # ==========================================================
-# MODELO TRANSFERENCIA NORMAL
+# MODELOS TRANSFERENCIA
 # ==========================================================
 
 class Transferencia(BaseModel):
@@ -820,7 +1608,7 @@ def tipo_cuenta(origen: str):
 
 
 # ==========================================================
-# TRANSFERENCIA NORMAL
+# TRANSFERENCIA ENTRE CUENTAS
 # ==========================================================
 
 @app.post("/transferencias/entre-cuentas")
@@ -842,14 +1630,28 @@ def transferir_entre_cuentas(
         )
 
     tipos = {
-        "corriente": "corriente",
-        "ahorro": "ahorros"
+
+        "corriente":
+        "corriente",
+
+        "ahorro":
+        "ahorros"
+
     }
 
-    tipo_origen = tipos.get(data.origen)
-    tipo_destino = tipos.get(data.destino)
+    tipo_origen = tipos.get(
+        data.origen
+    )
 
-    if not tipo_origen or not tipo_destino or tipo_origen == tipo_destino:
+    tipo_destino = tipos.get(
+        data.destino
+    )
+
+    if (
+        not tipo_origen
+        or not tipo_destino
+        or tipo_origen == tipo_destino
+    ):
 
         raise HTTPException(
             status_code=400,
@@ -859,18 +1661,44 @@ def transferir_entre_cuentas(
     try:
 
         cuentas = db.query(Cuenta).filter(
-            Cuenta.id_usuario == current_user,
-            Cuenta.estado == "activa",
-            Cuenta.tipo_cuenta.in_([tipo_origen, tipo_destino])
+
+            Cuenta.id_usuario ==
+            current_user,
+
+            Cuenta.estado ==
+            "activa",
+
+            Cuenta.tipo_cuenta.in_([
+                tipo_origen,
+                tipo_destino
+            ])
+
         ).with_for_update().all()
 
         cuenta_origen = next(
-            (cuenta for cuenta in cuentas if cuenta.tipo_cuenta == tipo_origen),
+
+            (
+                cuenta
+                for cuenta in cuentas
+                if cuenta.tipo_cuenta ==
+                tipo_origen
+            ),
+
             None
+
         )
+
         cuenta_destino = next(
-            (cuenta for cuenta in cuentas if cuenta.tipo_cuenta == tipo_destino),
+
+            (
+                cuenta
+                for cuenta in cuentas
+                if cuenta.tipo_cuenta ==
+                tipo_destino
+            ),
+
             None
+
         )
 
         if not cuenta_origen or not cuenta_destino:
@@ -880,7 +1708,11 @@ def transferir_entre_cuentas(
                 detail="No se encontraron ambas cuentas activas."
             )
 
-        saldo_origen = Decimal(str(cuenta_origen.saldo or 0))
+        saldo_origen = Decimal(
+            str(
+                cuenta_origen.saldo or 0
+            )
+        )
 
         if saldo_origen < data.monto:
 
@@ -889,30 +1721,76 @@ def transferir_entre_cuentas(
                 detail="Saldo insuficiente."
             )
 
-        cuenta_origen.saldo = saldo_origen - data.monto
-        cuenta_destino.saldo = Decimal(str(cuenta_destino.saldo or 0)) + data.monto
+        cuenta_origen.saldo = (
+            saldo_origen -
+            data.monto
+        )
+
+        cuenta_destino.saldo = (
+            Decimal(
+                str(
+                    cuenta_destino.saldo or 0
+                )
+            )
+            +
+            data.monto
+        )
 
         db.add_all([
+
             Transaccion(
-                id_cuenta=cuenta_origen.id_cuenta,
-                monto=data.monto,
-                tipo="Transferencia",
-                descripcion=data.descripcion or "Transferencia entre cuentas"
+
+                id_cuenta=
+                cuenta_origen.id_cuenta,
+
+                monto=
+                data.monto,
+
+                tipo=
+                "Transferencia",
+
+                descripcion=
+                data.descripcion or
+                "Transferencia entre cuentas"
+
             ),
+
             Transaccion(
-                id_cuenta=cuenta_destino.id_cuenta,
-                monto=data.monto,
-                tipo="Ingreso",
-                descripcion=data.descripcion or "Ingreso por transferencia"
+
+                id_cuenta=
+                cuenta_destino.id_cuenta,
+
+                monto=
+                data.monto,
+
+                tipo=
+                "Ingreso",
+
+                descripcion=
+                data.descripcion or
+                "Ingreso por transferencia"
+
             )
+
         ])
 
         db.commit()
 
         return {
-            "mensaje": "Transferencia realizada correctamente.",
-            "saldo_origen": float(cuenta_origen.saldo),
-            "saldo_destino": float(cuenta_destino.saldo)
+
+            "mensaje":
+            "Transferencia realizada correctamente.",
+
+            "saldo_origen":
+            float(
+                cuenta_origen.saldo
+            ),
+
+            "saldo_destino":
+            float(
+                cuenta_destino.saldo
+            )
+
         }
 
     except HTTPException:
@@ -925,12 +1803,20 @@ def transferir_entre_cuentas(
 
         db.rollback()
 
-        print("ERROR TRANSFERENCIA ENTRE CUENTAS:", error)
+        print(
+            "ERROR TRANSFERENCIA ENTRE CUENTAS:",
+            error
+        )
 
         raise HTTPException(
             status_code=500,
             detail="Error interno al realizar la transferencia."
         )
+
+
+# ==========================================================
+# TRANSFERENCIA NORMAL
+# ==========================================================
 
 @app.post("/transferencias")
 def realizar_transferencia(
@@ -965,12 +1851,14 @@ def realizar_transferencia(
 
         cuenta_origen = db.query(Cuenta).filter(
 
-            Cuenta.id_usuario == current_user,
+            Cuenta.id_usuario ==
+            current_user,
 
             Cuenta.tipo_cuenta ==
             cuenta_origen_tipo,
 
-            Cuenta.estado == "activa"
+            Cuenta.estado ==
+            "activa"
 
         ).with_for_update().first()
 
@@ -983,9 +1871,11 @@ def realizar_transferencia(
 
         cuenta_destino = db.query(Cuenta).filter(
 
-            Cuenta.id_cuenta == data.destino,
+            Cuenta.id_cuenta ==
+            data.destino,
 
-            Cuenta.estado == "activa"
+            Cuenta.estado ==
+            "activa"
 
         ).with_for_update().first()
 
@@ -1004,7 +1894,9 @@ def realizar_transferencia(
             )
 
         saldo_origen = Decimal(
-            str(cuenta_origen.saldo or 0)
+            str(
+                cuenta_origen.saldo or 0
+            )
         )
 
         if saldo_origen < data.monto:
@@ -1020,7 +1912,9 @@ def realizar_transferencia(
         )
 
         saldo_destino = Decimal(
-            str(cuenta_destino.saldo or 0)
+            str(
+                cuenta_destino.saldo or 0
+            )
         )
 
         cuenta_destino.saldo = (
@@ -1062,15 +1956,23 @@ def realizar_transferencia(
 
         )
 
-        db.add(transaccion_salida)
+        db.add(
+            transaccion_salida
+        )
 
-        db.add(transaccion_entrada)
+        db.add(
+            transaccion_entrada
+        )
 
         db.commit()
 
-        db.refresh(cuenta_origen)
+        db.refresh(
+            cuenta_origen
+        )
 
-        db.refresh(cuenta_destino)
+        db.refresh(
+            cuenta_destino
+        )
 
         return {
 
@@ -1104,12 +2006,8 @@ def realizar_transferencia(
         )
 
         raise HTTPException(
-
             status_code=500,
-
-            detail=
-            "Error interno al realizar la transferencia."
-
+            detail="Error interno al realizar la transferencia."
         )
 
 
@@ -1150,7 +2048,7 @@ def reportar_transaccion_fallida(
 
 
 # ==========================================================
-#                    BRE-B
+# BRE-B
 # ==========================================================
 
 class TransferenciaBreB(BaseModel):
@@ -1179,17 +2077,15 @@ def registrar_llave_bre_b(
 
 ):
 
-    llave = (data or {}).get("llave")
+    llave = (
+        data or {}
+    ).get("llave")
 
     if not llave:
 
         raise HTTPException(
-
             status_code=400,
-
-            detail=
-            "Debe ingresar una llave Bre-B."
-
+            detail="Debe ingresar una llave Bre-B."
         )
 
     llave = llave.strip()
@@ -1197,12 +2093,8 @@ def registrar_llave_bre_b(
     if len(llave) < 4:
 
         raise HTTPException(
-
             status_code=400,
-
-            detail=
-            "La llave Bre-B no es válida."
-
+            detail="La llave Bre-B no es válida."
         )
 
     usuario = db.query(
@@ -1217,58 +2109,85 @@ def registrar_llave_bre_b(
     if not usuario:
 
         raise HTTPException(
-
             status_code=404,
-
-            detail=
-            "Usuario no encontrado."
-
+            detail="Usuario no encontrado."
         )
 
-    llave_existente = db.query(LlaveBreb).filter(
-        LlaveBreb.llave == llave,
-        LlaveBreb.estado == "activa"
+    llave_existente = db.query(
+        LlaveBreb
+    ).filter(
+
+        LlaveBreb.llave ==
+        llave,
+
+        LlaveBreb.estado ==
+        "activa"
+
     ).first()
 
-    if llave_existente and llave_existente.id_usuario != current_user:
+    if (
+        llave_existente
+        and
+        llave_existente.id_usuario != current_user
+    ):
 
         raise HTTPException(
-
             status_code=409,
-
-            detail=
-            "Esta llave Bre-B ya está registrada."
-
+            detail="Esta llave Bre-B ya está registrada."
         )
 
-    cuenta_usuario = db.query(Cuenta).filter(
-        Cuenta.id_usuario == current_user,
-        Cuenta.estado == "activa"
-    ).order_by(Cuenta.id_cuenta).first()
+    cuenta_usuario = db.query(
+        Cuenta
+    ).filter(
+
+        Cuenta.id_usuario ==
+        current_user,
+
+        Cuenta.estado ==
+        "activa"
+
+    ).order_by(
+        Cuenta.id_cuenta
+    ).first()
 
     if not cuenta_usuario:
 
         raise HTTPException(
-
             status_code=404,
-
-            detail=
-            "Debe tener al menos una cuenta activa para registrar una llave Bre-B."
-
+            detail="Debe tener al menos una cuenta activa para registrar una llave Bre-B."
         )
 
-    llave_actual = db.query(LlaveBreb).filter(
-        LlaveBreb.id_usuario == current_user,
-        LlaveBreb.estado == "activa"
-    ).order_by(LlaveBreb.id_llave.desc()).first()
+    llave_actual = db.query(
+        LlaveBreb
+    ).filter(
+
+        LlaveBreb.id_usuario ==
+        current_user,
+
+        LlaveBreb.estado ==
+        "activa"
+
+    ).order_by(
+        LlaveBreb.id_llave.desc()
+    ).first()
 
     if llave_actual:
 
         llave_actual.llave = llave
-        llave_actual.id_cuenta = cuenta_usuario.id_cuenta
-        llave_actual.tipo_llave = "alfanumerica"
+
+        llave_actual.id_cuenta = (
+            cuenta_usuario.id_cuenta
+        )
+
+        llave_actual.tipo_llave = (
+            "alfanumerica"
+        )
+
         db.commit()
-        db.refresh(llave_actual)
+
+        db.refresh(
+            llave_actual
+        )
 
         return {
 
@@ -1281,16 +2200,33 @@ def registrar_llave_bre_b(
         }
 
     nueva_llave = LlaveBreb(
-        id_usuario=current_user,
-        id_cuenta=cuenta_usuario.id_cuenta,
-        tipo_llave="alfanumerica",
-        llave=llave,
-        estado="activa"
+
+        id_usuario=
+        current_user,
+
+        id_cuenta=
+        cuenta_usuario.id_cuenta,
+
+        tipo_llave=
+        "alfanumerica",
+
+        llave=
+        llave,
+
+        estado=
+        "activa"
+
     )
 
-    db.add(nueva_llave)
+    db.add(
+        nueva_llave
+    )
+
     db.commit()
-    db.refresh(nueva_llave)
+
+    db.refresh(
+        nueva_llave
+    )
 
     return {
 
@@ -1320,50 +2256,55 @@ def consultar_llave_bre_b(
 
     llave = llave.strip()
 
-    llave_breb = db.query(LlaveBreb).filter(
-        LlaveBreb.llave == llave,
-        LlaveBreb.estado == "activa"
+    llave_breb = db.query(
+        LlaveBreb
+    ).filter(
+
+        LlaveBreb.llave ==
+        llave,
+
+        LlaveBreb.estado ==
+        "activa"
+
     ).first()
 
     if not llave_breb:
 
         raise HTTPException(
-
             status_code=404,
-
-            detail=
-            "No se encontró un usuario asociado a esta llave Bre-B."
-
+            detail="No se encontró un usuario asociado a esta llave Bre-B."
         )
 
-    usuario = db.query(Usuario).filter(
-        Usuario.id_usuario == llave_breb.id_usuario
+    usuario = db.query(
+        Usuario
+    ).filter(
+
+        Usuario.id_usuario ==
+        llave_breb.id_usuario
+
     ).first()
 
     if not usuario:
 
         raise HTTPException(
-
             status_code=404,
-
-            detail=
-            "No se encontró un usuario asociado a esta llave Bre-B."
-
+            detail="No se encontró un usuario asociado a esta llave Bre-B."
         )
 
     if usuario.id_usuario == current_user:
 
         raise HTTPException(
-
             status_code=400,
-
-            detail=
-            "Esta llave pertenece a su propio usuario."
-
+            detail="Esta llave pertenece a su propio usuario."
         )
 
-    cuenta = db.query(Cuenta).filter(
-        Cuenta.id_cuenta == llave_breb.id_cuenta
+    cuenta = db.query(
+        Cuenta
+    ).filter(
+
+        Cuenta.id_cuenta ==
+        llave_breb.id_cuenta
+
     ).first()
 
     return {
@@ -1384,7 +2325,9 @@ def consultar_llave_bre_b(
         llave_breb.id_cuenta,
 
         "tipo_cuenta":
-        cuenta.tipo_cuenta if cuenta else None
+        cuenta.tipo_cuenta
+        if cuenta
+        else None
 
     }
 
@@ -1413,14 +2356,9 @@ def transferencia_bre_b(
         if data.monto <= Decimal("0"):
 
             raise HTTPException(
-
                 status_code=400,
-
-                detail=
-                "El monto debe ser mayor que cero."
-
+                detail="El monto debe ser mayor que cero."
             )
-
 
         # ==================================================
         # VALIDAR LLAVE
@@ -1431,36 +2369,23 @@ def transferencia_bre_b(
         if not llave:
 
             raise HTTPException(
-
                 status_code=400,
-
-                detail=
-                "Debe ingresar una llave Bre-B."
-
+                detail="Debe ingresar una llave Bre-B."
             )
-
 
         # ==================================================
         # VALIDAR ORIGEN
         # ==================================================
 
         if data.origen not in [
-
             "corriente",
-
             "ahorro",
-
             "ahorros"
-
         ]:
 
             raise HTTPException(
-
                 status_code=400,
-
-                detail=
-                "Cuenta de origen no válida."
-
+                detail="Cuenta de origen no válida."
             )
 
         tipo_origen = (
@@ -1478,63 +2403,55 @@ def transferencia_bre_b(
 
         )
 
-
         # ==================================================
         # BUSCAR DESTINATARIO
         # ==================================================
 
-        llave_breb = db.query(LlaveBreb).filter(
-            LlaveBreb.llave == llave,
-            LlaveBreb.estado == "activa"
+        llave_breb = db.query(
+            LlaveBreb
+        ).filter(
+
+            LlaveBreb.llave ==
+            llave,
+
+            LlaveBreb.estado ==
+            "activa"
+
         ).first()
 
         if not llave_breb:
 
             raise HTTPException(
-
                 status_code=404,
-
-                detail=
-                "No se encontró el destinatario."
-
+                detail="No se encontró el destinatario."
             )
 
-        destinatario = db.query(Usuario).filter(
-            Usuario.id_usuario == llave_breb.id_usuario
+        destinatario = db.query(
+            Usuario
+        ).filter(
+
+            Usuario.id_usuario ==
+            llave_breb.id_usuario
+
         ).first()
 
         if not destinatario:
 
             raise HTTPException(
-
                 status_code=404,
-
-                detail=
-                "No se encontró el destinatario."
-
+                detail="No se encontró el destinatario."
             )
-
 
         # ==================================================
         # EVITAR AUTO TRANSFERENCIA
         # ==================================================
 
-        if (
-
-            destinatario.id_usuario ==
-            current_user
-
-        ):
+        if destinatario.id_usuario == current_user:
 
             raise HTTPException(
-
                 status_code=400,
-
-                detail=
-                "No puede realizar una transferencia a usted mismo."
-
+                detail="No puede realizar una transferencia a usted mismo."
             )
-
 
         # ==================================================
         # BUSCAR CUENTA ORIGEN
@@ -1558,22 +2475,12 @@ def transferencia_bre_b(
         if not cuenta_origen:
 
             raise HTTPException(
-
                 status_code=404,
-
-                detail=
-                "La cuenta de origen no existe."
-
+                detail="La cuenta de origen no existe."
             )
-
 
         # ==================================================
         # BUSCAR CUENTA DESTINO
-        # ==================================================
-        #
-        # Para nuestra simulación Bre-B vamos a recibir
-        # el dinero en la CUENTA DE AHORROS del destinatario.
-        #
         # ==================================================
 
         cuenta_destino = db.query(
@@ -1590,11 +2497,6 @@ def transferencia_bre_b(
             "activa"
 
         ).with_for_update().first()
-
-
-        # ==================================================
-        # SI NO TIENE AHORROS, BUSCAR CORRIENTE
-        # ==================================================
 
         if not cuenta_destino:
 
@@ -1613,51 +2515,36 @@ def transferencia_bre_b(
 
             ).with_for_update().first()
 
-
         if not cuenta_destino:
 
             raise HTTPException(
-
                 status_code=404,
-
-                detail=
-                "El destinatario no tiene una cuenta activa."
-
+                detail="El destinatario no tiene una cuenta activa."
             )
-
 
         # ==================================================
         # VALIDAR SALDO
         # ==================================================
 
         saldo_origen = Decimal(
-
             str(
                 cuenta_origen.saldo or 0
             )
-
         )
 
         if saldo_origen < data.monto:
 
             raise HTTPException(
-
                 status_code=400,
-
                 detail=(
-
                     "Saldo insuficiente. "
-
                     f"Saldo disponible: "
                     f"${saldo_origen:,.0f}"
-
                 )
-
             )
 
-
         # ==================================================
-        # VALIDAR TOPE DE LA CUENTA ORIGEN
+        # VALIDAR TOPE
         # ==================================================
 
         usuario_origen = db.query(
@@ -1672,87 +2559,59 @@ def transferencia_bre_b(
         if not usuario_origen:
 
             raise HTTPException(
-
                 status_code=404,
-
-                detail=
-                "Usuario de origen no encontrado."
-
+                detail="Usuario de origen no encontrado."
             )
-
 
         if tipo_origen == "ahorros":
 
             tope = Decimal(
-
                 str(
                     usuario_origen.tope_ahorros or 0
                 )
-
             )
 
         else:
 
             tope = Decimal(
-
                 str(
                     usuario_origen.tope_corriente or 0
                 )
-
             )
-
-
-        # ==================================================
-        # VALIDAR TOPE
-        # ==================================================
 
         if tope > 0 and data.monto > tope:
 
             raise HTTPException(
-
                 status_code=400,
-
                 detail=(
-
                     "El monto supera el tope "
                     "permitido para esta cuenta."
-
                 )
-
             )
-
 
         # ==================================================
         # DESCONTAR ORIGEN
         # ==================================================
 
         cuenta_origen.saldo = (
-
             saldo_origen -
             data.monto
-
         )
-
 
         # ==================================================
         # SUMAR DESTINO
         # ==================================================
 
         saldo_destino = Decimal(
-
             str(
                 cuenta_destino.saldo or 0
             )
-
         )
 
         cuenta_destino.saldo = (
-
             saldo_destino +
             data.monto
-
         )
-
 
         # ==================================================
         # TRANSACCIÓN SALIDA
@@ -1775,7 +2634,6 @@ def transferencia_bre_b(
 
         )
 
-
         # ==================================================
         # TRANSACCIÓN ENTRADA
         # ==================================================
@@ -1797,7 +2655,6 @@ def transferencia_bre_b(
 
         )
 
-
         db.add(
             transaccion_salida
         )
@@ -1805,7 +2662,6 @@ def transferencia_bre_b(
         db.add(
             transaccion_entrada
         )
-
 
         # ==================================================
         # GUARDAR TODO
@@ -1820,7 +2676,6 @@ def transferencia_bre_b(
         db.refresh(
             cuenta_destino
         )
-
 
         # ==================================================
         # RESPUESTA
@@ -1856,13 +2711,11 @@ def transferencia_bre_b(
 
         }
 
-
     except HTTPException:
 
         db.rollback()
 
         raise
-
 
     except Exception as error:
 
@@ -1874,10 +2727,6 @@ def transferencia_bre_b(
         )
 
         raise HTTPException(
-
             status_code=500,
-
-            detail=
-            "Error interno al realizar la transferencia Bre-B."
-
+            detail="Error interno al realizar la transferencia Bre-B."
         )

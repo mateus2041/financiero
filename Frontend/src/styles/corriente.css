@@ -1,4 +1,6 @@
 .transfer-container {
+  flex: 1;
+  box-sizing: border-box;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -9,12 +11,13 @@
   font-family: Arial, Helvetica, sans-serif;
 }
 
-.transfer-card {
+.transfer-container .transfer-card {
   width: 450px;
   padding: 30px;
   background: #131a2c;
   border-radius: 15px;
-  box-shadow: 0 10px 30px rgba(250, 248, 248, 0.65);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45),
+    0 0 12px rgba(242, 201, 76, 0.18);
 }
 
 .transfer-card h2 {
@@ -78,15 +81,17 @@
   padding: 10px;
   border: 0;
   border-radius: 8px;
-  background: linear-gradient(90deg, #202e50, #f2c94c);
-  color: #fff;
+  background: #f2c94c;
+  color: #131a2c;
   font-weight: bold;
   cursor: pointer;
 }
 
 .transfer-card button:disabled {
   cursor: not-allowed;
-  opacity: 0.65;
+  opacity: 1;
+  background: #3a4663;
+  color: #c8d0e2;
 }
 
 .destinatario,
@@ -115,7 +120,7 @@
     padding: 20px;
   }
 
-  .transfer-card {
+  .transfer-container .transfer-card {
     width: 100%;
     padding: 20px;
   }
