@@ -86,12 +86,10 @@ function Registro() {
         return;
       }
 
-      setMensaje("Usuario creado ✅");
+      setMensaje(
+        "Registro enviado ✅. Tu solicitud queda pendiente de aprobación por el asesor bancario."
+      );
       setCodigoRegistro(data.codigo_registro);
-
-      setTimeout(() => {
-        navigate("/login");
-      }, 1500);
     } catch (error) {
       console.error(error);
       setMensaje("Error conectando con el servidor");

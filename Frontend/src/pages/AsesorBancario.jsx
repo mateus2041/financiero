@@ -13,6 +13,7 @@ const AsesorBancario = () => {
     const [error, setError] = useState("");
     const [cargando, setCargando] = useState(false);
     const [saldosEditados, setSaldosEditados] = useState({});
+    const [ultimosDigitosEditados, setUltimosDigitosEditados] = useState({});
 
     const encabezadosAutorizacion = () => ({
         Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -106,6 +107,9 @@ const AsesorBancario = () => {
                 )
             );
 
+            localStorage.setItem("cuentas-actualizadas", Date.now().toString());
+            window.dispatchEvent(new Event("cuentas-actualizadas"));
+
         } catch (error) {
 
             setError(error.message);
@@ -154,6 +158,9 @@ const AsesorBancario = () => {
                 )
             );
 
+            localStorage.setItem("cuentas-actualizadas", Date.now().toString());
+            window.dispatchEvent(new Event("cuentas-actualizadas"));
+
         } catch (error) {
 
             setError(error.message);
@@ -201,6 +208,56 @@ const AsesorBancario = () => {
             );
             localStorage.setItem("cuentas-actualizadas", Date.now().toString());
             window.dispatchEvent(new Event("cuentas-actualizadas"));
+        } catch (error) {
+            setError(error.message);
+        }
+    };
+
+    const actualizarUltimosDigitos = async (idCuenta, numeroCuentaActual) => {
+        setError("");
+        setMensaje("");
+
+        const ultimos = String(ultimosDigitosEditados[idCuenta] ?? "").trim();
+
+        if (!/^\d{4}$/.test(ultimos)) {
+            setError("Ingrese exactamente 4 dígitos para editar los últimos números de la cuenta.");
+            return;
+        }
+
+        try {
+            const respuesta = await fetch(
+                `${API_URL}/asesor-bancario/cuenta/${idCuenta}/ultimos-digitos`,
+                {
+                    method: "PUT",
+                    headers: {
+                        ...encabezadosAutorizacion(),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ ultimos_digitos: ultimos }),
+                }
+            );
+
+            const datos = await respuesta.json();
+
+            if (!respuesta.ok) {
+                throw new Error(datos.detail || "No se pudo actualizar los últimos 4 dígitos");
+            }
+
+            const nuevoNumero = datos.numero_cuenta ||
+                `${String(numeroCuentaActual || "").slice(0, 12)}${ultimos}`;
+
+            setMensaje(datos.mensaje);
+            setCuentas((cuentasActuales) =>
+                cuentasActuales.map((cuenta) =>
+                    cuenta.id_cuenta === idCuenta
+                        ? { ...cuenta, numero_cuenta: nuevoNumero }
+                        : cuenta
+                )
+            );
+            setUltimosDigitosEditados((actuales) => ({
+                ...actuales,
+                [idCuenta]: ultimos,
+            }));
         } catch (error) {
             setError(error.message);
         }
@@ -313,6 +370,50 @@ const AsesorBancario = () => {
             minimumFractionDigits: 0,
         }).format(valor || 0);
 
+    };
+
+    const guardarTipoCuentaCorriente = async (idCuenta, tipo) => {
+        const tipoSeleccionado = tipo === "credito" ? "credito" : "debito";
+
+        try {
+            const respuesta = await fetch(
+                `${API_URL}/cuentas/${idCuenta}/tipo-operacion`,
+                {
+                    method: "PUT",
+                    headers: {
+                        ...encabezadosAutorizacion(),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ tipo_operacion: tipoSeleccionado }),
+                }
+            );
+
+            const datos = await respuesta.json();
+
+            if (!respuesta.ok) {
+                throw new Error(datos.detail || "No se pudo actualizar el tipo de cuenta");
+            }
+
+            setCuentas((cuentasActuales) =>
+                cuentasActuales.map((cuenta) =>
+                    cuenta.id_cuenta === idCuenta
+                        ? { ...cuenta, tipo_operacion: tipoSeleccionado }
+                        : cuenta
+                )
+            );
+
+            localStorage.setItem(`cuenta-tipo-${idCuenta}`, tipoSeleccionado);
+            localStorage.setItem("cuenta_corriente_tipo", tipoSeleccionado);
+            window.dispatchEvent(new Event("cuentas-actualizadas"));
+            window.dispatchEvent(
+                new CustomEvent("cuenta-tipo-actualizado", {
+                    detail: { idCuenta, tipo: tipoSeleccionado },
+                })
+            );
+            setMensaje(datos.mensaje);
+        } catch (error) {
+            setError(error.message);
+        }
     };
 
     // ============================================================
@@ -700,8 +801,34 @@ const AsesorBancario = () => {
                                                 </span>
 
                                                 <strong>
-                                                    {cuenta.id_cuenta}
+                                                    {cuenta.numero_cuenta || "No disponible"}
                                                 </strong>
+
+                                                <label className="saldo-edicion">
+                                                    Editar últimos 4 dígitos
+                                                    <input
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        maxLength={4}
+                                                        value={
+                                                            ultimosDigitosEditados[cuenta.id_cuenta]
+                                                                ?? (cuenta.numero_cuenta ? cuenta.numero_cuenta.slice(-4) : "")
+                                                        }
+                                                        onChange={(e) =>
+                                                            setUltimosDigitosEditados((actuales) => ({
+                                                                ...actuales,
+                                                                [cuenta.id_cuenta]: e.target.value.replace(/\D/g, "").slice(0, 4),
+                                                            }))
+                                                        }
+                                                    />
+                                                </label>
+
+                                                <button
+                                                    className="btn-guardar-saldo"
+                                                    onClick={() => actualizarUltimosDigitos(cuenta.id_cuenta, cuenta.numero_cuenta)}
+                                                >
+                                                    Guardar últimos 4
+                                                </button>
 
                                             </div>
 
@@ -717,6 +844,29 @@ const AsesorBancario = () => {
                                                         : "Corriente"
                                                     }
                                                 </strong>
+
+                                                {cuenta.tipo_cuenta === "corriente" && (
+                                                    <label className="saldo-edicion">
+                                                        Selección
+                                                        <select
+                                                            value={
+                                                                cuenta.tipo_operacion ||
+                                                                localStorage.getItem(`cuenta-tipo-${cuenta.id_cuenta}`) ||
+                                                                localStorage.getItem("cuenta_corriente_tipo") ||
+                                                                "debito"
+                                                            }
+                                                            onChange={(e) =>
+                                                                guardarTipoCuentaCorriente(
+                                                                    cuenta.id_cuenta,
+                                                                    e.target.value
+                                                                )
+                                                            }
+                                                        >
+                                                            <option value="debito">Débito</option>
+                                                            <option value="credito">Crédito</option>
+                                                        </select>
+                                                    </label>
+                                                )}
 
                                             </div>
 

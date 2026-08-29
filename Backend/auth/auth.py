@@ -5,6 +5,7 @@ from .dependencias import db, bcrypt
 from .database import Usuario
 from flask_jwt_extended import create_access_token
 from datetime import timedelta
+from Backend.email_service.email_service import enviar_correo
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -83,6 +84,16 @@ def login():
         identity=usuario.id,
         expires_delta=timedelta(days=1)
     )
+
+    if getattr(usuario, 'email', None):
+        asunto = 'Inicio de sesión exitoso - Financiero'
+        mensaje = (
+            f"<h3>Hola {usuario.nombre},</h3>"
+            "<p>Tu acceso a Financiero fue exitoso.</p>"
+            "<p>Se registró un inicio de sesión en tu cuenta.</p>"
+            "<p>Si no fuiste tú, por favor cambia tu contraseña inmediatamente.</p>"
+        )
+        enviar_correo(usuario.email, asunto, mensaje)
 
     return jsonify({
         'message': 'Login exitoso',

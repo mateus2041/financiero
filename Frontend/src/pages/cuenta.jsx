@@ -7,6 +7,18 @@ const Cuenta = () => {
 
   const navigate = useNavigate();
 
+  const ocultarNumeroCuenta = (numero) => {
+    if (!numero) return "No disponible";
+
+    const digitos = String(numero).replace(/\D/g, "");
+
+    if (digitos.length < 4) {
+      return digitos || "No disponible";
+    }
+
+    return `${"*".repeat(digitos.length - 4)}${digitos.slice(-4)}`;
+  };
+
   const [usuario, setUsuario] = useState("");
   const [documento, setDocumento] = useState("");
   const [totalIngresos, setTotalIngresos] = useState(0);
@@ -17,6 +29,9 @@ const Cuenta = () => {
   const [numeroCuentaAhorro, setNumeroCuentaAhorro] = useState(null);
   const [estadoCuentaCorriente, setEstadoCuentaCorriente] = useState("inactiva");
   const [estadoCuentaAhorro, setEstadoCuentaAhorro] = useState("inactiva");
+  const [tipoCuentaCorriente, setTipoCuentaCorriente] = useState(
+    () => localStorage.getItem("cuenta_corriente_tipo") || "debito"
+  );
   const [openTransfer, setOpenTransfer] = useState(false);
   const [openCertificado, setOpenCertificado] = useState(false);
   const [id, setId] = useState("");
@@ -26,6 +41,8 @@ const Cuenta = () => {
     () => localStorage.getItem("fotoPerfil") || ""
   );
 
+  const mostrarCuentaCorriente = estadoCuentaCorriente === "activa";
+  const mostrarCuentaAhorro = estadoCuentaAhorro === "activa";
 
 
   useEffect(() => {
@@ -44,6 +61,36 @@ const Cuenta = () => {
 
   }, []);
 
+
+  const aplicarTipoCuentaCorriente = (tipo) => {
+    const valor = String(
+      tipo || localStorage.getItem("cuenta_corriente_tipo") || "debito"
+    ).toLowerCase();
+
+    if (valor !== "debito" && valor !== "credito") return;
+
+    setTipoCuentaCorriente(valor);
+    localStorage.setItem("cuenta_corriente_tipo", valor);
+  };
+
+  useEffect(() => {
+    const actualizarTipoCuentaCorriente = () => {
+      const tipoGuardado = localStorage.getItem("cuenta_corriente_tipo") || "debito";
+      aplicarTipoCuentaCorriente(tipoGuardado);
+    };
+
+    actualizarTipoCuentaCorriente();
+
+    window.addEventListener("cuentas-actualizadas", actualizarTipoCuentaCorriente);
+    window.addEventListener("cuenta-tipo-actualizado", actualizarTipoCuentaCorriente);
+    window.addEventListener("storage", actualizarTipoCuentaCorriente);
+
+    return () => {
+      window.removeEventListener("cuentas-actualizadas", actualizarTipoCuentaCorriente);
+      window.removeEventListener("cuenta-tipo-actualizado", actualizarTipoCuentaCorriente);
+      window.removeEventListener("storage", actualizarTipoCuentaCorriente);
+    };
+  }, []);
 
   useEffect(() => {
 
@@ -158,12 +205,30 @@ const Cuenta = () => {
           ? datosTransacciones
           : datosTransacciones.transacciones || datosTransacciones.data || [];
 
-        setSaldoCorriente(Number(datosSaldos.cuenta_corriente || 0));
-        setSaldoAhorro(Number(datosSaldos.cuenta_ahorro || 0));
-        setNumeroCuentaCorriente(datosSaldos.cuenta_corriente_numero);
-        setNumeroCuentaAhorro(datosSaldos.cuenta_ahorro_numero);
+        const saldoCorrienteActivo = datosSaldos.cuenta_corriente_estado === "activa"
+          ? Number(datosSaldos.cuenta_corriente || 0)
+          : 0;
+        const saldoAhorroActivo = datosSaldos.cuenta_ahorro_estado === "activa"
+          ? Number(datosSaldos.cuenta_ahorro || 0)
+          : 0;
+
+        setSaldoCorriente(saldoCorrienteActivo);
+        setSaldoAhorro(saldoAhorroActivo);
+        setNumeroCuentaCorriente(
+          datosSaldos.cuenta_corriente_estado === "activa"
+            ? datosSaldos.cuenta_corriente_numero
+            : null
+        );
+        setNumeroCuentaAhorro(
+          datosSaldos.cuenta_ahorro_estado === "activa"
+            ? datosSaldos.cuenta_ahorro_numero
+            : null
+        );
         setEstadoCuentaCorriente(datosSaldos.cuenta_corriente_estado || "inactiva");
         setEstadoCuentaAhorro(datosSaldos.cuenta_ahorro_estado || "inactiva");
+
+        const nuevoTipoCorriente = datosSaldos.cuenta_corriente_tipo || localStorage.getItem("cuenta_corriente_tipo") || "debito";
+        aplicarTipoCuentaCorriente(nuevoTipoCorriente);
 
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
@@ -542,39 +607,44 @@ const Cuenta = () => {
 
 
 
-          <div className="card">
+          {mostrarCuentaCorriente && (
+            <div className="card">
 
-            <h3>Cuenta</h3>
+              <h3>Cuenta</h3>
 
-            <small className={estadoCuentaCorriente === "activa" ? "cuenta-activa" : "cuenta-inactiva"}>
-              {estadoCuentaCorriente === "activa" ? "Cuenta activa" : "Cuenta deshabilitada"}
-            </small>
+              <small className={estadoCuentaCorriente === "activa" ? "cuenta-activa" : "cuenta-inactiva"}>
+                {estadoCuentaCorriente === "activa" ? "Cuenta activa" : "Cuenta deshabilitada"}
+              </small>
 
-            <span>
-              ${saldoCorriente}
-            </span>
+              <span>
+                ${saldoCorriente}
+              </span>
 
-            <small>Número de cuenta: {numeroCuentaCorriente || "No disponible"}</small>
-
-
-          </div>
+              <small>Tipo: {tipoCuentaCorriente === "credito" ? "Crédito" : "Débito"}</small>
+              <small>Número de cuenta: {ocultarNumeroCuenta(numeroCuentaCorriente)}</small>
 
 
-          <div className="card">
+            </div>
+          )}
 
-            <h3>Ahorros</h3>
 
-            <small className={estadoCuentaAhorro === "activa" ? "cuenta-activa" : "cuenta-inactiva"}>
-              {estadoCuentaAhorro === "activa" ? "Cuenta activa" : "Cuenta deshabilitada"}
-            </small>
+          {mostrarCuentaAhorro && (
+            <div className="card">
 
-            <span>
-              ${saldoAhorro}
-            </span>
+              <h3>Ahorros</h3>
 
-            <small>Número de cuenta: {numeroCuentaAhorro || "No disponible"}</small>
+              <small className={estadoCuentaAhorro === "activa" ? "cuenta-activa" : "cuenta-inactiva"}>
+                {estadoCuentaAhorro === "activa" ? "Cuenta activa" : "Cuenta deshabilitada"}
+              </small>
 
-          </div>
+              <span>
+                ${saldoAhorro}
+              </span>
+
+              <small>Número de cuenta: {ocultarNumeroCuenta(numeroCuentaAhorro)}</small>
+
+            </div>
+          )}
 
 
 
