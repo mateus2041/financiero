@@ -178,6 +178,14 @@ class Cuenta(Base):
         index=True
     )
 
+    numero_cuenta = Column(
+        String(16),
+        unique=True,
+        nullable=False,
+        index=True,
+        default=""
+    )
+
     id_usuario = Column(
         Integer,
         ForeignKey(
@@ -193,6 +201,17 @@ class Cuenta(Base):
             name="tipo_cuenta_enum"
         ),
         nullable=False
+    )
+
+    tipo_operacion = Column(
+        Enum(
+            "debito",
+            "credito",
+            name="tipo_operacion_enum"
+        ),
+        nullable=False,
+        default="debito",
+        server_default="debito"
     )
 
     saldo = Column(

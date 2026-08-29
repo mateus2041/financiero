@@ -17,9 +17,18 @@ from pydantic import BaseModel
 class SaldoCuenta(BaseModel):
     saldo: float
 
+
+class UltimosDigitosCuenta(BaseModel):
+    ultimos_digitos: str
+
+
+class TipoOperacionCuenta(BaseModel):
+    tipo_operacion: str
+
 from Backend.ai.router import router as ia_router
-from Backend.models import Usuario, Cuenta, Transaccion, LlaveBreb
+from Backend.models import Usuario, Cuenta, Transaccion, LlaveBreb, Notificacion
 from Backend.dependencias import get_db
+from Backend.email_service.email_service import enviar_correo
 
 from Backend.security import (
     hash_password,
@@ -75,6 +84,11 @@ def startup():
         for columna in inspect(engine).get_columns("usuario")
     }
 
+    columnas_cuentas = {
+        columna["name"]
+        for columna in inspect(engine).get_columns("cuentas")
+    }
+
     with engine.begin() as conexion:
 
         if "tope_ahorros" not in columnas_usuario:
@@ -113,6 +127,38 @@ def startup():
                 "ALTER TABLE usuario "
                 "ADD COLUMN codigo_registro VARCHAR(6) UNIQUE NULL"
             ))
+
+        if "numero_cuenta" not in columnas_cuentas:
+
+            conexion.execute(text(
+                "ALTER TABLE cuentas "
+                "ADD COLUMN numero_cuenta VARCHAR(16) UNIQUE NULL"
+            ))
+
+        if "tipo_operacion" not in columnas_cuentas:
+
+            conexion.execute(text(
+                "ALTER TABLE cuentas "
+                "ADD COLUMN tipo_operacion ENUM('debito', 'credito') "
+                "NOT NULL DEFAULT 'debito'"
+            ))
+
+        cuentas_sin_numero = conexion.execute(text(
+            "SELECT id_cuenta FROM cuentas WHERE numero_cuenta IS NULL OR numero_cuenta = ''"
+        )).fetchall()
+
+        for (id_cuenta,) in cuentas_sin_numero:
+            numero = generar_numero_cuenta()
+            while conexion.execute(
+                text("SELECT 1 FROM cuentas WHERE numero_cuenta = :numero LIMIT 1"),
+                {"numero": numero}
+            ).first() is not None:
+                numero = generar_numero_cuenta()
+
+            conexion.execute(
+                text("UPDATE cuentas SET numero_cuenta = :numero WHERE id_cuenta = :id_cuenta"),
+                {"numero": numero, "id_cuenta": id_cuenta}
+            )
 
 
 # ==========================================================
@@ -322,37 +368,34 @@ def registrar_usuario(
 
     db.refresh(nuevo_usuario)
 
+    numeros_usados: set[str] = set()
+
     db.add_all([
 
         Cuenta(
             id_usuario=nuevo_usuario.id_usuario,
+            numero_cuenta=generar_numero_cuenta(db, numeros_usados),
             tipo_cuenta="ahorros",
             saldo=0,
-            estado="activa"
+            estado="inactiva"
         ),
 
         Cuenta(
             id_usuario=nuevo_usuario.id_usuario,
+            numero_cuenta=generar_numero_cuenta(db, numeros_usados),
             tipo_cuenta="corriente",
             saldo=0,
-            estado="activa"
+            estado="inactiva"
         )
 
     ])
 
     db.commit()
 
-    token = generate_token(
-        nuevo_usuario.id_usuario
-    )
-
     return {
 
         "message":
-        "Usuario registrado correctamente",
-
-        "token":
-        token,
+        "Registro enviado correctamente. Tu solicitud queda pendiente de aprobación por el asesor bancario.",
 
         "codigo_registro":
         codigo_registro,
@@ -385,6 +428,45 @@ def generar_codigo_registro(db: Session) -> str:
 
         if not existe:
             return codigo
+
+
+def generar_numero_cuenta(
+    db: Session | None = None,
+    usados: set[str] | None = None
+) -> str:
+
+    usados = usados if usados is not None else set()
+
+    while True:
+
+        numero = "".join(str(secrets.randbelow(10)) for _ in range(16))
+
+        if numero in usados:
+            continue
+
+        if db is not None:
+            existe = db.query(Cuenta.id_cuenta).filter(
+                Cuenta.numero_cuenta == numero
+            ).first()
+
+            if existe:
+                continue
+
+        usados.add(numero)
+        return numero
+
+
+def formatear_numero_cuenta(numero_actual: str | None, ultimos_digitos: str) -> str:
+    numero_base = str(numero_actual or "").strip()
+    ultimos = str(ultimos_digitos or "").strip()
+
+    if len(numero_base) != 16 or not numero_base.isdigit():
+        raise ValueError("El número de cuenta debe tener 16 dígitos.")
+
+    if len(ultimos) != 4 or not ultimos.isdigit():
+        raise ValueError("Debe ingresar exactamente 4 dígitos.")
+
+    return f"{numero_base[:-4]}{ultimos}"
 
 
 # ==========================================================
@@ -445,9 +527,41 @@ def login(
             detail="El documento no corresponde al tipo de acceso seleccionado"
         )
 
+    if usuario.rol == "usuario":
+        tiene_cuenta_activa = db.query(Cuenta).filter(
+            Cuenta.id_usuario == usuario.id_usuario,
+            Cuenta.estado == "activa"
+        ).first() is not None
+
+        if not tiene_cuenta_activa:
+            raise HTTPException(
+                status_code=403,
+                detail="Tu registro está pendiente de aprobación por el asesor bancario."
+            )
+
     token = generate_token(
         usuario.id_usuario
     )
+
+    asunto = "Inicio de sesión exitoso - Financiero"
+    mensaje = (
+        f"<h3>Hola {usuario.nombre},</h3>"
+        "<p>Tu acceso a Financiero fue exitoso.</p>"
+        "<p>Se registró un inicio de sesión en tu cuenta.</p>"
+        "<p>Si no fuiste tú, por favor cambia tu contraseña inmediatamente.</p>"
+    )
+
+    if usuario.email:
+        enviar_correo(usuario.email, asunto, mensaje)
+
+    db.add(
+        Notificacion(
+            id_usuario=usuario.id_usuario,
+            mensaje="Se inició sesión correctamente en tu cuenta.",
+            leido=False,
+        )
+    )
+    db.commit()
 
     return {
 
@@ -852,6 +966,44 @@ def mis_cuentas(
 # CONSULTAR USUARIO Y SUS CUENTAS
 # ==========================================================
 
+@app.put("/cuentas/{id_cuenta}/tipo-operacion")
+def actualizar_tipo_operacion_cuenta(
+    id_cuenta: int,
+    datos: TipoOperacionCuenta,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_cuenta == id_cuenta,
+        Cuenta.id_usuario == current_user
+    ).first()
+
+    if not cuenta:
+        raise HTTPException(
+            status_code=404,
+            detail="Cuenta no encontrada."
+        )
+
+    tipo = datos.tipo_operacion.strip().lower()
+    if tipo not in {"debito", "credito"}:
+        raise HTTPException(
+            status_code=400,
+            detail="El tipo de operación debe ser débito o crédito."
+        )
+
+    cuenta.tipo_operacion = tipo
+    db.commit()
+    db.refresh(cuenta)
+
+    return {
+        "mensaje": "Tipo de operación actualizado correctamente.",
+        "id_cuenta": cuenta.id_cuenta,
+        "tipo_operacion": cuenta.tipo_operacion,
+        "tipo_cuenta": cuenta.tipo_cuenta,
+        "estado": cuenta.estado
+    }
+
+
 @app.get("/asesor-bancario/usuario/{documento}")
 def asesor_consultar_usuario(
 
@@ -939,8 +1091,14 @@ def asesor_consultar_usuario(
                 "id_cuenta":
                 cuenta.id_cuenta,
 
+                "numero_cuenta":
+                cuenta.numero_cuenta,
+
                 "tipo_cuenta":
                 cuenta.tipo_cuenta,
+
+                "tipo_operacion":
+                cuenta.tipo_operacion or "debito",
 
                 "saldo":
                 float(cuenta.saldo or 0),
@@ -1013,7 +1171,9 @@ def asesor_consultar_por_codigo(
         "cuentas": [
             {
                 "id_cuenta": cuenta.id_cuenta,
+                "numero_cuenta": cuenta.numero_cuenta,
                 "tipo_cuenta": cuenta.tipo_cuenta,
+                "tipo_operacion": cuenta.tipo_operacion or "debito",
                 "saldo": float(cuenta.saldo or 0),
                 "estado": cuenta.estado
             }
@@ -1059,6 +1219,56 @@ def asesor_actualizar_saldo(
         "saldo": float(cuenta.saldo or 0),
         "estado": cuenta.estado
     }
+
+
+@app.put("/asesor-bancario/cuenta/{id_cuenta}/ultimos-digitos")
+def asesor_actualizar_ultimos_digitos(
+    id_cuenta: int,
+    datos: UltimosDigitosCuenta,
+    asesor: Usuario = Depends(asesor_requerido),
+    db: Session = Depends(get_db)
+):
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_cuenta == id_cuenta
+    ).first()
+
+    if not cuenta:
+        raise HTTPException(
+            status_code=404,
+            detail="Cuenta no encontrada."
+        )
+
+    try:
+        numero_nuevo = formatear_numero_cuenta(cuenta.numero_cuenta, datos.ultimos_digitos)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        ) from exc
+
+    numero_existente = (
+        db.query(Cuenta.id_cuenta)
+        .filter(Cuenta.numero_cuenta == numero_nuevo, Cuenta.id_cuenta != id_cuenta)
+        .first()
+    )
+
+    if numero_existente:
+        raise HTTPException(
+            status_code=400,
+            detail="Los últimos 4 dígitos ya están asignados a otra cuenta."
+        )
+
+    cuenta.numero_cuenta = numero_nuevo
+    db.commit()
+    db.refresh(cuenta)
+
+    return {
+        "mensaje": "Los últimos 4 dígitos de la cuenta fueron actualizados correctamente.",
+        "id_cuenta": cuenta.id_cuenta,
+        "numero_cuenta": cuenta.numero_cuenta,
+        "estado": cuenta.estado
+    }
+
 
 @app.put(
     "/asesor-bancario/cuenta/{id_cuenta}/habilitar"
@@ -1402,6 +1612,9 @@ def saldos_cuentas(
         "cuenta_corriente_estado":
         "inactiva",
 
+        "cuenta_corriente_tipo":
+        "debito",
+
         "cuenta_ahorro":
         0,
 
@@ -1409,7 +1622,10 @@ def saldos_cuentas(
         None,
 
         "cuenta_ahorro_estado":
-        "inactiva"
+        "inactiva",
+
+        "cuenta_ahorro_tipo":
+        "debito"
 
     }
 
@@ -1418,6 +1634,7 @@ def saldos_cuentas(
         if cuenta.tipo_cuenta == "corriente":
 
             saldos["cuenta_corriente_estado"] = cuenta.estado
+            saldos["cuenta_corriente_tipo"] = cuenta.tipo_operacion or "debito"
 
             if cuenta.estado != "activa":
                 continue
@@ -1430,11 +1647,12 @@ def saldos_cuentas(
 
             saldos[
                 "cuenta_corriente_numero"
-            ] = cuenta.id_cuenta
+            ] = cuenta.numero_cuenta or cuenta.id_cuenta
 
         elif cuenta.tipo_cuenta == "ahorros":
 
             saldos["cuenta_ahorro_estado"] = cuenta.estado
+            saldos["cuenta_ahorro_tipo"] = cuenta.tipo_operacion or "debito"
 
             if cuenta.estado != "activa":
                 continue
@@ -1447,7 +1665,7 @@ def saldos_cuentas(
 
             saldos[
                 "cuenta_ahorro_numero"
-            ] = cuenta.id_cuenta
+            ] = cuenta.numero_cuenta or cuenta.id_cuenta
 
     return saldos
 

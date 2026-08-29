@@ -7,6 +7,12 @@ const CertificadoBancario = () => {
   const navigate = useNavigate();
   const certificadoRef = useRef(null);
 
+  const formatearNumeroCuenta = (numero) => {
+    const digitos = String(numero ?? "").replace(/\D/g, "");
+    if (!digitos) return "0000000000000000";
+    return digitos.slice(-16).padStart(16, "0");
+  };
+
   // Estado para abrir/cerrar el menú Otros
   const [openTransfer, setOpenTransfer] = useState(false);
 
@@ -42,7 +48,7 @@ const CertificadoBancario = () => {
         setUsuario({
           nombre: data.nombre || "Usuario",
           documento: data.documento || documentoGuardado,
-          cuenta: data.numero_cuenta || "9800456721",
+          cuenta: formatearNumeroCuenta(data.numero_cuenta || "9800456721"),
           tipoCuenta: data.tipo_cuenta || "Ahorros",
           saldo: data.saldo
             ? `$${Number(data.saldo).toLocaleString("es-CO")} COP`
@@ -54,7 +60,7 @@ const CertificadoBancario = () => {
         setUsuario({
           nombre: "Usuario",
           documento: documentoGuardado,
-          cuenta: "9800456721",
+          cuenta: formatearNumeroCuenta("9800456721"),
           tipoCuenta: "Ahorros",
           saldo: "$0 COP",
         });

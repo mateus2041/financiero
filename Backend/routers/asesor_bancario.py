@@ -58,6 +58,7 @@ def consultar_usuario(
         "cuentas": [
             {
                 "id_cuenta": cuenta.id_cuenta,
+                "numero_cuenta": cuenta.numero_cuenta,
                 "tipo_cuenta": cuenta.tipo_cuenta,
                 "saldo": float(cuenta.saldo),
                 "estado": cuenta.estado

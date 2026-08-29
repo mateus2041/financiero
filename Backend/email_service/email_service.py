@@ -5,20 +5,30 @@ import os
 
 def enviar_correo(destinatario, asunto, mensaje_html):
     try:
-        # 🔹 Variables de entorno (SIN valores por defecto inseguros)
-        remitente = os.getenv("EMAIL_USER")
-        password = os.getenv("EMAIL_PASS")
+        remitente = (
+            os.getenv("EMAIL_USER")
+            or os.getenv("MAIL_USER")
+            or os.getenv("MAIL_USERNAME")
+            or os.getenv("MAIL_USERNSME")
+        )
+        password = (
+            os.getenv("EMAIL_PASS")
+            or os.getenv("MAIL_PASSWORD")
+            or os.getenv("MAIL_PASS")
+            or os.getenv("MAIL_USERNAME")
+        )
 
         if not remitente or not password:
-            raise ValueError("Faltan credenciales de correo en variables de entorno")
+            raise ValueError(
+                "Faltan credenciales de correo en variables de entorno. "
+                "Configura EMAIL_USER/EMAIL_PASS o MAIL_USER/MAIL_PASSWORD."
+            )
 
-        # 🔹 Crear mensaje
         msg = MIMEText(mensaje_html, "html", "utf-8")
         msg["Subject"] = asunto
         msg["From"] = remitente
         msg["To"] = destinatario
 
-        # 🔹 Conexión segura con Gmail
         with smtplib.SMTP("smtp.gmail.com", 587) as servidor:
             servidor.starttls()
             servidor.login(remitente, password)
