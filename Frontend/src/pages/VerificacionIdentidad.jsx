@@ -10,14 +10,22 @@ function VerificacionIdentidad() {
   );
 
   const [motivo, setMotivo] = useState("");
+  const [codigoVerificacion, setCodigoVerificacion] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [enviando, setEnviando] = useState(false);
 
   const solicitarVerificacion = async (e) => {
     e.preventDefault();
 
-    if (!documento || !motivo) {
-      setMensaje("❌ Completa todos los campos.");
+    if (!documento || !motivo || !/^\d{4}$/.test(codigoVerificacion)) {
+      setMensaje("❌ Completa todos los campos y escribe un código de 4 dígitos.");
+      return;
+    }
+
+    const codigoGuardado = localStorage.getItem("codigo_verificacion") || "";
+
+    if (codigoGuardado && codigoVerificacion !== codigoGuardado) {
+      setMensaje("❌ El código ingresado no coincide con el enviado a tu correo.");
       return;
     }
 
@@ -94,6 +102,18 @@ function VerificacionIdentidad() {
           onChange={(e) => setMotivo(e.target.value)}
           placeholder="Explica por qué deseas verificar tu identidad"
           rows="4"
+        />
+
+        <label>Código de verificación (4 dígitos)</label>
+        <input
+          type="text"
+          value={codigoVerificacion}
+          onChange={(e) =>
+            setCodigoVerificacion(e.target.value.replace(/\D/g, "").slice(0, 4))
+          }
+          placeholder="0000"
+          maxLength={4}
+          inputMode="numeric"
         />
 
         {mensaje && (
