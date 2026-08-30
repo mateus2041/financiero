@@ -392,6 +392,26 @@ def registrar_usuario(
 
     db.commit()
 
+    asunto = "Cuenta creada - Financiero"
+    mensaje = (
+        f"<h3>Hola {nuevo_usuario.nombre},</h3>"
+        "<p>Tu cuenta en Financiero ha sido creada correctamente.</p>"
+        "<p>Tu solicitud queda pendiente de aprobación por el asesor bancario.</p>"
+        "<p>Cuando tu cuenta quede activa, podrás iniciar sesión con tus credenciales.</p>"
+    )
+
+    if nuevo_usuario.email:
+        enviar_correo(nuevo_usuario.email, asunto, mensaje)
+
+    db.add(
+        Notificacion(
+            id_usuario=nuevo_usuario.id_usuario,
+            mensaje="Tu cuenta ha sido creada correctamente y queda pendiente de aprobación.",
+            leido=False,
+        )
+    )
+    db.commit()
+
     return {
 
         "message":
@@ -428,6 +448,10 @@ def generar_codigo_registro(db: Session) -> str:
 
         if not existe:
             return codigo
+
+
+def generar_codigo_verificacion() -> str:
+    return f"{secrets.randbelow(10000):04d}"
 
 
 def generar_numero_cuenta(
@@ -543,11 +567,14 @@ def login(
         usuario.id_usuario
     )
 
-    asunto = "Inicio de sesión exitoso - Financiero"
+    codigo_verificacion = generar_codigo_verificacion()
+
+    asunto = "Inicio de sesión - Código de verificación - Financiero"
     mensaje = (
         f"<h3>Hola {usuario.nombre},</h3>"
         "<p>Tu acceso a Financiero fue exitoso.</p>"
         "<p>Se registró un inicio de sesión en tu cuenta.</p>"
+        f"<p>Tu código de verificación es: <strong>{codigo_verificacion}</strong></p>"
         "<p>Si no fuiste tú, por favor cambia tu contraseña inmediatamente.</p>"
     )
 
@@ -567,6 +594,9 @@ def login(
 
         "message":
         "Login exitoso",
+
+        "codigo_verificacion":
+        codigo_verificacion,
 
         "token":
         token,
@@ -976,6 +1006,43 @@ def actualizar_tipo_operacion_cuenta(
     cuenta = db.query(Cuenta).filter(
         Cuenta.id_cuenta == id_cuenta,
         Cuenta.id_usuario == current_user
+    ).first()
+
+    if not cuenta:
+        raise HTTPException(
+            status_code=404,
+            detail="Cuenta no encontrada."
+        )
+
+    tipo = datos.tipo_operacion.strip().lower()
+    if tipo not in {"debito", "credito"}:
+        raise HTTPException(
+            status_code=400,
+            detail="El tipo de operación debe ser débito o crédito."
+        )
+
+    cuenta.tipo_operacion = tipo
+    db.commit()
+    db.refresh(cuenta)
+
+    return {
+        "mensaje": "Tipo de operación actualizado correctamente.",
+        "id_cuenta": cuenta.id_cuenta,
+        "tipo_operacion": cuenta.tipo_operacion,
+        "tipo_cuenta": cuenta.tipo_cuenta,
+        "estado": cuenta.estado
+    }
+
+
+@app.put("/asesor-bancario/cuenta/{id_cuenta}/tipo-operacion")
+def asesor_actualizar_tipo_operacion_cuenta(
+    id_cuenta: int,
+    datos: TipoOperacionCuenta,
+    asesor: Usuario = Depends(asesor_requerido),
+    db: Session = Depends(get_db)
+):
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_cuenta == id_cuenta
     ).first()
 
     if not cuenta:

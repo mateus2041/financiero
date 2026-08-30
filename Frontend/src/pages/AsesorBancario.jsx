@@ -377,7 +377,7 @@ const AsesorBancario = () => {
 
         try {
             const respuesta = await fetch(
-                `${API_URL}/cuentas/${idCuenta}/tipo-operacion`,
+                `${API_URL}/asesor-bancario/cuenta/${idCuenta}/tipo-operacion`,
                 {
                     method: "PUT",
                     headers: {

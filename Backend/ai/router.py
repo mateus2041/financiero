@@ -32,6 +32,12 @@ def chat(
     db:Session=Depends(get_db)
 ):
 
+    if chain is None:
+        raise HTTPException(
+            status_code=503,
+            detail="La IA no está configurada. Agrega OPENAI_API_KEY en Backend/.env para habilitar /ia/chat."
+        )
+
     try:
 
         usuario = obtener_usuario(
@@ -92,6 +98,12 @@ Transacciones:
 
 """
 
+
+        if chain is None:
+            raise HTTPException(
+                status_code=503,
+                detail="La IA no está configurada. Agrega OPENAI_API_KEY al archivo .env."
+            )
 
         respuesta = chain.invoke(
             {

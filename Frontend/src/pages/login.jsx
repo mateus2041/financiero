@@ -16,6 +16,8 @@ function Login() {
 
   // Estados para verificación
   const [loginExitoso, setLoginExitoso] = useState(false);
+  const [codigoVerificacionInput, setCodigoVerificacionInput] = useState("");
+  const [verificandoCodigo, setVerificandoCodigo] = useState(false);
 
   const irRegistro = () => {
     navigate("/registro");
@@ -27,6 +29,27 @@ function Login() {
 
   const solicitarVerificacion = () => {
     navigate("/verificacion-identidad");
+  };
+
+  const validarCodigoCuenta = () => {
+    const codigoEsperado = localStorage.getItem("codigo_verificacion") || "";
+
+    if (!/^\d{4}$/.test(codigoVerificacionInput)) {
+      setMensaje("❌ Ingresa un código de verificación de 4 dígitos.");
+      return;
+    }
+
+    if (codigoVerificacionInput !== codigoEsperado) {
+      setMensaje("❌ El código de verificación no es correcto.");
+      return;
+    }
+
+    setVerificandoCodigo(true);
+    setMensaje("✅ Código correcto. Redirigiendo a tu cuenta...");
+
+    setTimeout(() => {
+      navigate("/cuenta");
+    }, 800);
   };
 
   const manejarSubmit = async (e) => {
@@ -85,13 +108,20 @@ function Login() {
       // Login exitoso
       setIntentos(0);
       setLoginExitoso(true);
-      setMensaje("✅ Login exitoso");
+      setMensaje(
+        data.codigo_verificacion
+          ? "✅ Login exitoso. Se envió un código de verificación a tu correo."
+          : "✅ Login exitoso"
+      );
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("documento", documento);
       localStorage.setItem("usuario_id", data.usuario.id);
       localStorage.setItem("nombre_usuario", data.usuario.nombre);
       localStorage.setItem("rol", data.usuario.rol || "usuario");
+      if (data.codigo_verificacion) {
+        localStorage.setItem("codigo_verificacion", data.codigo_verificacion);
+      }
 
       if (rol === "asesor" && data.usuario.rol === "asesor") {
         navigate("/asesor-bancario");
@@ -218,16 +248,44 @@ function Login() {
               </p>
 
               <p>
-                Puedes continuar a tu cuenta o solicitar una verificación
-                de identidad.
+                Ingresa el código de 4 dígitos enviado a tu correo para
+                continuar a tu cuenta.
               </p>
+
+              <label>Código de verificación</label>
+              <input
+                type="text"
+                value={codigoVerificacionInput}
+                onChange={(e) =>
+                  setCodigoVerificacionInput(
+                    e.target.value.replace(/\D/g, "").slice(0, 4)
+                  )
+                }
+                placeholder="0000"
+                maxLength={4}
+                inputMode="numeric"
+                style={{ textAlign: "center", letterSpacing: "0.5rem" }}
+              />
+
+              {mensaje && (
+                <p
+                  style={{
+                    color: mensaje.includes("✅") ? "green" : "#ff4c4c",
+                    fontWeight: "bold",
+                    marginTop: "10px",
+                  }}
+                >
+                  {mensaje}
+                </p>
+              )}
 
               <button
                 type="button"
                 className="btn"
-                onClick={() => navigate("/cuenta")}
+                onClick={validarCodigoCuenta}
+                disabled={verificandoCodigo}
               >
-                🏦 Ir a mi cuenta
+                {verificandoCodigo ? "Validando..." : "🏦 Entrar a mi cuenta"}
               </button>
 
               <button
