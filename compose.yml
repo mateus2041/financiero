@@ -75,6 +75,11 @@ services:
 
       DATABASE_URL: mysql+pymysql://app_user:app_pass@db:3306/billetera
 
+      EMAIL_USER: ${EMAIL_USER:-}
+      EMAIL_PASS: ${EMAIL_PASS:-}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+
       ASESOR_REGISTRATION_CODE: ${ASESOR_REGISTRATION_CODE}
 
       PYTHONPATH: /app

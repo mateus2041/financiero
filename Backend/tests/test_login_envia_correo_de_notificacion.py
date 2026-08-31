@@ -29,6 +29,25 @@ def test_email_service_lee_credenciales_desde_backend_env(monkeypatch, tmp_path)
     env_path.unlink(missing_ok=True)
 
 
+def test_email_service_devuelve_none_si_faltan_credenciales(monkeypatch, tmp_path):
+    backend_dir = Path(__file__).resolve().parents[1]
+    env_path = backend_dir / ".env"
+    if env_path.exists():
+        env_path.unlink()
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("EMAIL_USER", raising=False)
+    monkeypatch.delenv("EMAIL_PASS", raising=False)
+    monkeypatch.delenv("MAIL_USER", raising=False)
+    monkeypatch.delenv("MAIL_PASSWORD", raising=False)
+
+    import importlib
+    import Backend.email_service.email_service as email_service
+    importlib.reload(email_service)
+
+    assert email_service.obtener_credenciales_correo() is None
+
+
 def test_login_envia_correo_de_notificacion(monkeypatch):
     engine = create_engine("sqlite://")
     Base.metadata.create_all(bind=engine)
