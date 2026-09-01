@@ -71,9 +71,9 @@ def crear_plantilla_email(contenido_html: str) -> str:
             Para cualquier información adicional puede consultar nuestra página de Internet o comunicarse con nosotros a través de las siguientes opciones:
         </p>
         <ul style="margin: 0 0 18px 20px; padding: 0; font-size: 14px; color: #1f1f1f;">
-            <li><span style="color: #0d6efd;">Línea Amiga</span></li>
-            <li>Bogotá: <span style="color: #0d6efd;">601 5426446</span></li>
-            <li>Resto del país: <span style="color: #0d6efd;">018000910038</span></li>
+            <li><span style="color: #0d6efd;"></span></li>
+            <li>Bogotá: <span style="color: #0d6efd;"></span></li>
+            <li>Resto del país: <span style="color: #0d6efd;"></span></li>
         </ul>
 
         <div style="border-top: 2px solid #d0d7de; margin: 18px 0 20px;"></div>
