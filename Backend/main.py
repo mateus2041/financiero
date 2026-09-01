@@ -28,7 +28,7 @@ class TipoOperacionCuenta(BaseModel):
 from Backend.ai.router import router as ia_router
 from Backend.models import Usuario, Cuenta, Transaccion, LlaveBreb, Notificacion
 from Backend.dependencias import get_db
-from Backend.email_service.email_service import enviar_correo
+from Backend.email_service.email_service import crear_plantilla_email, enviar_correo
 
 from Backend.security import (
     hash_password,
@@ -393,11 +393,21 @@ def registrar_usuario(
     db.commit()
 
     asunto = "Cuenta creada - Financiero"
-    mensaje = (
-        f"<h3>Hola {nuevo_usuario.nombre},</h3>"
-        "<p>Tu cuenta en Financiero ha sido creada correctamente.</p>"
-        "<p>Tu solicitud queda pendiente de aprobación por el asesor bancario.</p>"
-        "<p>Cuando tu cuenta quede activa, podrás iniciar sesión con tus credenciales.</p>"
+    mensaje = crear_plantilla_email(
+        f"""
+        <p style="margin: 0 0 14px; font-size: 15px; color: #1f1f1f;">
+            Hola <strong>{nuevo_usuario.nombre}</strong>,
+        </p>
+        <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+            Tu cuenta en Financiero ha sido creada correctamente.
+        </p>
+        <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+            Tu solicitud queda pendiente de aprobación por el asesor bancario.
+        </p>
+        <p style="margin: 0; font-size: 14px; color: #1f1f1f;">
+            Cuando tu cuenta quede activa, podrás iniciar sesión con tus credenciales.
+        </p>
+        """
     )
 
     if nuevo_usuario.email:
@@ -570,12 +580,24 @@ def login(
     codigo_verificacion = generar_codigo_verificacion()
 
     asunto = "Inicio de sesión - Código de verificación - Financiero"
-    mensaje = (
-        f"<h3>Hola {usuario.nombre},</h3>"
-        "<p>Tu acceso a Financiero fue exitoso.</p>"
-        "<p>Se registró un inicio de sesión en tu cuenta.</p>"
-        f"<p>Tu código de verificación es: <strong>{codigo_verificacion}</strong></p>"
-        "<p>Si no fuiste tú, por favor cambia tu contraseña inmediatamente.</p>"
+    mensaje = crear_plantilla_email(
+        f"""
+        <p style="margin: 0 0 14px; font-size: 15px; color: #1f1f1f;">
+            Hola <strong>{usuario.nombre}</strong>,
+        </p>
+        <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+            Tu acceso a Financiero fue exitoso.
+        </p>
+        <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+            Se registró un inicio de sesión en tu cuenta.
+        </p>
+        <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+            Tu código de verificación es: <strong style="color: #0d6efd;">{codigo_verificacion}</strong>
+        </p>
+        <p style="margin: 0; font-size: 14px; color: #1f1f1f;">
+            Si no fuiste tú, por favor cambia tu contraseña inmediatamente.
+        </p>
+        """
     )
 
     if usuario.email:

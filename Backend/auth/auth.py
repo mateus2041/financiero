@@ -5,7 +5,7 @@ from .dependencias import db, bcrypt
 from .database import Usuario
 from flask_jwt_extended import create_access_token
 from datetime import timedelta
-from Backend.email_service.email_service import enviar_correo
+from Backend.email_service.email_service import crear_plantilla_email, enviar_correo
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -87,11 +87,21 @@ def login():
 
     if getattr(usuario, 'email', None):
         asunto = 'Inicio de sesión exitoso - Financiero'
-        mensaje = (
-            f"<h3>Hola {usuario.nombre},</h3>"
-            "<p>Tu acceso a Financiero fue exitoso.</p>"
-            "<p>Se registró un inicio de sesión en tu cuenta.</p>"
-            "<p>Si no fuiste tú, por favor cambia tu contraseña inmediatamente.</p>"
+        mensaje = crear_plantilla_email(
+            f"""
+            <p style="margin: 0 0 14px; font-size: 15px; color: #1f1f1f;">
+                Hola <strong>{usuario.nombre}</strong>,
+            </p>
+            <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+                Tu acceso a Financiero fue exitoso.
+            </p>
+            <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+                Se registró un inicio de sesión en tu cuenta.
+            </p>
+            <p style="margin: 0; font-size: 14px; color: #1f1f1f;">
+                Si no fuiste tú, por favor cambia tu contraseña inmediatamente.
+            </p>
+            """
         )
         enviar_correo(usuario.email, asunto, mensaje)
 

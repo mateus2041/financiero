@@ -49,6 +49,46 @@ def obtener_credenciales_correo():
     return remitente, password
 
 
+def crear_plantilla_email(contenido_html: str) -> str:
+    return f"""
+    <div style="font-family: Arial, Helvetica, sans-serif; color: #1f1f1f; line-height: 1.6; max-width: 700px; margin: 0 auto; padding: 24px; background-color: #f7f7f7; border: 1px solid #dfe3e8;">
+        <p style="margin: 0 0 20px; font-size: 16px; color: #1f1f1f;">Estimado cliente.</p>
+
+        <p style="margin: 0 0 18px; font-size: 14px; color: #1f1f1f;">
+            <strong style="color: #0d6efd;">financerio </strong> le informa que usted está recibiendo este mensaje por un trámite o actividad relacionada con su cuenta en Financiero.
+        </p>
+
+        <p style="margin: 0 0 18px; font-size: 16px; font-weight: 600; color: #1f1f1f;">Su banco de confianza.</p>
+
+        <div style="border-top: 2px solid #d0d7de; margin: 18px 0 22px;"></div>
+
+        {contenido_html}
+
+        <div style="border-top: 2px solid #d0d7de; margin: 22px 0 18px;"></div>
+
+        <p style="margin: 0 0 12px; font-size: 14px; color: #1f1f1f;">Por favor no responda este correo.</p>
+        <p style="margin: 0 0 12px; font-size: 14px; color: #1f1f1f;">
+            Para cualquier información adicional puede consultar nuestra página de Internet o comunicarse con nosotros a través de las siguientes opciones:
+        </p>
+        <ul style="margin: 0 0 18px 20px; padding: 0; font-size: 14px; color: #1f1f1f;">
+            <li><span style="color: #0d6efd;">Línea Amiga</span></li>
+            <li>Bogotá: <span style="color: #0d6efd;">601 5426446</span></li>
+            <li>Resto del país: <span style="color: #0d6efd;">018000910038</span></li>
+        </ul>
+
+        <div style="border-top: 2px solid #d0d7de; margin: 18px 0 20px;"></div>
+
+        <p style="margin: 0 0 14px; font-size: 12px; color: #4b5563; line-height: 1.5;">
+            Este correo fue enviado por petición suya. Si desea no ser contactado desde esta dirección de correo, por favor ingrese a nuestra página de Internet o a la oficina del banco para modificar la matrícula de notificaciones. Toda información contenida en este mensaje es considerada de carácter confidencial y/o privilegiado y está dirigida únicamente a su destinatario, quien por tal razón es el único autorizado para leerla y utilizarla. Si usted ha recibido este correo por error, le pedimos que lo elimine totalmente de su sistema y comunique tal situación al remitente de inmediato.
+        </p>
+
+        <div style="border-top: 2px solid #d0d7de; margin: 22px 0 10px;"></div>
+
+        <p style="margin: 0; font-size: 14px; color: #1f1f1f;">Tildes omitidas para manejar compatibilidad entre correos.</p>
+    </div>
+    """
+
+
 def enviar_correo(destinatario, asunto, mensaje_html):
     try:
         if not destinatario:

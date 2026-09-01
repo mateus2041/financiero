@@ -94,6 +94,7 @@ def test_login_envia_correo_de_notificacion(monkeypatch):
     assert llamadas["destinatario"] == "ana@test.com"
     assert "Inicio de sesión" in llamadas["asunto"]
     assert "Ana Gómez" in llamadas["mensaje_html"]
+    assert "Estimado cliente" in llamadas["mensaje_html"]
     assert resultado["codigo_verificacion"] in llamadas["mensaje_html"]
 
     db.close()
