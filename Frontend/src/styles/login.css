@@ -39,9 +39,19 @@ select {
   border-radius: 10px;
   border: 1px solid #555;
   background-color: #1e2a4a;
-  color: black !important;
+  color: white;
   outline: none;
   box-sizing: border-box;
+  -webkit-text-fill-color: white;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #1e2a4a inset !important;
+  -webkit-text-fill-color: white !important;
+  caret-color: white;
 }
 
 /* Texto escrito dentro de los inputs */
@@ -49,8 +59,8 @@ input[type="text"],
 input[type="number"],
 input[type="password"],
 input[type="email"] {
-  color: black !important;
-  -webkit-text-fill-color: black !important;
+  color: white;
+  -webkit-text-fill-color: white;
 }
 
 /* Texto de ejemplo */

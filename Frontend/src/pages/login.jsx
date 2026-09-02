@@ -7,6 +7,7 @@ function Login() {
 
   const [documento, setDocumento] = useState("");
   const [password, setPassword] = useState("");
+  const [codigoAsesor, setCodigoAsesor] = useState("");
   const [rol, setRol] = useState("usuario");
   const [mostrarPass, setMostrarPass] = useState(false);
   const [mensaje, setMensaje] = useState("");
@@ -60,22 +61,30 @@ function Login() {
       return;
     }
 
-    if (!documento || !password) {
+    if (rol === "asesor" && !codigoAsesor.trim()) {
+      setMensaje("Ingresa el código de asesor");
+      return;
+    }
+
+    if (rol === "usuario" && (!documento || !password)) {
       setMensaje("Completa todos los campos");
       return;
     }
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/login", {
+      const esAsesor = rol === "asesor";
+      const res = await fetch(
+        `http://127.0.0.1:8000/${esAsesor ? "asesor-login" : "login"}`,
+        {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          documento,
-          password,
-          rol,
-        }),
+        body: JSON.stringify(
+          esAsesor
+            ? { codigo_asesor: codigoAsesor }
+            : { documento, password, rol }
+        ),
       });
 
       const data = await res.json();
@@ -107,15 +116,17 @@ function Login() {
 
       // Login exitoso
       setIntentos(0);
-      setLoginExitoso(true);
+      setLoginExitoso(!esAsesor);
       setMensaje(
-        data.codigo_verificacion
-          ? "✅ Login exitoso. Se envió un código de verificación a tu correo."
-          : "✅ Login exitoso"
+        esAsesor
+          ? "✅ Acceso exitoso. Redirigiendo al asesor bancario..."
+          : data.codigo_verificacion
+            ? "✅ Login exitoso. Se envió un código de verificación a tu correo."
+            : "✅ Login exitoso"
       );
 
       localStorage.setItem("token", data.token);
-      localStorage.setItem("documento", documento);
+      localStorage.setItem("documento", data.usuario.documento || documento);
       localStorage.setItem("usuario_id", data.usuario.id);
       localStorage.setItem("nombre_usuario", data.usuario.nombre);
       localStorage.setItem("rol", data.usuario.rol || "usuario");
@@ -123,7 +134,7 @@ function Login() {
         localStorage.setItem("codigo_verificacion", data.codigo_verificacion);
       }
 
-      if (rol === "asesor" && data.usuario.rol === "asesor") {
+      if (esAsesor && data.usuario.rol === "asesor") {
         navigate("/asesor-bancario");
         return;
       }
@@ -143,38 +154,55 @@ function Login() {
 
         {!loginExitoso ? (
           <>
-            <label>Documento</label>
+            {rol === "asesor" ? (
+              <>
+                <label htmlFor="codigo-asesor">Código de asesor</label>
+                <input
+                  id="codigo-asesor"
+                  type="text"
+                  value={codigoAsesor}
+                  onChange={(e) => setCodigoAsesor(e.target.value)}
+                  disabled={bloqueado}
+                  placeholder="Ingresa tu código de asesor"
+                  autoComplete="off"
+                />
+              </>
+            ) : (
+              <>
+                <label>Documento</label>
 
-            <div className="input-icon">
-              <input
-                type="text"
-                value={documento}
-                onChange={(e) => setDocumento(e.target.value)}
-                disabled={bloqueado}
-                placeholder="Ingresa tu documento"
-              />
-            </div>
+                <div className="input-icon">
+                  <input
+                    type="text"
+                    value={documento}
+                    onChange={(e) => setDocumento(e.target.value)}
+                    disabled={bloqueado}
+                    placeholder="Ingresa tu documento"
+                  />
+                </div>
 
-            <label>Contraseña</label>
+                <label>Contraseña</label>
 
-            <div className="input-icon">
-              <input
-                type={mostrarPass ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={bloqueado}
-                placeholder="Ingresa tu contraseña"
-              />
+                <div className="input-icon">
+                  <input
+                    type={mostrarPass ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={bloqueado}
+                    placeholder="Ingresa tu contraseña"
+                  />
 
-              <button
-                type="button"
-                className="eye-btn"
-                onClick={() => setMostrarPass(!mostrarPass)}
-                disabled={bloqueado}
-              >
-                {mostrarPass ? "🙈" : "👁️"}
-              </button>
-            </div>
+                  <button
+                    type="button"
+                    className="eye-btn"
+                    onClick={() => setMostrarPass(!mostrarPass)}
+                    disabled={bloqueado}
+                  >
+                    {mostrarPass ? "🙈" : "👁️"}
+                  </button>
+                </div>
+              </>
+            )}
 
             <label htmlFor="rol">Tipo de acceso</label>
             <select

@@ -368,6 +368,31 @@ def registrar_usuario(
 
     db.refresh(nuevo_usuario)
 
+    if rol == "asesor":
+        db.execute(
+            text(
+                """
+                INSERT INTO asesores_banco (
+                    id_usuario,
+                    codigo_asesor,
+                    especialidad,
+                    estado
+                )
+                VALUES (
+                    :id_usuario,
+                    :codigo_asesor,
+                    :especialidad,
+                    'activo'
+                )
+                """
+            ),
+            {
+                "id_usuario": nuevo_usuario.id_usuario,
+                "codigo_asesor": f"ASESOR-{nuevo_usuario.id_usuario:06d}",
+                "especialidad": data.get("especialidad", "Asesoría bancaria"),
+            },
+        )
+
     numeros_usados: set[str] = set()
 
     db.add_all([
@@ -507,6 +532,51 @@ def formatear_numero_cuenta(numero_actual: str | None, ultimos_digitos: str) -> 
 # LOGIN
 # ==========================================================
 
+@app.post("/asesor-login")
+def asesor_login(
+    data: dict,
+    db: Session = Depends(get_db)
+):
+    codigo_asesor = str(data.get("codigo_asesor", "")).strip()
+
+    if not codigo_asesor:
+        raise HTTPException(
+            status_code=400,
+            detail="Ingrese el código de asesor"
+        )
+
+    asesor = db.execute(
+        text(
+            """
+            SELECT u.id_usuario, u.nombre, u.documento, u.rol
+            FROM asesores_banco AS a
+            INNER JOIN usuario AS u ON u.id_usuario = a.id_usuario
+            WHERE a.codigo_asesor = :codigo_asesor
+              AND a.estado = 'activo'
+              AND u.rol = 'asesor'
+            LIMIT 1
+            """
+        ),
+        {"codigo_asesor": codigo_asesor},
+    ).mappings().first()
+
+    if not asesor:
+        raise HTTPException(
+            status_code=401,
+            detail="Código de asesor inválido o inactivo"
+        )
+
+    return {
+        "message": "Acceso de asesor exitoso",
+        "token": generate_token(asesor["id_usuario"]),
+        "usuario": {
+            "id": asesor["id_usuario"],
+            "nombre": asesor["nombre"],
+            "documento": asesor["documento"],
+            "rol": asesor["rol"]
+        }
+    }
+
 @app.post("/login")
 def login(
 
@@ -560,6 +630,26 @@ def login(
             status_code=403,
             detail="El documento no corresponde al tipo de acceso seleccionado"
         )
+
+    if rol_solicitado == "asesor":
+        asesor = db.execute(
+            text(
+                """
+                SELECT id_asesor
+                FROM asesores_banco
+                WHERE id_usuario = :id_usuario
+                  AND estado = 'activo'
+                LIMIT 1
+                """
+            ),
+            {"id_usuario": usuario.id_usuario},
+        ).first()
+
+        if not asesor:
+            raise HTTPException(
+                status_code=403,
+                detail="El asesor no está registrado o está inactivo"
+            )
 
     if usuario.rol == "usuario":
         tiene_cuenta_activa = db.query(Cuenta).filter(

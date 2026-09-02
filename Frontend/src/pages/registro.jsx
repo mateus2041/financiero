@@ -6,7 +6,6 @@ function Registro() {
   const navigate = useNavigate();
 
   const [paso, setPaso] = useState(1);
-  const [tipoRegistro, setTipoRegistro] = useState("usuario");
 
   const [tipo, setTipo] = useState("");
   const [nombre, setNombre] = useState("");
@@ -21,9 +20,58 @@ function Registro() {
   const [barrio, setBarrio] = useState("");
   const [codigoCorrespondencia, setCodigoCorrespondencia] = useState("");
   const [codigoRegistro, setCodigoRegistro] = useState("");
-  const [codigoAutorizacion, setCodigoAutorizacion] = useState("");
 
   const [mensaje, setMensaje] = useState("");
+
+  const localidades = [
+    "Bogotá",
+    "Medellín",
+    "Cali",
+    "Barranquilla",
+    "Cartagena",
+    "Bucaramanga",
+    "Pereira",
+    "Cúcuta",
+    "Ibagué",
+    "Manizales",
+    "Armenia",
+    "Pasto",
+    "Villavicencio",
+    "Neiva",
+    "Montería",
+    "Sincelejo",
+    "Tunja",
+    "Popayán",
+    "Santa Marta",
+    "Valledupar",
+  ];
+
+  const barrios = [
+    "Usaquén",
+    "Chapinero",
+    "La Candelaria",
+    "Santa Fe",
+    "San Cristóbal",
+    "Usme",
+    "Tunjuelito",
+    "Bosa",
+    "Kennedy",
+    "Fontibón",
+    "Engativá",
+    "Suba",
+    "Barrios Unidos",
+    "Teusaquillo",
+    "Los Mártires",
+    "Antonio Nariño",
+    "Puente Aranda",
+    "La Magdalena",
+    "Rafael Uribe Uribe",
+    "Ciudad Bolívar",
+    "La Vega",
+    "San Bernardo",
+    "Sumapaz",
+    "Otro",
+  ];
 
   const siguiente = () => {
     if (
@@ -54,9 +102,7 @@ function Registro() {
     }
 
     try {
-      const res = await fetch(
-        `http://127.0.0.1:8000/${tipoRegistro === "asesor" ? "register-asesor" : "register"}`,
-        {
+      const res = await fetch("http://127.0.0.1:8000/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -72,12 +118,8 @@ function Registro() {
           localidad,
           barrio,
           codigo_correspondencia: codigoCorrespondencia,
-          ...(tipoRegistro === "asesor" && {
-            codigo_autorizacion: codigoAutorizacion,
-          }),
         }),
-        }
-      );
+      });
 
       const data = await res.json();
 
@@ -87,7 +129,7 @@ function Registro() {
       }
 
       setMensaje(
-        "Registro enviado ✅. Tu solicitud queda pendiente de aprobación por el asesor bancario."
+        "Registro enviado ✅. Tu solicitud queda pendiente de aprobación."
       );
       setCodigoRegistro(data.codigo_registro);
     } catch (error) {
@@ -100,29 +142,6 @@ function Registro() {
     <div className="container">
       <div className="form-box">
         <h1>REGISTRO</h1>
-
-        <div className="registro-tabs">
-          <button
-            type="button"
-            className={tipoRegistro === "usuario" ? "tab-activa" : ""}
-            onClick={() => {
-              setTipoRegistro("usuario");
-              setMensaje("");
-            }}
-          >
-            Cliente
-          </button>
-          <button
-            type="button"
-            className={tipoRegistro === "asesor" ? "tab-activa" : ""}
-            onClick={() => {
-              setTipoRegistro("asesor");
-              setMensaje("");
-            }}
-          >
-            Asesor bancario
-          </button>
-        </div>
 
         {codigoRegistro && (
           <p className="codigo-registro">
@@ -186,17 +205,6 @@ function Registro() {
 
         {paso === 2 && (
           <>
-            {tipoRegistro === "asesor" && (
-              <>
-                <label>Código de autorización bancaria</label>
-                <input
-                  type="password"
-                  value={codigoAutorizacion}
-                  onChange={(e) => setCodigoAutorizacion(e.target.value)}
-                />
-              </>
-            )}
-
             <label>Dirección</label>
             <input
               type="text"
@@ -205,20 +213,32 @@ function Registro() {
             />
 
             <label>Localidad</label>
-            <input
-              type="text"
+            <select
               value={localidad}
               onChange={(e) => setLocalidad(e.target.value)}
-            />
+            >
+              <option value="">Seleccione una localidad</option>
+              {localidades.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
 
             <label>Barrio</label>
-            <input
-              type="text"
+            <select
               value={barrio}
               onChange={(e) => setBarrio(e.target.value)}
-            />
+            >
+              <option value="">Seleccione un barrio</option>
+              {barrios.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
 
-            <label>Código de correspondencia</label>
+            <label>Código postal </label>
             <input
               type="text"
               inputMode="numeric"

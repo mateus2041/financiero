@@ -50,3 +50,40 @@ FROM asesores_banco AS a
 INNER JOIN usuario AS u
     ON u.id_usuario = a.id_usuario
 ORDER BY a.id_asesor;
+-- SQLBook: Code
+UPDATE usuario
+SET rol = 'asesor'
+WHERE id_usuario = 1;
+
+INSERT INTO asesores_banco (
+    id_usuario,
+    codigo_asesor,
+    especialidad,
+    estado
+)
+VALUES (
+    1,                  -- ID de un usuario que ya exista en la tabla usuario
+    'asesores2026',        -- Código único del asesor
+    'Créditos y ahorro', -- Especialidad
+    'activo'             -- estado: activo o inactivo
+)
+ON DUPLICATE KEY UPDATE
+    codigo_asesor = 'asesores2026',
+    especialidad = 'Créditos y ahorro',
+    estado = 'activo';
+-- SQLBook: Code
+SELECT id_usuario, nombre, documento, rol
+FROM usuario
+WHERE rol = 'asesor';
+-- SQLBook: Code
+SELECT 
+    u.id_usuario,
+    u.documento,
+    u.nombre,
+    u.rol,
+    a.codigo_asesor,
+    a.estado
+FROM usuario u
+INNER JOIN asesores_banco a
+    ON a.id_usuario = u.id_usuario
+WHERE a.codigo_asesor = 'asesores2026';
