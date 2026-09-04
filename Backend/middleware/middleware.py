@@ -9,7 +9,7 @@ async def validar_datos(request: Request, call_next):
         email = body.get("email")
         password = body.get("password")
         telefono = body.get("telefono")
-        documento = body.get("numero_documento")
+        documento = body.get("documento")
 
         # 🔹 Validar campos vacíos
         if not nombre or not email or not password:

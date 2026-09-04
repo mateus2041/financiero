@@ -5,6 +5,12 @@ body {
   background: linear-gradient(to right, #0a0f2c, #0d1b3d);
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 .container {
   display: flex;
   justify-content: center;
@@ -51,26 +57,26 @@ label {
   font-size: 14px;
 }
 
-input,
-select {
+.form-box input,
+.form-box select {
   width: 100%;
   padding: 10px;
   padding-right: 50px; /* espacio para el ojo */
   border-radius: 10px;
   border: 1px solid #555;
-  background-color: #1e2a4a;
-  color: white;
+  background-color: #ffffff !important;
+  color: #000000 !important;
   outline: none;
-  -webkit-text-fill-color: white;
+  -webkit-text-fill-color: #000000 !important;
 }
 
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px #1e2a4a inset !important;
-  -webkit-text-fill-color: white !important;
-  caret-color: white;
+.form-box input:-webkit-autofill,
+.form-box input:-webkit-autofill:hover,
+.form-box input:-webkit-autofill:focus,
+.form-box input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
+  -webkit-text-fill-color: #000000 !important;
+  caret-color: #000000;
 }
 
 .input-icon {

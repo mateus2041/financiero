@@ -193,6 +193,83 @@
   font-size: 13px;
 }
 
+.asesores-lista {
+  display: grid;
+  gap: 12px;
+}
+
+.asesor-resultado {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 15px;
+  background: #1e3a5f;
+  border-radius: 8px;
+}
+
+.asesor-resultado div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.asesor-resultado strong {
+  color: #f5b841;
+}
+
+.asesor-resultado span {
+  color: #cbd5e1;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.asesor-resultado .btn-deshabilitar {
+  flex: 0 0 auto;
+}
+
+.asesor-resultado-acciones,
+.asesor-edicion-acciones {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.asesor-resultado-acciones button,
+.asesor-edicion-acciones button {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+}
+
+.asesor-edicion {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(180px, 1.5fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.asesor-edicion input {
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #1e3a5f;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #000000;
+}
+
+.asesor-edicion strong,
+.asesor-edicion-acciones {
+  grid-column: 1 / -1;
+}
+
+.btn-habilitar:disabled,
+.asesor-buscador button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+  transform: none;
+}
+
 .asesor-buscador select {
   flex: 0 0 220px;
 
@@ -200,15 +277,9 @@
   padding: 0 12px;
   border: 1px solid #1e3a5f;
   border-radius: 8px;
-  background-color: #ffffff !important;
-  color: #000000 !important;
-  color-scheme: light;
+  background: #1e3a5f;
+  color: white;
   font-weight: bold;
-}
-
-.asesor-buscador select option {
-  background-color: #ffffff;
-  color: #000000;
 }
 
 .usuario-dato-codigo {
@@ -237,6 +308,17 @@
   outline: none;
 
   font-size: 15px;
+}
+
+.asesor-buscador.input {
+  display: block;
+  margin-bottom: 0;
+  background: #ffffff;
+  color: #000000;
+}
+
+.asesor-buscador.input::placeholder {
+  color: #666666;
 }
 
 .asesor-buscador input::placeholder {
@@ -350,7 +432,7 @@
 .usuario-dato span {
   display: block;
 
-  color: #000000;
+  color: #f5b841;
 
   font-size: 12px;
 
@@ -677,19 +759,18 @@
     flex-direction: column;
     gap: 6px;
     margin-top: 12px;
-    color: #000000;
+    color: #cbd5e1;
     font-size: 13px;
     text-align: left;
   }
 
-  .saldo-edicion input,
-  .saldo-edicion select {
+  .saldo-edicion input {
     width: 100%;
     padding: 10px;
     border: 1px solid #1e3a5f;
     border-radius: 8px;
-    background: #ffffff;
-    color: #000000;
+    background: #0f2747;
+    color: white;
     font-size: 15px;
   }
 
@@ -777,5 +858,24 @@
 
   .cuenta-card {
     padding: 16px;
+  }
+
+  .asesor-resultado {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .asesor-edicion {
+    grid-template-columns: 1fr;
+  }
+
+  .asesor-resultado-acciones,
+  .asesor-edicion-acciones {
+    width: 100%;
+  }
+
+  .asesor-resultado-acciones button,
+  .asesor-edicion-acciones button {
+    flex: 1;
   }
 }
