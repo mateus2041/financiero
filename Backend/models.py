@@ -164,6 +164,36 @@ class Usuario(Base):
     )
 
 
+class Administrador(Base):
+
+    __tablename__ = "administradores"
+
+    id_administrador = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    id_usuario = Column(
+        Integer,
+        ForeignKey("usuario.id_usuario"),
+        nullable=False,
+        unique=True
+    )
+
+    codigo_administrador = Column(
+        String(30),
+        nullable=False,
+        unique=True
+    )
+
+    fecha_ingreso = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )
+
+
 # =========================================================
 # 🔹 CUENTAS
 # =========================================================

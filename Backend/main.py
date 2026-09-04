@@ -26,7 +26,14 @@ class TipoOperacionCuenta(BaseModel):
     tipo_operacion: str
 
 from Backend.ai.router import router as ia_router
-from Backend.models import Usuario, Cuenta, Transaccion, LlaveBreb, Notificacion
+from Backend.models import (
+    Usuario,
+    Administrador,
+    Cuenta,
+    Transaccion,
+    LlaveBreb,
+    Notificacion
+)
 from Backend.dependencias import get_db
 from Backend.email_service.email_service import crear_plantilla_email, enviar_correo
 
@@ -89,7 +96,21 @@ def startup():
         for columna in inspect(engine).get_columns("cuentas")
     }
 
+    columnas_administradores = {
+        columna["name"]
+        for columna in inspect(engine).get_columns("administradores")
+    }
+
     with engine.begin() as conexion:
+
+        if "id_usuario" not in columnas_administradores:
+
+            conexion.execute(text(
+                "ALTER TABLE administradores "
+                "ADD COLUMN id_usuario INT NULL UNIQUE, "
+                "ADD CONSTRAINT fk_administradores_usuario "
+                "FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)"
+            ))
 
         if "tope_ahorros" not in columnas_usuario:
 
@@ -230,7 +251,8 @@ def ubicacion_real(
     direccion: str,
     localidad: str,
     barrio: str,
-    codigo: str
+    codigo: str,
+    ciudad: str = ""
 ) -> bool:
 
     if not codigo.isdigit() or len(codigo) != 6:
@@ -239,7 +261,7 @@ def ubicacion_real(
     parametros = urlencode({
         "street": direccion,
         "neighbourhood": barrio,
-        "city": localidad,
+        "city": ciudad or localidad,
         "country": "Colombia",
         "postalcode": codigo,
         "format": "jsonv2",
@@ -331,6 +353,7 @@ def registrar_usuario(
         data.get("localidad", "").strip(),
         data.get("barrio", "").strip(),
         codigo_correspondencia,
+        ciudad=data.get("ciudad", "").strip(),
     ):
 
         raise HTTPException(
@@ -574,6 +597,323 @@ def asesor_login(
             "nombre": asesor["nombre"],
             "documento": asesor["documento"],
             "rol": asesor["rol"]
+        }
+    }
+
+
+@app.post("/administradores/asesores")
+def registrar_codigo_asesor(
+    data: dict,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    administrador = db.query(Administrador).filter(
+        Administrador.id_usuario == current_user
+    ).first()
+
+    if not administrador:
+        raise HTTPException(
+            status_code=403,
+            detail="Solo un administrador puede registrar asesores"
+        )
+
+    codigo_asesor = str(data.get("codigo_asesor", "")).strip()
+    id_usuario = data.get("id_usuario")
+
+    if not codigo_asesor:
+        raise HTTPException(
+            status_code=400,
+            detail="Ingrese el código de asesor"
+        )
+
+    if len(codigo_asesor) > 30:
+        raise HTTPException(
+            status_code=400,
+            detail="El código de asesor no puede superar 30 caracteres"
+        )
+
+    try:
+        id_usuario = int(id_usuario)
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=400,
+            detail="Ingrese un ID de usuario válido"
+        )
+
+    usuario = db.query(Usuario).filter(
+        Usuario.id_usuario == id_usuario
+    ).first()
+
+    if not usuario:
+        raise HTTPException(
+            status_code=404,
+            detail="Usuario no encontrado"
+        )
+
+    asesor_existente = db.execute(
+        text(
+            """
+            SELECT id_asesor
+            FROM asesores_banco
+            WHERE id_usuario = :id_usuario
+               OR codigo_asesor = :codigo_asesor
+            LIMIT 1
+            """
+        ),
+        {
+            "id_usuario": id_usuario,
+            "codigo_asesor": codigo_asesor
+        },
+    ).mappings().first()
+
+    if asesor_existente:
+        raise HTTPException(
+            status_code=409,
+            detail="El usuario o código ya está registrado como asesor"
+        )
+
+    db.execute(
+        text(
+            """
+            INSERT INTO asesores_banco (
+                id_usuario,
+                codigo_asesor,
+                especialidad,
+                estado
+            )
+            VALUES (
+                :id_usuario,
+                :codigo_asesor,
+                :especialidad,
+                'activo'
+            )
+            """
+        ),
+        {
+            "id_usuario": id_usuario,
+            "codigo_asesor": codigo_asesor,
+            "especialidad": data.get("especialidad", "Asesoría bancaria")
+        },
+    )
+    usuario.rol = "asesor"
+    db.commit()
+
+    return {
+        "mensaje": "Código de asesor registrado correctamente",
+        "codigo_asesor": codigo_asesor,
+        "estado": "activo"
+    }
+
+
+@app.get("/administradores/asesores")
+def consultar_asesores(
+    id_usuario: int | None = None,
+    codigo_asesor: str | None = None,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    administrador = db.query(Administrador).filter(
+        Administrador.id_usuario == current_user
+    ).first()
+
+    if not administrador:
+        raise HTTPException(
+            status_code=403,
+            detail="Solo un administrador puede consultar asesores"
+        )
+
+    consulta = db.execute(
+        text(
+            """
+            SELECT a.id_asesor, a.id_usuario, u.nombre, u.email,
+                   u.documento, a.codigo_asesor, a.especialidad,
+                   a.estado, a.fecha_ingreso
+            FROM asesores_banco AS a
+            INNER JOIN usuario AS u ON u.id_usuario = a.id_usuario
+            WHERE (:id_usuario IS NULL OR a.id_usuario = :id_usuario)
+              AND (:codigo_asesor IS NULL OR a.codigo_asesor = :codigo_asesor)
+            ORDER BY a.id_asesor
+            """
+        ),
+        {
+            "id_usuario": id_usuario,
+            "codigo_asesor": codigo_asesor.strip() if codigo_asesor else None
+        }
+    ).mappings().all()
+
+    return {
+        "asesores": [
+            {
+                **dict(asesor),
+                "fecha_ingreso": asesor["fecha_ingreso"].isoformat()
+                if asesor["fecha_ingreso"] else None
+            }
+            for asesor in consulta
+        ]
+    }
+
+
+@app.delete("/administradores/asesores/{id_usuario}")
+def eliminar_asesor(
+    id_usuario: int,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    administrador = db.query(Administrador).filter(
+        Administrador.id_usuario == current_user
+    ).first()
+
+    if not administrador:
+        raise HTTPException(
+            status_code=403,
+            detail="Solo un administrador puede eliminar asesores"
+        )
+
+    asesor = db.execute(
+        text("SELECT id_asesor FROM asesores_banco WHERE id_usuario = :id_usuario"),
+        {"id_usuario": id_usuario}
+    ).mappings().first()
+
+    if not asesor:
+        raise HTTPException(
+            status_code=404,
+            detail="Asesor no encontrado"
+        )
+
+    db.execute(
+        text("DELETE FROM asesores_banco WHERE id_usuario = :id_usuario"),
+        {"id_usuario": id_usuario}
+    )
+    db.query(Usuario).filter(Usuario.id_usuario == id_usuario).update(
+        {Usuario.rol: "usuario"}
+    )
+    db.commit()
+
+    return {"mensaje": "Asesor eliminado correctamente", "id_usuario": id_usuario}
+
+
+@app.put("/administradores/asesores/{id_asesor}")
+def actualizar_asesor(
+    id_asesor: int,
+    data: dict,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    administrador = db.query(Administrador).filter(
+        Administrador.id_usuario == current_user
+    ).first()
+
+    if not administrador:
+        raise HTTPException(
+            status_code=403,
+            detail="Solo un administrador puede actualizar asesores"
+        )
+
+    try:
+        nuevo_id_asesor = int(data.get("id_asesor"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Ingrese un ID de asesor válido")
+
+    codigo_asesor = str(data.get("codigo_asesor", "")).strip()
+    if not codigo_asesor:
+        raise HTTPException(status_code=400, detail="Ingrese el código de asesor")
+    if len(codigo_asesor) > 30:
+        raise HTTPException(
+            status_code=400,
+            detail="El código de asesor no puede superar 30 caracteres"
+        )
+
+    asesor = db.execute(
+        text("SELECT id_asesor FROM asesores_banco WHERE id_asesor = :id_asesor"),
+        {"id_asesor": id_asesor}
+    ).mappings().first()
+    if not asesor:
+        raise HTTPException(status_code=404, detail="Asesor no encontrado")
+
+    conflicto = db.execute(
+        text(
+            """
+            SELECT id_asesor FROM asesores_banco
+            WHERE (id_asesor = :nuevo_id_asesor OR codigo_asesor = :codigo_asesor)
+              AND id_asesor <> :id_asesor
+            LIMIT 1
+            """
+        ),
+        {
+            "nuevo_id_asesor": nuevo_id_asesor,
+            "codigo_asesor": codigo_asesor,
+            "id_asesor": id_asesor
+        }
+    ).mappings().first()
+    if conflicto:
+        raise HTTPException(status_code=409, detail="El ID o código ya pertenece a otro asesor")
+
+    db.execute(
+        text(
+            """
+            UPDATE asesores_banco
+            SET id_asesor = :nuevo_id_asesor, codigo_asesor = :codigo_asesor
+            WHERE id_asesor = :id_asesor
+            """
+        ),
+        {
+            "nuevo_id_asesor": nuevo_id_asesor,
+            "codigo_asesor": codigo_asesor,
+            "id_asesor": id_asesor
+        }
+    )
+    db.commit()
+
+    return {
+        "mensaje": "Asesor actualizado correctamente",
+        "id_asesor": nuevo_id_asesor,
+        "codigo_asesor": codigo_asesor
+    }
+
+
+@app.post("/administrador-login")
+def administrador_login(
+    data: dict,
+    db: Session = Depends(get_db)
+):
+    codigo_administrador = str(
+        data.get("codigo_administrador", "")
+    ).strip()
+
+    if not codigo_administrador:
+        raise HTTPException(
+            status_code=400,
+            detail="Ingrese el código de administrador"
+        )
+
+    administrador = db.query(Administrador).filter(
+        Administrador.codigo_administrador == codigo_administrador
+    ).first()
+
+    if not administrador:
+        raise HTTPException(
+            status_code=401,
+            detail="Código de administrador inválido"
+        )
+
+    usuario = db.query(Usuario).filter(
+        Usuario.id_usuario == administrador.id_usuario
+    ).first()
+
+    if not usuario:
+        raise HTTPException(
+            status_code=401,
+            detail="El administrador no está asociado a un usuario válido"
+        )
+
+    return {
+        "message": "Acceso de administrador exitoso",
+        "token": generate_token(usuario.id_usuario),
+        "usuario": {
+            "id": usuario.id_usuario,
+            "nombre": usuario.nombre,
+            "documento": usuario.documento,
+            "rol": "administrador"
         }
     }
 

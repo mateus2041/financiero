@@ -38,20 +38,20 @@ select {
   padding-right: 50px;
   border-radius: 10px;
   border: 1px solid #555;
-  background-color: #1e2a4a;
-  color: white;
+  background-color: white;
+  color: black;
   outline: none;
   box-sizing: border-box;
-  -webkit-text-fill-color: white;
+  -webkit-text-fill-color: black;
 }
 
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px #1e2a4a inset !important;
-  -webkit-text-fill-color: white !important;
-  caret-color: white;
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  -webkit-text-fill-color: black !important;
+  caret-color: black;
 }
 
 /* Texto escrito dentro de los inputs */
@@ -59,13 +59,13 @@ input[type="text"],
 input[type="number"],
 input[type="password"],
 input[type="email"] {
-  color: white;
-  -webkit-text-fill-color: white;
+  color: black;
+  -webkit-text-fill-color: black;
 }
 
 /* Texto de ejemplo */
 input::placeholder {
-  color: #cccccc;
+  color: #555555;
   opacity: 1;
 }
 
@@ -89,8 +89,8 @@ input::placeholder {
   height: 36px;
   border-radius: 10px;
   border: none;
-  background-color: #0f1a35;
-  color: white;
+  background-color: transparent;
+  color: black;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -98,7 +98,7 @@ input::placeholder {
 }
 
 .eye-btn:hover {
-  background-color: #1b2a4d;
+  background-color: #f0f0f0;
 }
 
 /* Botón Acceder */

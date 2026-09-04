@@ -200,9 +200,15 @@
   padding: 0 12px;
   border: 1px solid #1e3a5f;
   border-radius: 8px;
-  background: #1e3a5f;
-  color: white;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  color-scheme: light;
   font-weight: bold;
+}
+
+.asesor-buscador select option {
+  background-color: #ffffff;
+  color: #000000;
 }
 
 .usuario-dato-codigo {
@@ -224,9 +230,9 @@
 
   border: 1px solid #1e3a5f;
 
-  background: #13294b;
+  background: #ffffff;
 
-  color: white;
+  color: #000000;
 
   outline: none;
 
@@ -234,7 +240,7 @@
 }
 
 .asesor-buscador input::placeholder {
-  color: #A8A9AD;
+  color: #666666;
 }
 
 .asesor-buscador input:focus {
@@ -344,7 +350,7 @@
 .usuario-dato span {
   display: block;
 
-  color: #A8A9AD;
+  color: #000000;
 
   font-size: 12px;
 
@@ -671,18 +677,19 @@
     flex-direction: column;
     gap: 6px;
     margin-top: 12px;
-    color: #cbd5e1;
+    color: #000000;
     font-size: 13px;
     text-align: left;
   }
 
-  .saldo-edicion input {
+  .saldo-edicion input,
+  .saldo-edicion select {
     width: 100%;
     padding: 10px;
     border: 1px solid #1e3a5f;
     border-radius: 8px;
-    background: #0f2747;
-    color: white;
+    background: #ffffff;
+    color: #000000;
     font-size: 15px;
   }
 

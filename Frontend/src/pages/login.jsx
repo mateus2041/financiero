@@ -8,6 +8,7 @@ function Login() {
   const [documento, setDocumento] = useState("");
   const [password, setPassword] = useState("");
   const [codigoAsesor, setCodigoAsesor] = useState("");
+  const [codigoAdministrador, setCodigoAdministrador] = useState("");
   const [rol, setRol] = useState("usuario");
   const [mostrarPass, setMostrarPass] = useState(false);
   const [mensaje, setMensaje] = useState("");
@@ -66,6 +67,11 @@ function Login() {
       return;
     }
 
+    if (rol === "administrador" && !codigoAdministrador.trim()) {
+      setMensaje("Ingresa el código de administrador");
+      return;
+    }
+
     if (rol === "usuario" && (!documento || !password)) {
       setMensaje("Completa todos los campos");
       return;
@@ -73,8 +79,9 @@ function Login() {
 
     try {
       const esAsesor = rol === "asesor";
+      const esAdministrador = rol === "administrador";
       const res = await fetch(
-        `http://127.0.0.1:8000/${esAsesor ? "asesor-login" : "login"}`,
+        `http://127.0.0.1:8000/${esAsesor ? "asesor-login" : esAdministrador ? "administrador-login" : "login"}`,
         {
         method: "POST",
         headers: {
@@ -83,6 +90,8 @@ function Login() {
         body: JSON.stringify(
           esAsesor
             ? { codigo_asesor: codigoAsesor }
+            : esAdministrador
+              ? { codigo_administrador: codigoAdministrador }
             : { documento, password, rol }
         ),
       });
@@ -116,9 +125,11 @@ function Login() {
 
       // Login exitoso
       setIntentos(0);
-      setLoginExitoso(!esAsesor);
+      setLoginExitoso(!esAsesor && !esAdministrador);
       setMensaje(
-        esAsesor
+        esAdministrador
+          ? "✅ Acceso exitoso. Redirigiendo al panel de administradores..."
+          : esAsesor
           ? "✅ Acceso exitoso. Redirigiendo al asesor bancario..."
           : data.codigo_verificacion
             ? "✅ Login exitoso. Se envió un código de verificación a tu correo."
@@ -139,11 +150,20 @@ function Login() {
         return;
       }
 
+      if (esAdministrador && data.usuario.rol === "administrador") {
+        navigate("/administradores");
+        return;
+      }
+
       // Mostramos las opciones al usuario normal.
 
     } catch (error) {
       console.error(error);
-      setMensaje("❌ Error conectando con el servidor");
+      setMensaje(
+        error instanceof SyntaxError
+          ? "❌ El servidor devolvió una respuesta inválida"
+          : "❌ Error conectando con el servidor"
+      );
     }
   };
 
@@ -164,6 +184,19 @@ function Login() {
                   onChange={(e) => setCodigoAsesor(e.target.value)}
                   disabled={bloqueado}
                   placeholder="Ingresa tu código de asesor"
+                  autoComplete="off"
+                />
+              </>
+            ) : rol === "administrador" ? (
+              <>
+                <label htmlFor="codigo-administrador">Código de administrador</label>
+                <input
+                  id="codigo-administrador"
+                  type="password"
+                  value={codigoAdministrador}
+                  onChange={(e) => setCodigoAdministrador(e.target.value)}
+                  disabled={bloqueado}
+                  placeholder="Ingresa tu código de administrador"
                   autoComplete="off"
                 />
               </>
@@ -213,6 +246,7 @@ function Login() {
             >
               <option value="usuario">Usuario</option>
               <option value="asesor">Asesor bancario</option>
+              <option value="administrador">Administrador</option>
             </select>
 
             {mensaje && (

@@ -14,29 +14,70 @@ import Historial from "./pages/historial";
 import Reporte from "./pages/reporte";
 import VerificacionIdentidad from "./pages/VerificacionIdentidad";
 import AsesorBancario from "./pages/AsesorBancario";
+import Administradores from "./pages/Administradores";
 
 function App() {
   return (
     <Routes>
+
       <Route path="/" element={<Inicio />} />
+
       <Route path="/login" element={<Login />} />
+
       <Route path="/registro" element={<Registro />} />
+
       <Route path="/cuenta" element={<Cuenta />} />
-      <Route path="/transferencias" element={<Transferencias />} />
-      <Route path="/corriente" element={<Corriente />} />
-      <Route path="/certificado" element={<Certificado />} />
-      <Route path="/recuperacion" element={<Recuperacion />} />
-      <Route path="/ajustes" element={<Ajustes />} />
-      <Route path="/historial" element={<Historial />} />
-      <Route path="/reporte" element={<Reporte />} />
+
+      <Route
+        path="/transferencias"
+        element={<Transferencias />}
+      />
+
+      <Route
+        path="/corriente"
+        element={<Corriente />}
+      />
+
+      <Route
+        path="/certificado"
+        element={<Certificado />}
+      />
+
+      <Route
+        path="/recuperacion"
+        element={<Recuperacion />}
+      />
+
+      <Route
+        path="/ajustes"
+        element={<Ajustes />}
+      />
+
+      <Route
+        path="/historial"
+        element={<Historial />}
+      />
+
+      <Route
+        path="/reporte"
+        element={<Reporte />}
+      />
+
       <Route
         path="/verificacion-identidad"
         element={<VerificacionIdentidad />}
       />
+
       <Route
         path="/asesor-bancario"
         element={<AsesorBancario />}
       />
+
+      <Route
+        path="/administradores"
+        element={<Administradores />}
+      />
+
     </Routes>
   );
 }
