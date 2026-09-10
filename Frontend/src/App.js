@@ -15,9 +15,9 @@ import Reporte from "./pages/reporte";
 import VerificacionIdentidad from "./pages/VerificacionIdentidad";
 import AsesorBancario from "./pages/AsesorBancario";
 import Administradores from "./pages/Administradores";
-import ListaAsesores from "./pages/ListaAsesores";
+import ListaAsesores from "./pages/Listaasesores";
 import ListaCuentas from "./pages/ListaCuentas";
-import ListaUsuarios from "./pages/ListaUsuarios.jsx";
+import ListaUsuarios from "./pages/Listausuarios";
 
 function App() {
   return (
