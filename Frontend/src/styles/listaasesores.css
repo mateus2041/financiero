@@ -1,0 +1,317 @@
+/* ==========================================================
+   RESET
+   ========================================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: sans-serif;
+}
+
+/* ==========================================================
+   CONTENEDOR PRINCIPAL
+   ========================================================== */
+
+.asesor-container {
+  min-height: 100vh;
+  width: 100%;
+  background: linear-gradient(180deg, #0a192f, #0f2747);
+  color: white;
+  padding: 0;
+}
+
+.asesor-container .panel-financiero {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.asesor-container .panel-contenido {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 40px 20px;
+}
+
+.asesor-container .asesor-panel {
+  width: 100%;
+  max-width: 1000px;
+}
+
+.asesor-container .sidebar {
+  flex: 0 0 250px;
+  min-height: 100vh;
+  background: rgba(11, 32, 55, 0.8);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 20px 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.asesor-container .sidebar ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.asesor-container .sidebar li {
+  display: flex;
+}
+
+.asesor-container .sidebar a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #e2e8f0;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.asesor-container .sidebar a:hover {
+  background: rgba(245, 184, 65, 0.12);
+  color: #f5b841;
+}
+
+.asesor-container .logout {
+  margin-top: 20px;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #f5b841;
+  color: #0f172a;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* ==========================================================
+   TITULO
+   ========================================================== */
+
+.asesor-container h1 {
+  text-align: center;
+  color: #f5b841;
+  font-size: 36px;
+  margin-bottom: 30px;
+}
+
+.asesor-container .panel-contenido h1 {
+  text-align: center;
+}
+
+/* ==========================================================
+   MENSAJES
+   ========================================================== */
+
+.asesor-container > p {
+  text-align: center;
+  color: #cbd5e1;
+  font-size: 16px;
+}
+
+/* ==========================================================
+   LISTA DE ASESORES
+   ========================================================== */
+
+.asesores-lista {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.asesor-acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.asesor-resultado button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+/* ==========================================================
+   TARJETA DEL ASESOR
+   ========================================================== */
+
+.asesor-resultado {
+  background: #13294b;
+  border: 1px solid #1e3a5f;
+
+  border-radius: 15px;
+
+  padding: 25px;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+
+  transition: 0.3s;
+}
+
+/* ==========================================================
+   EFECTO TARJETA
+   ========================================================== */
+
+.asesor-resultado:hover {
+  transform: translateY(-5px);
+  border-color: #f5b841;
+}
+
+/* ==========================================================
+   NOMBRE DEL ASESOR
+   ========================================================== */
+
+.asesor-resultado h2 {
+  color: #f5b841;
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+
+/* ==========================================================
+   DATOS
+   ========================================================== */
+
+.asesor-resultado p {
+  color: #cbd5e1;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ==========================================================
+   ETIQUETAS
+   ========================================================== */
+
+.asesor-resultado strong {
+  color: #f5b841;
+}
+
+/* ==========================================================
+   BOTÓN
+   ========================================================== */
+
+.asesor-resultado button {
+  width: 100%;
+
+  margin-top: 15px;
+
+  padding: 12px;
+
+  border: none;
+
+  border-radius: 8px;
+
+  background: #f5b841;
+
+  color: black;
+
+  font-weight: bold;
+
+  font-size: 14px;
+
+  cursor: pointer;
+
+  transition: 0.3s;
+}
+
+/* ==========================================================
+   HOVER BOTÓN
+   ========================================================== */
+
+.asesor-resultado button:hover {
+  background: #ffd166;
+  transform: translateY(-2px);
+}
+
+/* ==========================================================
+   CARGANDO
+   ========================================================== */
+
+.asesor-cargando {
+  text-align: center;
+
+  padding: 40px;
+
+  color: #cbd5e1;
+
+  font-size: 16px;
+}
+
+/* ==========================================================
+   SIN ASESORES
+   ========================================================== */
+
+.asesor-sin-resultados {
+  width: 100%;
+  max-width: 700px;
+
+  margin: 0 auto;
+
+  padding: 30px;
+
+  text-align: center;
+
+  background: #13294b;
+
+  border: 1px solid #1e3a5f;
+
+  border-radius: 15px;
+
+  color: #cbd5e1;
+}
+
+/* ==========================================================
+   RESPONSIVE TABLET
+   ========================================================== */
+
+@media (max-width: 900px) {
+
+  .asesores-lista {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+/* ==========================================================
+   RESPONSIVE CELULAR
+   ========================================================== */
+
+@media (max-width: 600px) {
+
+  .asesor-container {
+    padding: 25px 15px;
+  }
+
+  .asesor-container h1 {
+    font-size: 28px;
+    margin-bottom: 25px;
+  }
+
+  .asesor-resultado {
+    padding: 20px;
+  }
+
+  .asesor-resultado h2 {
+    font-size: 20px;
+  }
+
+  .asesor-resultado p {
+    font-size: 14px;
+  }
+
+}
