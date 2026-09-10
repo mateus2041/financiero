@@ -6,7 +6,6 @@ import "../styles/Administradores.css";
 const API_URL = "http://localhost:8000";
 
 export default function Administradores() {
-  const [idUsuario, setIdUsuario] = useState("");
   const [codigoAsesor, setCodigoAsesor] = useState("");
   const [criterioConsulta, setCriterioConsulta] = useState("");
   const [asesores, setAsesores] = useState([]);
@@ -36,11 +35,7 @@ export default function Administradores() {
       const token = localStorage.getItem("token");
       const parametro = criterioConsulta.trim();
 
-      const params = /^\d+$/.test(parametro)
-        ? { id_usuario: parametro }
-        : parametro
-          ? { codigo_asesor: parametro }
-          : {};
+      const params = parametro ? { codigo_asesor: parametro } : {};
 
       const respuesta = await axios.get(
         `${API_URL}/administradores/asesores`,
@@ -82,7 +77,7 @@ export default function Administradores() {
       );
 
       setAsesores((actuales) =>
-        actuales.filter((asesor) => asesor.id_usuario !== id)
+        actuales.filter((asesor) => asesor.id_asesor !== id)
       );
     } catch (err) {
       setError(
@@ -164,8 +159,7 @@ export default function Administradores() {
       const respuesta = await axios.post(
         `${API_URL}/administradores/asesores`,
         {
-          id_usuario: idUsuario.trim(),
-          codigo_asesor: codigoAsesor.trim()
+          codigo_asesor: codigoAsesor
         },
         {
           headers: {
@@ -180,7 +174,6 @@ export default function Administradores() {
       );
 
       setCodigoAsesor("");
-      setIdUsuario("");
     } catch (err) {
       console.error("Error al registrar asesor:", err);
 
@@ -274,8 +267,7 @@ export default function Administradores() {
               </h1>
 
               <p className="asesor-description">
-                Ingresa el código del asesor para habilitar su registro
-                dentro del sistema financiero.
+                Registra directamente los datos del asesor bancario.
               </p>
 
             </div>
@@ -301,7 +293,7 @@ export default function Administradores() {
               </span>
 
               <span className="asesor-verificacion-ayuda">
-                Ingrese únicamente el código
+                Ingrese únicamente el código del asesor
               </span>
 
             </div>
@@ -310,34 +302,14 @@ export default function Administradores() {
 
               <div className="usuario-dato">
 
-                <span>ID del asesor</span>
-
-                <input
-                  className="asesor-buscador input"
-                  type="number"
-                  name="id_usuario"
-                  value={idUsuario}
-                  onChange={(e) => setIdUsuario(e.target.value)}
-                  placeholder="Ejemplo: 12"
-                  min="1"
-                  required
-                />
-
-              </div>
-
-              <div className="usuario-dato">
-
                 <span>Código de asesor</span>
 
                 <input
                   className="asesor-buscador input"
-                  type="text"
                   name="codigo_asesor"
                   value={codigoAsesor}
                   onChange={(e) => setCodigoAsesor(e.target.value)}
-                  placeholder="Escriba cualquier código"
                   maxLength={30}
-                  autoComplete="off"
                   required
                 />
 
@@ -358,7 +330,7 @@ export default function Administradores() {
 
                   {cargando
                     ? "Registrando..."
-                    : "Registrar código"}
+                    : "Registrar asesor"}
 
                 </button>
 
@@ -377,7 +349,7 @@ export default function Administradores() {
               </span>
 
               <span className="asesor-verificacion-ayuda">
-                Busque por ID o código
+                Busque por código de asesor
               </span>
 
             </div>
@@ -391,7 +363,7 @@ export default function Administradores() {
                 type="search"
                 value={criterioConsulta}
                 onChange={(e) => setCriterioConsulta(e.target.value)}
-                placeholder="ID de usuario o código de asesor"
+                placeholder="Código de asesor"
               />
 
               <button
@@ -483,7 +455,7 @@ export default function Administradores() {
                           </strong>
 
                           <span>
-                            ID asesor: {asesor.id_asesor} | ID usuario: {asesor.id_usuario}
+                            ID asesor: {asesor.id_asesor}
                           </span>
 
                           <span>
@@ -510,7 +482,7 @@ export default function Administradores() {
                             type="button"
                             className="btn-deshabilitar"
                             onClick={() =>
-                              eliminarAsesor(asesor.id_usuario)
+                              eliminarAsesor(asesor.id_asesor)
                             }
                           >
                             Eliminar

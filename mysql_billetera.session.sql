@@ -26,28 +26,25 @@ COMMIT;
 -- SQLBook: Code
 CREATE TABLE IF NOT EXISTS asesores_banco (
     id_asesor INT AUTO_INCREMENT PRIMARY KEY,
-    id_usuario INT NOT NULL UNIQUE,
+    id_usuario INT NULL,
+    nombre VARCHAR(100) NOT NULL,
+    documento VARCHAR(50),
+    email VARCHAR(100),
     codigo_asesor VARCHAR(30) NOT NULL UNIQUE,
     especialidad VARCHAR(100),
     estado ENUM('activo', 'inactivo') NOT NULL DEFAULT 'activo',
-    fecha_ingreso DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_asesor_usuario
-        FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT
+    fecha_ingreso DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 SELECT
     a.id_asesor,
-    u.nombre,
-    u.email,
+    a.nombre,
+    a.email,
     a.codigo_asesor,
     a.especialidad,
     a.estado,
     a.fecha_ingreso
 FROM asesores_banco AS a
-INNER JOIN usuario AS u
-    ON u.id_usuario = a.id_usuario
 ORDER BY a.id_asesor;
 -- SQLBook: Code
 START TRANSACTION;
@@ -141,7 +138,7 @@ START TRANSACTION;
 
 UPDATE usuario
 SET rol = 'administrador'
-WHERE id_usuario = 22;
+WHERE id_usuario = 1;
 
 INSERT INTO administradores (
     id_usuario,
@@ -150,12 +147,12 @@ INSERT INTO administradores (
 )
 SELECT
     u.id_usuario,
-    'atlas2222@',
+    'mateus200452',
     CURRENT_TIMESTAMP
 FROM usuario AS u
-WHERE u.id_usuario = 22
+WHERE u.id_usuario = 1
 ON DUPLICATE KEY UPDATE
-    codigo_administrador = 'atlas2222@';
+    codigo_administrador = 'mateus200452';
 
 COMMIT;
 -- SQLBook: Code

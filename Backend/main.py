@@ -102,6 +102,30 @@ def startup():
     }
 
     with engine.begin() as conexion:
+        conexion.execute(text(
+            """
+            CREATE TABLE IF NOT EXISTS asesores_banco (
+                id_asesor INT AUTO_INCREMENT PRIMARY KEY,
+                id_usuario INT NULL,
+                nombre VARCHAR(100) NULL,
+                documento VARCHAR(50) NULL,
+                email VARCHAR(100) NULL,
+                codigo_asesor VARCHAR(30) NOT NULL UNIQUE,
+                especialidad VARCHAR(100),
+                estado ENUM('activo', 'inactivo') NOT NULL DEFAULT 'activo',
+                fecha_ingreso DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        ))
+
+    columnas_asesores = {
+        columna["name"]
+        for columna in inspect(engine).get_columns("asesores_banco")
+    }
+
+    claves_asesores = inspect(engine).get_foreign_keys("asesores_banco")
+
+    with engine.begin() as conexion:
 
         if "id_usuario" not in columnas_administradores:
 
@@ -111,6 +135,33 @@ def startup():
                 "ADD CONSTRAINT fk_administradores_usuario "
                 "FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)"
             ))
+
+        if "nombre" not in columnas_asesores:
+            conexion.execute(text(
+                "ALTER TABLE asesores_banco ADD COLUMN nombre VARCHAR(100) NULL"
+            ))
+
+        if "documento" not in columnas_asesores:
+            conexion.execute(text(
+                "ALTER TABLE asesores_banco ADD COLUMN documento VARCHAR(50) NULL"
+            ))
+
+        if "email" not in columnas_asesores:
+            conexion.execute(text(
+                "ALTER TABLE asesores_banco ADD COLUMN email VARCHAR(100) NULL"
+            ))
+
+        if any(
+            clave.get("name") == "fk_asesor_usuario"
+            for clave in claves_asesores
+        ):
+            conexion.execute(text(
+                "ALTER TABLE asesores_banco DROP FOREIGN KEY fk_asesor_usuario"
+            ))
+
+        conexion.execute(text(
+            "ALTER TABLE asesores_banco MODIFY COLUMN id_usuario INT NULL"
+        ))
 
         if "tope_ahorros" not in columnas_usuario:
 
@@ -618,12 +669,11 @@ def registrar_codigo_asesor(
         )
 
     codigo_asesor = str(data.get("codigo_asesor", "")).strip()
-    id_usuario = data.get("id_usuario")
 
     if not codigo_asesor:
         raise HTTPException(
             status_code=400,
-            detail="Ingrese el código de asesor"
+            detail="Ingrese el código del asesor"
         )
 
     if len(codigo_asesor) > 30:
@@ -632,36 +682,16 @@ def registrar_codigo_asesor(
             detail="El código de asesor no puede superar 30 caracteres"
         )
 
-    try:
-        id_usuario = int(id_usuario)
-    except (TypeError, ValueError):
-        raise HTTPException(
-            status_code=400,
-            detail="Ingrese un ID de usuario válido"
-        )
-
-    usuario = db.query(Usuario).filter(
-        Usuario.id_usuario == id_usuario
-    ).first()
-
-    if not usuario:
-        raise HTTPException(
-            status_code=404,
-            detail="Usuario no encontrado"
-        )
-
     asesor_existente = db.execute(
         text(
             """
             SELECT id_asesor
             FROM asesores_banco
-            WHERE id_usuario = :id_usuario
-               OR codigo_asesor = :codigo_asesor
+                WHERE codigo_asesor = :codigo_asesor
             LIMIT 1
             """
         ),
         {
-            "id_usuario": id_usuario,
             "codigo_asesor": codigo_asesor
         },
     ).mappings().first()
@@ -669,33 +699,23 @@ def registrar_codigo_asesor(
     if asesor_existente:
         raise HTTPException(
             status_code=409,
-            detail="El usuario o código ya está registrado como asesor"
+            detail="El código ya está registrado como asesor"
         )
 
     db.execute(
         text(
             """
-            INSERT INTO asesores_banco (
-                id_usuario,
-                codigo_asesor,
-                especialidad,
-                estado
-            )
+            INSERT INTO asesores_banco (codigo_asesor, estado)
             VALUES (
-                :id_usuario,
                 :codigo_asesor,
-                :especialidad,
                 'activo'
             )
             """
         ),
         {
-            "id_usuario": id_usuario,
             "codigo_asesor": codigo_asesor,
-            "especialidad": data.get("especialidad", "Asesoría bancaria")
         },
     )
-    usuario.rol = "asesor"
     db.commit()
 
     return {
@@ -707,7 +727,6 @@ def registrar_codigo_asesor(
 
 @app.get("/administradores/asesores")
 def consultar_asesores(
-    id_usuario: int | None = None,
     codigo_asesor: str | None = None,
     current_user: int = Depends(token_required),
     db: Session = Depends(get_db)
@@ -725,18 +744,15 @@ def consultar_asesores(
     consulta = db.execute(
         text(
             """
-            SELECT a.id_asesor, a.id_usuario, u.nombre, u.email,
-                   u.documento, a.codigo_asesor, a.especialidad,
-                   a.estado, a.fecha_ingreso
+                 SELECT a.id_asesor, a.nombre, a.documento, a.email,
+                     a.codigo_asesor, a.especialidad,
+                     a.estado, a.fecha_ingreso
             FROM asesores_banco AS a
-            INNER JOIN usuario AS u ON u.id_usuario = a.id_usuario
-            WHERE (:id_usuario IS NULL OR a.id_usuario = :id_usuario)
-              AND (:codigo_asesor IS NULL OR a.codigo_asesor = :codigo_asesor)
+                 WHERE (:codigo_asesor IS NULL OR a.codigo_asesor = :codigo_asesor)
             ORDER BY a.id_asesor
             """
         ),
         {
-            "id_usuario": id_usuario,
             "codigo_asesor": codigo_asesor.strip() if codigo_asesor else None
         }
     ).mappings().all()
@@ -753,9 +769,9 @@ def consultar_asesores(
     }
 
 
-@app.delete("/administradores/asesores/{id_usuario}")
+@app.delete("/administradores/asesores/{id_asesor}")
 def eliminar_asesor(
-    id_usuario: int,
+    id_asesor: int,
     current_user: int = Depends(token_required),
     db: Session = Depends(get_db)
 ):
@@ -770,8 +786,8 @@ def eliminar_asesor(
         )
 
     asesor = db.execute(
-        text("SELECT id_asesor FROM asesores_banco WHERE id_usuario = :id_usuario"),
-        {"id_usuario": id_usuario}
+        text("SELECT id_asesor FROM asesores_banco WHERE id_asesor = :id_asesor"),
+        {"id_asesor": id_asesor}
     ).mappings().first()
 
     if not asesor:
@@ -781,15 +797,12 @@ def eliminar_asesor(
         )
 
     db.execute(
-        text("DELETE FROM asesores_banco WHERE id_usuario = :id_usuario"),
-        {"id_usuario": id_usuario}
-    )
-    db.query(Usuario).filter(Usuario.id_usuario == id_usuario).update(
-        {Usuario.rol: "usuario"}
+        text("DELETE FROM asesores_banco WHERE id_asesor = :id_asesor"),
+        {"id_asesor": id_asesor}
     )
     db.commit()
 
-    return {"mensaje": "Asesor eliminado correctamente", "id_usuario": id_usuario}
+    return {"mensaje": "Asesor eliminado correctamente", "id_asesor": id_asesor}
 
 
 @app.put("/administradores/asesores/{id_asesor}")

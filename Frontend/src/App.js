@@ -15,6 +15,7 @@ import Reporte from "./pages/reporte";
 import VerificacionIdentidad from "./pages/VerificacionIdentidad";
 import AsesorBancario from "./pages/AsesorBancario";
 import Administradores from "./pages/Administradores";
+import ListaAsesores from "./pages/ListaAsesores";
 import ListaCuentas from "./pages/ListaCuentas";
 import ListaUsuarios from "./pages/ListaUsuarios.jsx";
 
@@ -81,13 +82,18 @@ function App() {
       />
 
       <Route
+        path="/lista-asesores"
+        element={<ListaAsesores />}
+      />
+
+      <Route
         path="/lista-cuentas"
         element={<ListaCuentas />}
       />
 
-      <Route
-        path="/lista-usuarios"
-        element={<ListaUsuarios />}
+      <Route 
+        path="/listausuarios" 
+        element={<ListaUsuarios />} 
       />
 
     </Routes>
