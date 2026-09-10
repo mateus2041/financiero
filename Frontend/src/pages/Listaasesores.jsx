@@ -7,6 +7,9 @@ function ListaAsesores() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [cambiandoEstadoId, setCambiandoEstadoId] = useState(null);
+  const [nuevoCodigoAsesor, setNuevoCodigoAsesor] = useState("");
+  const [creandoAsesor, setCreandoAsesor] = useState(false);
+  const [mensajeExito, setMensajeExito] = useState("");
 
   const navigate = useNavigate();
 
@@ -112,6 +115,63 @@ function ListaAsesores() {
     }
   };
 
+  const registrarAsesor = async (event) => {
+    event.preventDefault();
+
+    const codigo = nuevoCodigoAsesor.trim();
+
+    if (!codigo) {
+      setError("Ingrese el código del asesor.");
+      setMensajeExito("");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        throw new Error(
+          "No hay sesión activa. Inicia sesión como administrador."
+        );
+      }
+
+      setCreandoAsesor(true);
+      setError("");
+      setMensajeExito("");
+
+      const respuesta = await fetch(
+        "http://localhost:8000/administradores/asesores",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ codigo_asesor: codigo }),
+        }
+      );
+
+      const datos = await respuesta.json().catch(() => ({}));
+
+      if (!respuesta.ok) {
+        throw new Error(
+          datos.detail || "No se pudo registrar el asesor"
+        );
+      }
+
+      setNuevoCodigoAsesor("");
+      setMensajeExito(
+        datos.mensaje || "Asesor registrado correctamente."
+      );
+      await cargarAsesores();
+    } catch (error) {
+      console.error("Error al registrar asesor:", error);
+      setError(error.message || "No se pudo registrar el asesor");
+    } finally {
+      setCreandoAsesor(false);
+    }
+  };
+
   const seleccionarAsesor = (asesor) => {
     console.log("Asesor seleccionado:", asesor);
 
@@ -182,6 +242,38 @@ function ListaAsesores() {
           <div className="asesor-panel">
 
             <h1>Asesores Bancarios</h1>
+
+            <form className="asesor-formulario" onSubmit={registrarAsesor}>
+              <div className="asesor-form-header">
+                <h2>Registrar nuevo asesor</h2>
+              </div>
+
+              <div className="asesor-input-grupo">
+                <label htmlFor="codigo-asesor">Código del asesor</label>
+                <input
+                  id="codigo-asesor"
+                  type="text"
+                  value={nuevoCodigoAsesor}
+                  onChange={(event) =>
+                    setNuevoCodigoAsesor(event.target.value)
+                  }
+                  placeholder="Ej: ASESOR-001"
+                  maxLength={30}
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="asesor-boton-guardar"
+                disabled={creandoAsesor}
+              >
+                {creandoAsesor ? "Guardando..." : "Agregar asesor"}
+              </button>
+
+              {mensajeExito && (
+                <p className="asesor-mensaje-exito">{mensajeExito}</p>
+              )}
+            </form>
 
             {cargando ? (
               <p className="asesor-cargando">

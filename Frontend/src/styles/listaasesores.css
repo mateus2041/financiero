@@ -106,6 +106,86 @@
   text-align: center;
 }
 
+.asesor-formulario {
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto 28px;
+  padding: 24px;
+  background: rgba(19, 41, 75, 0.95);
+  border: 1px solid rgba(245, 184, 65, 0.45);
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+}
+
+.asesor-form-header h2 {
+  color: #f5b841;
+  font-size: 24px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.asesor-input-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.asesor-input-grupo label {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.asesor-input-grupo input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(245, 184, 65, 0.4);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.7);
+  color: #f8fafc;
+  font-size: 15px;
+}
+
+.asesor-input-grupo input:focus {
+  outline: none;
+  border-color: #f5b841;
+  box-shadow: 0 0 0 3px rgba(245, 184, 65, 0.15);
+}
+
+.asesor-boton-guardar {
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 10px;
+  background: #f5b841;
+  color: #0f172a;
+  font-weight: bold;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.asesor-boton-guardar:hover {
+  background: #ffd166;
+  transform: translateY(-2px);
+}
+
+.asesor-boton-guardar:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.asesor-mensaje-exito {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.45);
+  color: #bbf7d0;
+  text-align: center;
+  font-weight: 600;
+}
+
 /* ==========================================================
    MENSAJES
    ========================================================== */
