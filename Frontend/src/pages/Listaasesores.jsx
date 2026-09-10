@@ -155,7 +155,7 @@ function ListaAsesores() {
             </li>
 
             <li>
-              <Link to="lista-cuentas">
+              <Link to="/lista-cuentas">
                 🌐 Cuentas
               </Link>
             </li>
