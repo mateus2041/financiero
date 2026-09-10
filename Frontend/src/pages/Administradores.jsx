@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "../styles/Administradores.css";
 
@@ -17,6 +17,28 @@ export default function Administradores() {
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
   const [cargandoConsulta, setCargandoConsulta] = useState(false);
+
+  const actualizarListaAsesores = async () => {
+    setCargandoConsulta(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      const respuesta = await axios.get(`${API_URL}/administradores/asesores`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAsesores(respuesta.data?.asesores || []);
+      setError("");
+    } catch (err) {
+      setAsesores([]);
+      setError(err.response?.data?.detail || "No fue posible cargar la lista de asesores.");
+    } finally {
+      setCargandoConsulta(false);
+    }
+  };
+
+  useEffect(() => {
+    actualizarListaAsesores();
+  }, []);
 
   const consultarAsesores = async (e) => {
     e.preventDefault();
@@ -272,7 +294,8 @@ export default function Administradores() {
 
         </div>
 
-        <section className="asesor-verificacion">
+        <div className="asesor-consultas-grid">
+          <section className="asesor-verificacion">
           <div className="asesor-verificacion-cabecera">
             <span className="asesor-verificacion-etiqueta">Consultar asesor</span>
             <span className="asesor-verificacion-ayuda">Busque por ID o código</span>
@@ -288,7 +311,16 @@ export default function Administradores() {
               {cargandoConsulta ? "Consultando..." : "Consultar"}
             </button>
           </form>
-          {asesores.length > 0 ? (
+          </section>
+
+          <section className="asesor-verificacion asesor-lista-panel">
+            <div className="asesor-verificacion-cabecera">
+              <span className="asesor-verificacion-etiqueta">Lista de asesores</span>
+              <button type="button" className="btn-actualizar" onClick={actualizarListaAsesores} disabled={cargandoConsulta}>
+                {cargandoConsulta ? "Actualizando..." : "Actualizar"}
+              </button>
+            </div>
+            {asesores.length > 0 ? (
             <div className="asesores-lista">
               {asesores.map((asesor) => (
                 <article className="asesor-resultado" key={asesor.id_asesor}>
@@ -333,10 +365,11 @@ export default function Administradores() {
                 </article>
               ))}
             </div>
-          ) : criterioConsulta.trim() && !cargandoConsulta ? (
-            <p className="asesor-sin-resultados">No se encontraron asesores.</p>
-          ) : null}
-        </section>
+            ) : (
+              <p className="asesor-sin-resultados">No hay asesores registrados.</p>
+            )}
+          </section>
+        </div>
 
         {/* ===================================================
             MENSAJE
