@@ -60,13 +60,15 @@ INSERT INTO asesores_banco (
     id_usuario,
     codigo_asesor,
     especialidad,
-    estado
+    estado,
+    fecha_ingreso
 )
 SELECT
     u.id_usuario,
     'asesores2014',
     'Créditos y ahorro',
-    'activo'
+    'activo',
+    CURRENT_TIMESTAMP
 FROM usuario AS u
 WHERE u.id_usuario = 9
 ON DUPLICATE KEY UPDATE
@@ -89,7 +91,7 @@ SELECT
 FROM usuario u
 INNER JOIN asesores_banco a
     ON a.id_usuario = u.id_usuario
-WHERE a.codigo_asesor = 'asesores2026';
+WHERE a.codigo_asesor = 'asesores2014';
 -- SQLBook: Code
 SET FOREIGN_KEY_CHECKS = 0;
 
@@ -139,27 +141,28 @@ START TRANSACTION;
 
 UPDATE usuario
 SET rol = 'administrador'
-WHERE id_usuario = 2;
+WHERE id_usuario = 22;
 
 INSERT INTO administradores (
     id_usuario,
-    codigo_administrador
+    codigo_administrador,
+    fecha_ingreso
 )
 SELECT
     u.id_usuario,
-    'mateus2026@'
+    'atlas2222@',
+    CURRENT_TIMESTAMP
 FROM usuario AS u
-WHERE u.id_usuario = 2
+WHERE u.id_usuario = 22
 ON DUPLICATE KEY UPDATE
-    id_usuario = VALUES(id_usuario),
-    codigo_administrador = VALUES(codigo_administrador);
+    codigo_administrador = 'atlas2222@';
 
 COMMIT;
 -- SQLBook: Code
 START TRANSACTION;
 
 DELETE FROM asesores_banco
-WHERE id_usuario = 9; -- cambia 1 por el ID correcto
+WHERE id_usuario = 9; -- cambia 9 por el ID correcto
 
 COMMIT;
 -- SQLBook: Code
@@ -170,10 +173,73 @@ WHERE id_administrador = 1; -- cambia 1 por el ID correcto
 
 COMMIT;
 -- SQLBook: Code
-DROP TABLE IF EXISTS asesores_banco;
+SHOW TABLES LIKE 'usuario';
+-- SQLBook: Code
+DROP TABLE IF EXISTS usuario;
+-- SQLBook: Code
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS `Usuarios`;
+SET FOREIGN_KEY_CHECKS = 1;
 -- SQLBook: Code
 DELETE FROM usuario
-WHERE id_usuario = 8;
+WHERE id_usuario = 21;
+-- SQLBook: Code
+SET @id_usuario = 20;
+
+START TRANSACTION;
+
+DELETE FROM transferencias_breb
+WHERE id_cuenta_origen IN (
+    SELECT id_cuenta FROM cuentas WHERE id_usuario = @id_usuario
+ )
+ OR id_cuenta_destino IN (
+    SELECT id_cuenta FROM cuentas WHERE id_usuario = @id_usuario
+ )
+ OR id_llave_destino IN (
+    SELECT id_llave FROM llaves_breb WHERE id_usuario = @id_usuario
+ )
+ OR id_transaccion IN (
+    SELECT t.id_transaccion
+    FROM transacciones AS t
+    INNER JOIN cuentas AS c ON c.id_cuenta = t.id_cuenta
+    WHERE c.id_usuario = @id_usuario
+ );
+
+DELETE FROM tarjetas
+WHERE id_cuenta IN (
+    SELECT id_cuenta FROM cuentas WHERE id_usuario = @id_usuario
+ );
+
+DELETE FROM llaves_breb
+WHERE id_usuario = @id_usuario
+   OR id_cuenta IN (
+       SELECT id_cuenta FROM cuentas WHERE id_usuario = @id_usuario
+   );
+
+DELETE FROM transacciones
+WHERE id_cuenta IN (
+    SELECT id_cuenta FROM cuentas WHERE id_usuario = @id_usuario
+ );
+
+DELETE FROM cuentas
+WHERE id_usuario = @id_usuario;
+
+DELETE FROM notificaciones
+WHERE id_usuario = @id_usuario;
+
+DELETE FROM control_topes_breb
+WHERE id_usuario = @id_usuario;
+
+DELETE FROM administradores
+WHERE id_usuario = @id_usuario;
+
+DELETE FROM asesores_banco
+WHERE id_usuario = @id_usuario;
+
+DELETE FROM usuario
+WHERE id_usuario = @id_usuario;
+
+COMMIT;
 -- SQLBook: Code
 INSERT INTO usuario (
     nombre,
