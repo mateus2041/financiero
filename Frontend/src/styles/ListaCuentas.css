@@ -1,0 +1,182 @@
+/* ==============================
+   CUENTAS DE USUARIOS
+   INFORMACIÓN HORIZONTAL
+   ============================== */
+
+.cuentas-container {
+  width: 100%;
+  height: 100vh;
+  background: var(--fondo-secundario);
+  color: var(--texto-principal);
+}
+
+/* CONTENIDO DE CUENTAS */
+
+.cuentas-panel {
+  width: 100%;
+}
+
+.cuentas-panel h1 {
+  margin-top: 0;
+  margin-bottom: 25px;
+  color: var(--dorado);
+}
+
+/* TABLA */
+
+.tabla-cuentas {
+  width: 100%;
+  background: var(--fondo-tarjeta);
+  border-radius: 15px;
+  overflow-x: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+/* FILA HORIZONTAL */
+
+.cuenta-fila {
+  display: grid;
+
+  grid-template-columns:
+    1.3fr
+    1.2fr
+    1.5fr
+    1fr
+    1fr
+    1fr
+    1.2fr;
+
+  align-items: center;
+
+  min-width: 1100px;
+
+  padding: 16px 20px;
+
+  border-bottom: 1px solid rgba(168, 179, 207, 0.12);
+
+  color: var(--texto-principal);
+}
+
+/* ENCABEZADO */
+
+.cuenta-header {
+  background: #121829;
+
+  color: var(--dorado);
+
+  font-weight: 700;
+
+  border-bottom: 1px solid rgba(242, 201, 76, 0.25);
+}
+
+/* DATOS */
+
+.cuenta-fila > div {
+  padding: 8px;
+}
+
+.cuenta-fila:not(.cuenta-header):hover {
+  background: rgba(242, 201, 76, 0.05);
+}
+
+/* SALDO */
+
+.saldo {
+  color: #2eaf72;
+  font-weight: 700;
+}
+
+/* ESTADOS */
+
+.estado-activo,
+.estado-inactivo {
+  display: inline-block;
+
+  padding: 6px 12px;
+
+  border-radius: 20px;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  text-transform: capitalize;
+}
+
+.estado-activo {
+  background: rgba(46, 175, 114, 0.12);
+  color: #2eaf72;
+}
+
+.estado-inactivo {
+  background: rgba(224, 107, 107, 0.12);
+  color: #e06b6b;
+}
+
+/* BOTÓN VER CUENTA */
+
+.boton-ver-cuenta {
+  background: var(--dorado);
+
+  color: #111722;
+
+  border: none;
+
+  padding: 9px 14px;
+
+  border-radius: 8px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.3s;
+}
+
+.boton-ver-cuenta:hover {
+  background: #ffe17a;
+
+  color: #111722;
+
+  transform: translateY(-2px);
+}
+
+/* MENSAJES */
+
+.cuentas-cargando,
+.cuentas-error,
+.cuentas-sin-resultados {
+  background: var(--fondo-tarjeta);
+
+  padding: 20px;
+
+  border-radius: 15px;
+
+  color: var(--texto-secundario);
+
+  text-align: center;
+}
+
+.cuentas-error {
+  color: #e06b6b;
+}
+
+/* ==============================
+   RESPONSIVE CUENTAS
+   ============================== */
+
+@media (max-width: 900px) {
+
+  .main {
+    padding: 20px;
+  }
+
+  .tabla-cuentas {
+    overflow-x: auto;
+  }
+
+  .cuenta-fila {
+    min-width: 1100px;
+  }
+
+}
