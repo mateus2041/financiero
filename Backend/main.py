@@ -278,21 +278,38 @@ def asesor_requerido(
         Usuario.id_usuario == current_user
     ).first()
 
-    if not asesor:
+    if asesor:
+
+        if asesor.rol != "asesor":
+
+            raise HTTPException(
+                status_code=403,
+                detail="No tienes permisos de asesor bancario."
+            )
+
+        return asesor
+
+    asesor_independiente = db.execute(
+        text(
+            """
+            SELECT id_asesor, nombre, documento, tipo_documento
+            FROM asesores_banco
+            WHERE id_asesor = :id_asesor
+              AND estado = 'activo'
+            LIMIT 1
+            """
+        ),
+        {"id_asesor": abs(current_user)},
+    ).mappings().first()
+
+    if not asesor_independiente or current_user >= 0:
 
         raise HTTPException(
             status_code=404,
             detail="Asesor no encontrado."
         )
 
-    if asesor.rol != "asesor":
-
-        raise HTTPException(
-            status_code=403,
-            detail="No tienes permisos de asesor bancario."
-        )
-
-    return asesor
+    return asesor_independiente
 
 
 # ==========================================================
@@ -635,12 +652,15 @@ def asesor_login(
     asesor = db.execute(
         text(
             """
-            SELECT u.id_usuario, u.nombre, u.documento, u.rol
+                 SELECT a.id_asesor, u.id_usuario,
+                     COALESCE(u.nombre, a.nombre) AS nombre,
+                     COALESCE(u.documento, a.documento) AS documento,
+                     COALESCE(u.rol, 'asesor') AS rol
             FROM asesores_banco AS a
-            INNER JOIN usuario AS u ON u.id_usuario = a.id_usuario
+            LEFT JOIN usuario AS u ON u.id_usuario = a.id_usuario
             WHERE a.codigo_asesor = :codigo_asesor
               AND a.estado = 'activo'
-              AND u.rol = 'asesor'
+              AND (u.rol = 'asesor' OR u.id_usuario IS NULL)
             LIMIT 1
             """
         ),
@@ -655,9 +675,15 @@ def asesor_login(
 
     return {
         "message": "Acceso de asesor exitoso",
-        "token": generate_token(asesor["id_usuario"]),
+        "token": generate_token(
+            asesor["id_usuario"]
+            if asesor["id_usuario"] is not None
+            else -asesor["id_asesor"]
+        ),
         "usuario": {
-            "id": asesor["id_usuario"],
+            "id": asesor["id_usuario"]
+            if asesor["id_usuario"] is not None
+            else -asesor["id_asesor"],
             "nombre": asesor["nombre"],
             "documento": asesor["documento"],
             "rol": asesor["rol"]
@@ -1197,10 +1223,93 @@ def listar_usuarios(
             "telefono": usuario.telefono,
             "direccion": usuario.direccion,
             "codigo_registro": usuario.codigo_registro,
-            "estado": "activo"
+            "estado": getattr(usuario, "estado", "activo")
         }
         for usuario in usuarios
     ]
+
+
+@app.get("/administradores/cuentas")
+def listar_cuentas_admin(
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    administrador = db.query(Administrador).filter(
+        Administrador.id_usuario == current_user
+    ).first()
+
+    if not administrador:
+        raise HTTPException(
+            status_code=403,
+            detail="Solo un administrador puede consultar las cuentas"
+        )
+
+    cuentas = (
+        db.query(Cuenta, Usuario)
+        .join(Usuario, Usuario.id_usuario == Cuenta.id_usuario)
+        .order_by(Cuenta.id_cuenta)
+        .all()
+    )
+
+    return {
+        "cuentas": [
+            {
+                "id_cuenta": cuenta.id_cuenta,
+                "nombre": usuario.nombre,
+                "documento": usuario.documento,
+                "numero_cuenta": cuenta.numero_cuenta,
+                "tipo_cuenta": cuenta.tipo_cuenta,
+                "saldo": float(cuenta.saldo or 0),
+                "estado": "activo" if cuenta.estado == "activa" else "inactivo",
+            }
+            for cuenta, usuario in cuentas
+        ]
+    }
+
+
+@app.get("/usuarios/{id_usuario}/cuentas")
+def listar_cuentas_usuario(
+    id_usuario: int,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    administrador = db.query(Administrador).filter(
+        Administrador.id_usuario == current_user
+    ).first()
+
+    if not administrador:
+        raise HTTPException(
+            status_code=403,
+            detail="Solo un administrador puede consultar las cuentas"
+        )
+
+    usuario = db.query(Usuario).filter(
+        Usuario.id_usuario == id_usuario
+    ).first()
+
+    if not usuario:
+        raise HTTPException(
+            status_code=404,
+            detail="Usuario no encontrado"
+        )
+
+    cuentas = db.query(Cuenta).filter(
+        Cuenta.id_usuario == id_usuario
+    ).order_by(Cuenta.id_cuenta).all()
+
+    return {
+        "cuentas": [
+            {
+                "id_cuenta": cuenta.id_cuenta,
+                "numero_cuenta": cuenta.numero_cuenta,
+                "tipo_cuenta": cuenta.tipo_cuenta,
+                "tipo_operacion": cuenta.tipo_operacion or "debito",
+                "saldo": float(cuenta.saldo or 0),
+                "estado": cuenta.estado
+            }
+            for cuenta in cuentas
+        ]
+    }
 
 
 @app.get("/usuario")
@@ -1473,9 +1582,7 @@ def mis_cuentas(
 
     cuentas = db.query(Cuenta).filter(
 
-        Cuenta.id_usuario == current_user,
-
-        Cuenta.estado == "activa"
+        Cuenta.id_usuario == current_user
 
     ).order_by(
 
@@ -1483,18 +1590,31 @@ def mis_cuentas(
 
     ).all()
 
+    usuario = db.query(Usuario).filter(
+        Usuario.id_usuario == current_user
+    ).first()
+
     return [
 
         {
 
-            "id":
+            "id_cuenta":
             cuenta.id_cuenta,
 
-            "tipo":
+            "numero_cuenta":
+            cuenta.numero_cuenta,
+
+            "nombre":
+            usuario.nombre if usuario else "",
+
+            "tipo_cuenta":
             cuenta.tipo_cuenta,
 
             "saldo":
-            float(cuenta.saldo or 0)
+            float(cuenta.saldo or 0),
+
+            "estado":
+            cuenta.estado
 
         }
 

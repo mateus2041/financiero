@@ -1,545 +1,320 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "../styles/Administradores.css";
 
 const API_URL = "http://localhost:8000";
 
 export default function Administradores() {
-  const [codigoAsesor, setCodigoAsesor] = useState("");
-  const [criterioConsulta, setCriterioConsulta] = useState("");
+  const navigate = useNavigate();
+
   const [asesores, setAsesores] = useState([]);
-  const [asesorEditando, setAsesorEditando] = useState(null);
-  const [idAsesorEditado, setIdAsesorEditado] = useState("");
-  const [codigoAsesorEditado, setCodigoAsesorEditado] = useState("");
-
-  const [mensaje, setMensaje] = useState("");
+  const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-  const [cargando, setCargando] = useState(false);
-  const [cargandoConsulta, setCargandoConsulta] = useState(false);
+  const [mensaje, setMensaje] = useState("");
+  const [codigoAsesorConsulta, setCodigoAsesorConsulta] = useState("");
+  const [asesorConsultado, setAsesorConsultado] = useState(null);
+  const [consultandoAsesor, setConsultandoAsesor] = useState(false);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuario_id");
-    localStorage.removeItem("documento");
-    window.location.href = "/login";
-  };
+  useEffect(() => {
+    cargarDatos();
+  }, []);
 
-  const consultarAsesores = async (e) => {
-    e.preventDefault();
-    setError("");
-    setMensaje("");
-    setCargandoConsulta(true);
+  const formatearError = (error, mensajeFallback) => {
+    const detalle = error?.response?.data?.detail;
+    const texto = typeof detalle === "string" ? detalle.trim() : "";
 
-    try {
-      const token = localStorage.getItem("token");
-      const parametro = criterioConsulta.trim();
-
-      const params = parametro ? { codigo_asesor: parametro } : {};
-
-      const respuesta = await axios.get(
-        `${API_URL}/administradores/asesores`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          params
-        }
-      );
-
-      setAsesores(respuesta.data?.asesores || []);
-    } catch (err) {
-      setAsesores([]);
-      setError(
-        err.response?.data?.detail ||
-        "No fue posible consultar los asesores."
-      );
-    } finally {
-      setCargandoConsulta(false);
+    if (texto && !["Not Found", "not found", "NotFound"].includes(texto)) {
+      return texto;
     }
+
+    return mensajeFallback;
   };
 
-  const eliminarAsesor = async (id) => {
-    setError("");
-    setMensaje("");
-
+  const cargarDatos = async () => {
     try {
+      setCargando(true);
+      setError("");
+
       const token = localStorage.getItem("token");
 
-      const respuesta = await axios.delete(
-        `${API_URL}/administradores/asesores/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-
-      setMensaje(
-        respuesta.data?.mensaje ||
-        "Asesor eliminado correctamente."
-      );
-
-      setAsesores((actuales) =>
-        actuales.filter((asesor) => asesor.id_asesor !== id)
-      );
-    } catch (err) {
-      setError(
-        err.response?.data?.detail ||
-        "No fue posible eliminar el asesor."
-      );
-    }
-  };
-
-  const iniciarEdicion = (asesor) => {
-    setAsesorEditando(asesor.id_asesor);
-    setIdAsesorEditado(String(asesor.id_asesor));
-    setCodigoAsesorEditado(asesor.codigo_asesor);
-    setError("");
-    setMensaje("");
-  };
-
-  const cancelarEdicion = () => {
-    setAsesorEditando(null);
-    setIdAsesorEditado("");
-    setCodigoAsesorEditado("");
-  };
-
-  const actualizarAsesor = async (e) => {
-    e.preventDefault();
-    setError("");
-    setMensaje("");
-
-    try {
-      const token = localStorage.getItem("token");
-
-      const respuesta = await axios.put(
-        `${API_URL}/administradores/asesores/${asesorEditando}`,
-        {
-          id_asesor: idAsesorEditado.trim(),
-          codigo_asesor: codigoAsesorEditado.trim()
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      };
 
-      setMensaje(
-        respuesta.data?.mensaje ||
-        "Asesor actualizado correctamente."
-      );
-
-      setAsesores((actuales) =>
-        actuales.map((asesor) =>
-          asesor.id_asesor === asesorEditando
-            ? {
-                ...asesor,
-                id_asesor: Number(idAsesorEditado),
-                codigo_asesor: codigoAsesorEditado.trim()
-              }
-            : asesor
-        )
-      );
-
-      cancelarEdicion();
-    } catch (err) {
-      setError(
-        err.response?.data?.detail ||
-        "No fue posible actualizar el asesor."
-      );
-    }
-  };
-
-  const registrarAsesor = async (e) => {
-    e.preventDefault();
-
-    setMensaje("");
-    setError("");
-    setCargando(true);
-
-    try {
-      const token = localStorage.getItem("token");
-
-      const respuesta = await axios.post(
+      const respuestaAsesores = await axios.get(
         `${API_URL}/administradores/asesores`,
-        {
-          codigo_asesor: codigoAsesor
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+        config
       );
 
-      setMensaje(
-        respuesta.data?.mensaje ||
-        "El asesor bancario fue registrado correctamente."
-      );
-
-      setCodigoAsesor("");
-    } catch (err) {
-      console.error("Error al registrar asesor:", err);
-
-      setError(
-        err.response?.data?.detail ||
-        "No fue posible registrar el asesor."
-      );
+      setAsesores(respuestaAsesores.data?.asesores || []);
+    } catch (error) {
+      console.error(error);
+      setError(formatearError(error, "No se pudieron cargar los datos."));
     } finally {
       setCargando(false);
     }
   };
 
+  const consultarAsesor = async (e) => {
+    e.preventDefault();
+
+    if (!codigoAsesorConsulta.trim()) {
+      setError("Ingrese el código del asesor.");
+      return;
+    }
+
+    try {
+      setError("");
+      setMensaje("");
+      setConsultandoAsesor(true);
+      setAsesorConsultado(null);
+
+      const token = localStorage.getItem("token");
+
+      const respuesta = await axios.get(
+        `${API_URL}/administradores/asesores`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          params: {
+            codigo_asesor: codigoAsesorConsulta.trim(),
+          },
+        }
+      );
+
+      const lista = respuesta.data?.asesores || [];
+      setAsesorConsultado(lista[0] || null);
+
+      if (!lista[0]) {
+        setError("No se encontró un asesor con ese código.");
+      }
+    } catch (error) {
+      console.error(error);
+      setAsesorConsultado(null);
+      setError(formatearError(error, "No se pudo consultar el asesor."));
+    } finally {
+      setConsultandoAsesor(false);
+    }
+  };
+
+  const cerrarSesion = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuario_id");
+    localStorage.removeItem("documento");
+
+    navigate("/login");
+  };
+
+  if (cargando) {
+    return (
+      <div className="asesor-container">
+        <div className="panel-financiero">
+          <main className="contenido-asesores">
+            <h1>Cargando...</h1>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="asesor-container">
-
-      {/* =====================================================
-          NAVBAR
-          ===================================================== */}
-
       <div className="panel-financiero">
 
         <aside className="sidebar">
-
           <ul>
+            <li>
+              <Link to="/Administradores">
+                📜 Principal
+              </Link>
+            </li>
 
             <li>
-
               <Link to="/lista-asesores">
-
-                📜 asesores
-
+                📜 Asesores
               </Link>
-
             </li>
 
             <li>
-
               <Link to="/lista-usuarios">
-
                 👤 Usuarios
-
               </Link>
-
             </li>
 
             <li>
-
               <Link to="/lista-cuentas">
-
-                🌐 cuentas 
-
+                🌐 Cuentas
               </Link>
-
             </li>
 
             <li>
-
               <Link to="/">
-
-                💲 devolucion
-
+                💲 Devolución
               </Link>
-
             </li>
-
           </ul>
 
           <button
             className="logout"
-            onClick={handleLogout}
+            onClick={cerrarSesion}
           >
-
             🚪 Cerrar sesión
-
           </button>
-
         </aside>
 
-        <div className="panel-contenido">
+        <main className="contenido-asesores">
 
-          {/* =====================================================
-              HERO
-              ===================================================== */}
+          <h1>Administración de asesores</h1>
 
-          <section className="asesor-hero">
-
-            <div className="asesor-hero-text">
-
-              <h1 className="asesor-title">
-                Bienvenido administrador
-              </h1>
-
-              <p className="asesor-description">
-                Registra directamente los datos del asesor bancario.
-              </p>
-
-            </div>
-
-          </section>
-
-          {/* =====================================================
-              PANEL PRINCIPAL
-              ===================================================== */}
-
-          <main className="asesor-panel">
-
-          {/* ===================================================
-              FORMULARIO
-              =================================================== */}
-
-          <div className="asesor-verificacion">
-
-            <div className="asesor-verificacion-cabecera">
-
-              <span className="asesor-verificacion-etiqueta">
-                Código de asesor
-              </span>
-
-              <span className="asesor-verificacion-ayuda">
-                Ingrese únicamente el código del asesor
-              </span>
-
-            </div>
-
-            <form onSubmit={registrarAsesor}>
-
-              <div className="usuario-dato">
-
-                <span>Código de asesor</span>
-
-                <input
-                  className="asesor-buscador input"
-                  name="codigo_asesor"
-                  value={codigoAsesor}
-                  onChange={(e) => setCodigoAsesor(e.target.value)}
-                  maxLength={30}
-                  required
-                />
-
-              </div>
-
-              {/* BOTÓN */}
-
-              <div
-                className="cuenta-acciones"
-                style={{ marginTop: "20px" }}
-              >
-
-                <button
-                  type="submit"
-                  className="btn-habilitar"
-                  disabled={cargando}
-                >
-
-                  {cargando
-                    ? "Registrando..."
-                    : "Registrar asesor"}
-
-                </button>
-
-              </div>
-
-            </form>
-
-          </div>
-
-          <section className="asesor-verificacion">
-
-            <div className="asesor-verificacion-cabecera">
-
-              <span className="asesor-verificacion-etiqueta">
-                Consultar asesor
-              </span>
-
-              <span className="asesor-verificacion-ayuda">
-                Busque por código de asesor
-              </span>
-
-            </div>
-
-            <form
-              className="asesor-buscador"
-              onSubmit={consultarAsesores}
-            >
-
-              <input
-                type="search"
-                value={criterioConsulta}
-                onChange={(e) => setCriterioConsulta(e.target.value)}
-                placeholder="Código de asesor"
-              />
-
-              <button
-                type="submit"
-                disabled={cargandoConsulta}
-              >
-
-                {cargandoConsulta
-                  ? "Consultando..."
-                  : "Consultar"}
-
-              </button>
-
-            </form>
-
-            {asesores.length > 0 ? (
-
-              <div className="asesores-lista">
-
-                {asesores.map((asesor) => (
-
-                  <article
-                    className="asesor-resultado"
-                    key={asesor.id_asesor}
-                  >
-
-                    {asesorEditando === asesor.id_asesor ? (
-
-                      <form
-                        className="asesor-edicion"
-                        onSubmit={actualizarAsesor}
-                      >
-
-                        <strong>
-                          {asesor.nombre}
-                        </strong>
-
-                        <input
-                          type="number"
-                          min="1"
-                          value={idAsesorEditado}
-                          onChange={(e) =>
-                            setIdAsesorEditado(e.target.value)
-                          }
-                          placeholder="ID del asesor"
-                          required
-                        />
-
-                        <input
-                          type="text"
-                          maxLength={30}
-                          value={codigoAsesorEditado}
-                          onChange={(e) =>
-                            setCodigoAsesorEditado(e.target.value)
-                          }
-                          placeholder="Código de asesor"
-                          required
-                        />
-
-                        <div className="asesor-edicion-acciones">
-
-                          <button
-                            type="submit"
-                            className="btn-habilitar"
-                          >
-                            Guardar
-                          </button>
-
-                          <button
-                            type="button"
-                            className="btn-deshabilitar"
-                            onClick={cancelarEdicion}
-                          >
-                            Cancelar
-                          </button>
-
-                        </div>
-
-                      </form>
-
-                    ) : (
-
-                      <>
-
-                        <div>
-
-                          <strong>
-                            {asesor.nombre}
-                          </strong>
-
-                          <span>
-                            ID asesor: {asesor.id_asesor}
-                          </span>
-
-                          <span>
-                            Código: {asesor.codigo_asesor}
-                          </span>
-
-                          <span>
-                            {asesor.email} | Estado: {asesor.estado}
-                          </span>
-
-                        </div>
-
-                        <div className="asesor-resultado-acciones">
-
-                          <button
-                            type="button"
-                            className="btn-habilitar"
-                            onClick={() => iniciarEdicion(asesor)}
-                          >
-                            Editar
-                          </button>
-
-                          <button
-                            type="button"
-                            className="btn-deshabilitar"
-                            onClick={() =>
-                              eliminarAsesor(asesor.id_asesor)
-                            }
-                          >
-                            Eliminar
-                          </button>
-
-                        </div>
-
-                      </>
-
-                    )}
-
-                  </article>
-
-                ))}
-
-              </div>
-
-            ) : criterioConsulta.trim() && !cargandoConsulta ? (
-
-              <p className="asesor-sin-resultados">
-                No se encontraron asesores.
-              </p>
-
-            ) : null}
-
-          </section>
-
-          {/* ===================================================
-              MENSAJE
-              =================================================== */}
-
-          {mensaje && (
-
-            <div className="asesor-mensaje">
-              {mensaje}
-            </div>
-
-          )}
-
-          {/* ===================================================
-              ERROR
-              =================================================== */}
+          <p className="subtitulo-asesores">
+            Gestión de usuarios y asesores bancarios
+          </p>
 
           {error && (
-
-            <div className="asesor-error">
+            <p className="mensaje-error">
               {error}
-            </div>
-
+            </p>
           )}
 
-          </main>
+          {mensaje && (
+            <p className="mensaje-exito">
+              {mensaje}
+            </p>
+          )}
 
-        </div>
+          <div className="admin-grid-asesores">
+            <section className="panel-lista-asesores lista-asesores-panel">
+
+              <h2>Lista de asesores</h2>
+
+              {asesores.length === 0 ? (
+                <p>No hay asesores registrados.</p>
+              ) : (
+                <div className="lista-asesores-compacta">
+
+                  {asesores.map((asesor) => (
+
+                    <div
+                      className="fila-asesor"
+                      key={
+                        asesor.id_asesor ||
+                        asesor.id_usuario
+                      }
+                    >
+
+                      <div className="fila-asesor-dato">
+                        <span className="fila-label">
+                          Nombre
+                        </span>
+
+                        <strong>
+                          {asesor.nombre ||
+                            asesor.nombres ||
+                            asesor.nombre_completo ||
+                            "Asesor bancario"}
+                        </strong>
+                      </div>
+
+                      <div className="fila-asesor-dato">
+                        <span className="fila-label">
+                          Código
+                        </span>
+
+                        <strong>
+                          {asesor.codigo_asesor ||
+                            asesor.codigo ||
+                            "Sin código"}
+                        </strong>
+                      </div>
+
+                      <div className="fila-asesor-dato fila-estado">
+
+                        <span className="fila-label">
+                          Estado
+                        </span>
+
+                        <span
+                          className={
+                            asesor.estado === "inactivo"
+                              ? "estado-badge inactivo"
+                              : "estado-badge activo"
+                          }
+                        >
+                          {asesor.estado || "activo"}
+                        </span>
+
+                      </div>
+
+                    </div>
+
+                  ))}
+
+                </div>
+              )}
+
+            </section>
+
+            <aside className="panel-consulta-asesor">
+              <h3>Consultar asesor</h3>
+
+              <form onSubmit={consultarAsesor} className="formulario-consulta-asesor">
+                <label>
+                  Código del asesor
+                  <input
+                    type="text"
+                    value={codigoAsesorConsulta}
+                    onChange={(e) => setCodigoAsesorConsulta(e.target.value)}
+                    placeholder="Ingrese el código"
+                    style={{
+                      color: "#ffffff",
+                      WebkitTextFillColor: "#ffffff",
+                      caretColor: "#ffffff",
+                      backgroundColor: "#0b0f16",
+                    }}
+                  />
+                </label>
+
+                <button type="submit" disabled={consultandoAsesor}>
+                  {consultandoAsesor ? "Consultando..." : "Consultar"}
+                </button>
+              </form>
+
+              {asesorConsultado ? (
+                <div className="resultado-asesor-consultado">
+                  <p>
+                    <strong>Nombre:</strong> {asesorConsultado.nombre || "Sin nombre"}
+                  </p>
+                  <p>
+                    <strong>Código:</strong> {asesorConsultado.codigo_asesor || "Sin código"}
+                  </p>
+                  <p>
+                    <strong>Estado:</strong>{" "}
+                    <span
+                      className={
+                        asesorConsultado.estado === "inactivo"
+                          ? "estado-badge inactivo"
+                          : "estado-badge activo"
+                      }
+                    >
+                      {asesorConsultado.estado || "activo"}
+                    </span>
+                  </p>
+                </div>
+              ) : (
+                <p className="texto-empty-consulta">
+                  Busca un asesor por su código.
+                </p>
+              )}
+            </aside>
+          </div>
+
+        </main>
 
       </div>
-
     </div>
   );
 }

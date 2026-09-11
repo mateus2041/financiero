@@ -161,6 +161,7 @@ body {
 .panel-lista-asesores {
   flex: 1;
   min-width: 0;
+  text-align: center;
 }
 
 .formulario-asesor {
@@ -286,13 +287,14 @@ body {
 .tabla-asesores td {
   padding: 15px 16px;
   border-bottom: 1px solid rgba(168, 179, 207, 0.14);
-  text-align: left;
+  text-align: center;
 }
 
 .tabla-asesores th {
   color: var(--dorado);
   font-size: 13px;
   text-transform: uppercase;
+  text-align: center;
 }
 
 .tabla-asesores td {
@@ -301,6 +303,28 @@ body {
 
 .tabla-asesores tbody tr:last-child td {
   border-bottom: none;
+}
+
+.estado-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.estado-badge.activo {
+  background: rgba(130, 214, 165, 0.15);
+  color: #82d6a5;
+  border: 1px solid rgba(130, 214, 165, 0.5);
+}
+
+.estado-badge.inactivo {
+  background: rgba(243, 165, 165, 0.12);
+  color: #f3a5a5;
+  border: 1px solid rgba(243, 165, 165, 0.5);
 }
 
 .boton-eliminar {
