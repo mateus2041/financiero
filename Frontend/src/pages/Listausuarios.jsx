@@ -147,12 +147,7 @@ export default function ListaUsuarios() {
                 🌐 Cuentas
               </Link>
             </li>
-
-            <li>
-              <Link to="/">
-                💲 Devolución
-              </Link>
-            </li>
+            
           </ul>
 
           <button
