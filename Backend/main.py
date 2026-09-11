@@ -1171,6 +1171,38 @@ def perfil(
 # USUARIO
 # ==========================================================
 
+@app.get("/usuarios")
+def listar_usuarios(
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    administrador = db.query(Administrador).filter(
+        Administrador.id_usuario == current_user
+    ).first()
+
+    if not administrador:
+        raise HTTPException(
+            status_code=403,
+            detail="Solo un administrador puede consultar usuarios"
+        )
+
+    usuarios = db.query(Usuario).order_by(Usuario.id_usuario).all()
+
+    return [
+        {
+            "id_usuario": usuario.id_usuario,
+            "nombre": usuario.nombre,
+            "documento": usuario.documento,
+            "correo": usuario.email,
+            "telefono": usuario.telefono,
+            "direccion": usuario.direccion,
+            "codigo_registro": usuario.codigo_registro,
+            "estado": "activo"
+        }
+        for usuario in usuarios
+    ]
+
+
 @app.get("/usuario")
 def obtener_usuario(
 

@@ -91,9 +91,9 @@ function App() {
         element={<ListaCuentas />}
       />
 
-      <Route 
-        path="/listausuarios" 
-        element={<ListaUsuarios />} 
+      <Route
+        path="/lista-usuarios"
+        element={<ListaUsuarios />}
       />
 
     </Routes>
