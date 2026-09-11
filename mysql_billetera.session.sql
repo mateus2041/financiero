@@ -147,12 +147,12 @@ INSERT INTO administradores (
 )
 SELECT
     u.id_usuario,
-    'mateus200452',
+    'mateus20452@',
     CURRENT_TIMESTAMP
 FROM usuario AS u
 WHERE u.id_usuario = 1
 ON DUPLICATE KEY UPDATE
-    codigo_administrador = 'mateus200452';
+    codigo_administrador = 'mateus20452@';
 
 COMMIT;
 -- SQLBook: Code
@@ -179,7 +179,7 @@ DROP TABLE IF EXISTS `Usuarios`;
 SET FOREIGN_KEY_CHECKS = 1;
 -- SQLBook: Code
 DELETE FROM usuario
-WHERE id_usuario = 21;
+WHERE id_usuario = 2;
 -- SQLBook: Code
 SET @id_usuario = 20;
 

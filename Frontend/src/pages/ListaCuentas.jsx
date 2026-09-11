@@ -31,7 +31,7 @@ export default function ListaCuentas() {
       }
 
       const respuesta = await axios.get(
-        `${API_URL}/cuentas/mis-cuentas`,
+        `${API_URL}/administradores/cuentas`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -39,7 +39,11 @@ export default function ListaCuentas() {
         }
       );
 
-      setCuentas(respuesta.data || []);
+      const cuentasUsuario = (respuesta.data?.cuentas || []).filter(
+        (cuenta) => String(cuenta.rol || "").toLowerCase() === "usuario"
+      );
+
+      setCuentas(cuentasUsuario);
     } catch (error) {
       console.error("Error al cargar las cuentas:", error);
 
@@ -146,12 +150,7 @@ export default function ListaCuentas() {
                 🌐 Cuentas
               </Link>
             </li>
-
-            <li>
-              <Link to="/">
-                💲 Devolución
-              </Link>
-            </li>
+            
           </ul>
 
           <button

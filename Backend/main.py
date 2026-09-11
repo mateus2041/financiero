@@ -1212,7 +1212,9 @@ def listar_usuarios(
             detail="Solo un administrador puede consultar usuarios"
         )
 
-    usuarios = db.query(Usuario).order_by(Usuario.id_usuario).all()
+    usuarios = db.query(Usuario).filter(
+        Usuario.rol == "usuario"
+    ).order_by(Usuario.id_usuario).all()
 
     return [
         {
@@ -1247,6 +1249,16 @@ def listar_cuentas_admin(
     cuentas = (
         db.query(Cuenta, Usuario)
         .join(Usuario, Usuario.id_usuario == Cuenta.id_usuario)
+        .filter(Usuario.rol == "usuario")
+        .filter(~Usuario.id_usuario.in_(
+            db.query(Administrador.id_usuario)
+        ))
+        .filter(text(
+            "NOT EXISTS ("
+            "SELECT 1 FROM asesores_banco asesor "
+            "WHERE asesor.id_usuario = usuario.id_usuario"
+            ")"
+        ))
         .order_by(Cuenta.id_cuenta)
         .all()
     )
@@ -1257,6 +1269,7 @@ def listar_cuentas_admin(
                 "id_cuenta": cuenta.id_cuenta,
                 "nombre": usuario.nombre,
                 "documento": usuario.documento,
+                "rol": usuario.rol,
                 "numero_cuenta": cuenta.numero_cuenta,
                 "tipo_cuenta": cuenta.tipo_cuenta,
                 "saldo": float(cuenta.saldo or 0),
@@ -1284,7 +1297,17 @@ def listar_cuentas_usuario(
         )
 
     usuario = db.query(Usuario).filter(
-        Usuario.id_usuario == id_usuario
+        Usuario.id_usuario == id_usuario,
+        Usuario.rol == "usuario",
+        ~Usuario.id_usuario.in_(
+            db.query(Administrador.id_usuario)
+        ),
+        text(
+            "NOT EXISTS ("
+            "SELECT 1 FROM asesores_banco asesor "
+            "WHERE asesor.id_usuario = usuario.id_usuario"
+            ")"
+        )
     ).first()
 
     if not usuario:
