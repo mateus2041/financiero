@@ -109,6 +109,7 @@ def startup():
                 id_usuario INT NULL,
                 nombre VARCHAR(100) NULL,
                 documento VARCHAR(50) NULL,
+                tipo_documento VARCHAR(50) NULL,
                 email VARCHAR(100) NULL,
                 codigo_asesor VARCHAR(30) NOT NULL UNIQUE,
                 especialidad VARCHAR(100),
@@ -145,6 +146,18 @@ def startup():
             conexion.execute(text(
                 "ALTER TABLE asesores_banco ADD COLUMN documento VARCHAR(50) NULL"
             ))
+
+        if "tipo_documento" not in columnas_asesores:
+            conexion.execute(text(
+                "ALTER TABLE asesores_banco "
+                "ADD COLUMN tipo_documento VARCHAR(50) NULL"
+            ))
+
+        conexion.execute(text(
+            "UPDATE asesores_banco "
+            "SET tipo_documento = 'Cedula de ciudadania' "
+            "WHERE tipo_documento IS NULL OR tipo_documento = ''"
+        ))
 
         if "email" not in columnas_asesores:
             conexion.execute(text(
@@ -668,58 +681,60 @@ def registrar_codigo_asesor(
             detail="Solo un administrador puede registrar asesores"
         )
 
-    codigo_asesor = str(data.get("codigo_asesor", "")).strip()
+    nombre = str(data.get("nombre", "")).strip()
+    documento = str(data.get("documento", "")).strip()
+    tipo_documento = str(data.get("tipo_documento", "")).strip()
+    cargo = "Asesor"
 
-    if not codigo_asesor:
+    if not nombre or not documento or not tipo_documento:
         raise HTTPException(
             status_code=400,
-            detail="Ingrese el código del asesor"
+            detail="Nombre, número y tipo de documento son obligatorios"
         )
 
-    if len(codigo_asesor) > 30:
-        raise HTTPException(
-            status_code=400,
-            detail="El código de asesor no puede superar 30 caracteres"
-        )
+    caracteres_codigo = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    codigo_asesor = "".join(
+        secrets.choice(caracteres_codigo)
+        for _ in range(10)
+    )
 
-    asesor_existente = db.execute(
+    while db.execute(
         text(
-            """
-            SELECT id_asesor
-            FROM asesores_banco
-                WHERE codigo_asesor = :codigo_asesor
-            LIMIT 1
-            """
+            "SELECT 1 FROM asesores_banco "
+            "WHERE codigo_asesor = :codigo_asesor LIMIT 1"
         ),
-        {
-            "codigo_asesor": codigo_asesor
-        },
-    ).mappings().first()
-
-    if asesor_existente:
-        raise HTTPException(
-            status_code=409,
-            detail="El código ya está registrado como asesor"
+        {"codigo_asesor": codigo_asesor},
+    ).first() is not None:
+        codigo_asesor = "".join(
+            secrets.choice(caracteres_codigo)
+            for _ in range(10)
         )
 
     db.execute(
         text(
             """
-            INSERT INTO asesores_banco (codigo_asesor, estado)
+            INSERT INTO asesores_banco (
+                nombre, documento, tipo_documento,
+                codigo_asesor, especialidad, estado
+            )
             VALUES (
-                :codigo_asesor,
-                'activo'
+                :nombre, :documento, :tipo_documento,
+                :codigo_asesor, :cargo, 'activo'
             )
             """
         ),
         {
+            "nombre": nombre,
+            "documento": documento,
+            "tipo_documento": tipo_documento,
             "codigo_asesor": codigo_asesor,
+            "cargo": cargo,
         },
     )
     db.commit()
 
     return {
-        "mensaje": "Código de asesor registrado correctamente",
+        "mensaje": "Asesor registrado correctamente",
         "codigo_asesor": codigo_asesor,
         "estado": "activo"
     }
@@ -744,11 +759,17 @@ def consultar_asesores(
     consulta = db.execute(
         text(
             """
-                 SELECT a.id_asesor, a.nombre, a.documento, a.email,
-                     a.codigo_asesor, a.especialidad,
+                 SELECT a.id_asesor,
+                     COALESCE(a.nombre, u.nombre) AS nombre,
+                     COALESCE(a.documento, u.documento) AS documento,
+                     COALESCE(a.tipo_documento, td.nombre_doc) AS tipo_documento,
+                     COALESCE(a.especialidad, u.rol) AS cargo,
+                     a.email, a.codigo_asesor,
                      a.estado, a.fecha_ingreso
             FROM asesores_banco AS a
-                 WHERE (:codigo_asesor IS NULL OR a.codigo_asesor = :codigo_asesor)
+            LEFT JOIN usuario AS u ON u.id_usuario = a.id_usuario
+            LEFT JOIN tipo_documento AS td ON td.id_tipo_doc = u.id_tipo_doc
+            WHERE (:codigo_asesor IS NULL OR a.codigo_asesor = :codigo_asesor)
             ORDER BY a.id_asesor
             """
         ),

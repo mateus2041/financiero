@@ -5,11 +5,15 @@ import "../styles/listaasesores.css";
 function ListaAsesores() {
   const [asesores, setAsesores] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [formulario, setFormulario] = useState({
+    nombre: "",
+    documento: "",
+    tipo_documento: "",
+    cargo: "Asesor",
+  });
   const [error, setError] = useState("");
-  const [cambiandoEstadoId, setCambiandoEstadoId] = useState(null);
-  const [nuevoCodigoAsesor, setNuevoCodigoAsesor] = useState("");
-  const [creandoAsesor, setCreandoAsesor] = useState(false);
-  const [mensajeExito, setMensajeExito] = useState("");
+  const [mensaje, setMensaje] = useState("");
 
   const navigate = useNavigate();
 
@@ -19,164 +23,110 @@ function ListaAsesores() {
 
   const cargarAsesores = async () => {
     try {
+      setError("");
       const token = localStorage.getItem("token");
 
-      if (!token) {
-        throw new Error(
-          "No hay sesión activa. Inicia sesión como administrador."
-        );
-      }
-
-      const respuesta = await fetch(
-        "http://localhost:8000/administradores/asesores",
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      const datos = await respuesta.json().catch(() => ({}));
+      const respuesta = await fetch("http://localhost:8000/administradores/asesores", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       if (!respuesta.ok) {
-        throw new Error(
-          datos.detail || "No se pudieron cargar los asesores"
-        );
+        throw new Error("No se pudieron cargar los asesores");
       }
 
+      const datos = await respuesta.json();
+
       setAsesores(datos.asesores || []);
-      setError("");
     } catch (error) {
-      console.error("Error al cargar asesores:", error);
-      setAsesores([]);
-      setError(error.message || "No se pudieron cargar los asesores");
+      console.error("Error:", error);
+      setError(error.message || "No fue posible cargar los asesores.");
     } finally {
       setCargando(false);
     }
   };
 
-  const cambiarEstadoAsesor = async (asesor, nuevoEstado) => {
+  const eliminarAsesor = async (idAsesor) => {
     try {
+      setError("");
+      setMensaje("");
       const token = localStorage.getItem("token");
-
-      if (!token) {
-        throw new Error(
-          "No hay sesión activa. Inicia sesión como administrador."
-        );
-      }
-
-      const idAsesor = asesor.id_asesor ?? asesor.id_usuario;
-
-      setCambiandoEstadoId(idAsesor);
-
       const respuesta = await fetch(
-        `http://localhost:8000/administradores/asesores/${idAsesor}/estado`,
+        `http://localhost:8000/administradores/asesores/${idAsesor}`,
         {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            estado: nuevoEstado,
-          }),
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
-      const datos = await respuesta.json().catch(() => ({}));
-
       if (!respuesta.ok) {
-        throw new Error(
-          datos.detail || "No se pudo cambiar el estado del asesor"
-        );
+        const contenido = await respuesta.text();
+        let datos = {};
+
+        try {
+          datos = JSON.parse(contenido);
+        } catch {
+          datos = {};
+        }
+
+        throw new Error(datos.detail || "No se pudo eliminar el asesor.");
       }
 
-      setAsesores((prev) =>
-        prev.map((item) => {
-          const idItem = item.id_asesor ?? item.id_usuario;
-
-          return idItem === idAsesor
-            ? { ...item, estado: nuevoEstado }
-            : item;
-        })
+      const datos = await respuesta.json();
+      setAsesores((actuales) =>
+        actuales.filter((asesor) => asesor.id_asesor !== idAsesor)
       );
-
-      setError("");
+      setMensaje(datos.mensaje || "Asesor eliminado correctamente.");
     } catch (error) {
-      console.error("Error al cambiar el estado del asesor:", error);
-
-      setError(
-        error.message || "No se pudo cambiar el estado del asesor"
-      );
-    } finally {
-      setCambiandoEstadoId(null);
+      setError(error.message || "No fue posible eliminar el asesor.");
     }
   };
 
-  const registrarAsesor = async (event) => {
-    event.preventDefault();
+  const cambiarFormulario = (evento) => {
+    const { name, value } = evento.target;
+    setFormulario((actual) => ({ ...actual, [name]: value }));
+  };
 
-    const codigo = nuevoCodigoAsesor.trim();
-
-    if (!codigo) {
-      setError("Ingrese el código del asesor.");
-      setMensajeExito("");
-      return;
-    }
+  const registrarAsesor = async (evento) => {
+    evento.preventDefault();
+    setError("");
+    setMensaje("");
+    setGuardando(true);
 
     try {
       const token = localStorage.getItem("token");
+      const respuesta = await fetch("http://localhost:8000/administradores/asesores", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formulario),
+      });
 
-      if (!token) {
-        throw new Error(
-          "No hay sesión activa. Inicia sesión como administrador."
-        );
-      }
-
-      setCreandoAsesor(true);
-      setError("");
-      setMensajeExito("");
-
-      const respuesta = await fetch(
-        "http://localhost:8000/administradores/asesores",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ codigo_asesor: codigo }),
-        }
-      );
-
-      const datos = await respuesta.json().catch(() => ({}));
-
+      const datos = await respuesta.json();
       if (!respuesta.ok) {
-        throw new Error(
-          datos.detail || "No se pudo registrar el asesor"
-        );
+        throw new Error(datos.detail || "No se pudo registrar el asesor.");
       }
 
-      setNuevoCodigoAsesor("");
-      setMensajeExito(
-        datos.mensaje || "Asesor registrado correctamente."
+      setFormulario({
+        nombre: "",
+        documento: "",
+        tipo_documento: "",
+        cargo: "Asesor",
+      });
+      setMensaje(
+        `${datos.mensaje || "Asesor registrado correctamente."} Código: ${datos.codigo_asesor}`
       );
       await cargarAsesores();
     } catch (error) {
-      console.error("Error al registrar asesor:", error);
-      setError(error.message || "No se pudo registrar el asesor");
+      setError(error.message || "No fue posible registrar el asesor.");
     } finally {
-      setCreandoAsesor(false);
+      setGuardando(false);
     }
-  };
-
-  const seleccionarAsesor = (asesor) => {
-    console.log("Asesor seleccionado:", asesor);
-
-    // Aquí puedes agregar después la navegación
-    // navigate(`/asesor/${asesor.id_asesor}`);
   };
 
   const handleLogout = () => {
@@ -189,16 +139,13 @@ function ListaAsesores() {
 
   return (
     <div className="asesor-container">
-
       <div className="panel-financiero">
 
         <aside className="sidebar">
-
           <ul>
-
             <li>
               <Link to="/Administradores">
-                📜 principal
+                📜 Principal
               </Link>
             </li>
 
@@ -225,7 +172,6 @@ function ListaAsesores() {
                 💲 Devolución
               </Link>
             </li>
-
           </ul>
 
           <button
@@ -234,169 +180,113 @@ function ListaAsesores() {
           >
             🚪 Cerrar sesión
           </button>
-
         </aside>
 
-        <div className="panel-contenido">
+        <main className="contenido-asesores">
+          <h1>Lista de asesores</h1>
+          <p className="subtitulo-asesores">Gestión de asesores</p>
 
-          <div className="asesor-panel">
-
-            <h1>Asesores Bancarios</h1>
-
-            <form className="asesor-formulario" onSubmit={registrarAsesor}>
-              <div className="asesor-form-header">
-                <h2>Registrar nuevo asesor</h2>
+          <div className="contenido-lista-asesores">
+            <form className="formulario-asesor" onSubmit={registrarAsesor}>
+              <h2>Registrar asesor</h2>
+              <div className="campos-asesor">
+                <label>
+                  Nombre
+                  <input
+                    name="nombre"
+                    value={formulario.nombre}
+                    onChange={cambiarFormulario}
+                    required
+                  />
+                </label>
+                <label>
+                  N.° documento
+                  <input
+                    name="documento"
+                    value={formulario.documento}
+                    onChange={cambiarFormulario}
+                    required
+                  />
+                </label>
+                <label>
+                  Tipo de documento
+                  <select
+                    name="tipo_documento"
+                    value={formulario.tipo_documento}
+                    onChange={cambiarFormulario}
+                    required
+                  >
+                    <option value="">Seleccione una opción</option>
+                    <option value="Cedula de ciudadania">Cédula de ciudadanía</option>
+                    <option value="Tarjeta de identidad">Tarjeta de identidad</option>
+                    <option value="Cedula de extranjeria">Cédula de extranjería</option>
+                    <option value="Pasaporte">Pasaporte</option>
+                  </select>
+                </label>
+                <label>
+                  Cargo
+                  <input
+                    name="cargo"
+                    value={formulario.cargo}
+                    readOnly
+                    aria-readonly="true"
+                  />
+                </label>
+                <button type="submit" disabled={guardando}>
+                  {guardando ? "Guardando..." : "Registrar asesor"}
+                </button>
               </div>
-
-              <div className="asesor-input-grupo">
-                <label htmlFor="codigo-asesor">Código del asesor</label>
-                <input
-                  id="codigo-asesor"
-                  type="text"
-                  value={nuevoCodigoAsesor}
-                  onChange={(event) =>
-                    setNuevoCodigoAsesor(event.target.value)
-                  }
-                  placeholder="Ej: ASESOR-001"
-                  maxLength={30}
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="asesor-boton-guardar"
-                disabled={creandoAsesor}
-              >
-                {creandoAsesor ? "Guardando..." : "Agregar asesor"}
-              </button>
-
-              {mensajeExito && (
-                <p className="asesor-mensaje-exito">{mensajeExito}</p>
-              )}
             </form>
 
-            {cargando ? (
-              <p className="asesor-cargando">
-                Cargando asesores...
-              </p>
-            ) : error ? (
-              <p className="asesor-sin-resultados">
-                {error}
-              </p>
-            ) : asesores.length === 0 ? (
-              <p className="asesor-sin-resultados">
-                No hay asesores registrados.
-              </p>
-            ) : (
-              <div className="asesores-lista">
+            <section className="panel-lista-asesores">
+              {error && <p className="mensaje-error">{error}</p>}
+              {mensaje && <p className="mensaje-exito">{mensaje}</p>}
 
-                {asesores.map((asesor) => {
-                  const idAsesor =
-                    asesor.id_asesor ?? asesor.id_usuario;
-
-                  return (
-                    <div
-                      className="asesor-resultado"
-                      key={idAsesor}
-                    >
-
-                      <div>
-                        <h2>
-                          {asesor.nombre}
-                        </h2>
-
-                        <p>
-                          <strong>Documento:</strong>{" "}
-                          {asesor.documento}
-                        </p>
-
-                        <p>
-                          <strong>Correo:</strong>{" "}
-                          {asesor.email}
-                        </p>
-
-                        <p>
-                          <strong>Código:</strong>{" "}
-                          {asesor.codigo_asesor}
-                        </p>
-
-                        <p>
-                          <strong>Especialidad:</strong>{" "}
-                          {asesor.especialidad}
-                        </p>
-
-                        <p>
-                          <strong>Estado:</strong>{" "}
-                          {asesor.estado}
-                        </p>
-                      </div>
-
-                      <div className="asesor-acciones">
-
+              {cargando ? (
+                <p className="mensaje-tabla">Cargando asesores...</p>
+              ) : asesores.length === 0 ? (
+                <p className="mensaje-tabla">No hay asesores registrados.</p>
+              ) : (
+                <div className="tabla-asesores-contenedor">
+                  <table className="tabla-asesores">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>N.° documento</th>
+                    <th>Tipo documento</th>
+                    <th>Cargo</th>
+                    <th>Código asesor</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {asesores.map((asesor) => (
+                    <tr key={asesor.id_asesor}>
+                      <td>{asesor.nombre || "Sin nombre"}</td>
+                      <td>{asesor.documento || "Sin documento"}</td>
+                      <td>{asesor.tipo_documento || "Cédula de ciudadanía"}</td>
+                      <td>{asesor.cargo || "Asesor bancario"}</td>
+                      <td>{asesor.codigo_asesor || "No registrado"}</td>
+                      <td>
                         <button
+                          className="boton-eliminar"
+                          onClick={() => eliminarAsesor(asesor.id_asesor)}
                           type="button"
-                          onClick={() => seleccionarAsesor(asesor)}
                         >
-                          Ver asesor
+                          Eliminar
                         </button>
-
-                        {asesor.estado === "activo" ? (
-
-                          <button
-                            type="button"
-                            className="asesor-boton-desactivar"
-                            onClick={() =>
-                              cambiarEstadoAsesor(
-                                asesor,
-                                "inactivo"
-                              )
-                            }
-                            disabled={
-                              cambiandoEstadoId === idAsesor
-                            }
-                          >
-                            {cambiandoEstadoId === idAsesor
-                              ? "Cambiando..."
-                              : "Desactivar"}
-                          </button>
-
-                        ) : (
-
-                          <button
-                            type="button"
-                            className="asesor-boton-activar"
-                            onClick={() =>
-                              cambiarEstadoAsesor(
-                                asesor,
-                                "activo"
-                              )
-                            }
-                            disabled={
-                              cambiandoEstadoId === idAsesor
-                            }
-                          >
-                            {cambiandoEstadoId === idAsesor
-                              ? "Cambiando..."
-                              : "Activar"}
-                          </button>
-
-                        )}
-
-                      </div>
-
-                    </div>
-                  );
-                })}
-
-              </div>
-            )}
-
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
           </div>
-
-        </div>
+        </main>
 
       </div>
-
     </div>
   );
 }
