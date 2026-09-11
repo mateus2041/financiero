@@ -1,397 +1,638 @@
-/* ==========================================================
-   RESET
-   ========================================================== */
+/* ==============================
+   RESET TOTAL
+   ============================== */
 
-* {
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
-  font-family: sans-serif;
+  overflow-x: hidden;
+  font-family: "Poppins", sans-serif;
 }
 
-/* ==========================================================
+/* ==============================
+   VARIABLES
+   ============================== */
+
+:root {
+  --fondo-principal: #0b0f16;
+  --fondo-secundario: #131a2c;
+  --fondo-tarjeta: #1a2238;
+  --texto-principal: #f5f5f5;
+  --texto-secundario: #a8b3cf;
+  --dorado: #f2c94c;
+  --azul-acento: #1a2238;
+}
+
+/* ==============================
    CONTENEDOR PRINCIPAL
-   ========================================================== */
+   ============================== */
 
 .asesor-container {
-  min-height: 100vh;
   width: 100%;
-  background: linear-gradient(180deg, #0a192f, #0f2747);
-  color: white;
-  padding: 0;
+  min-height: 100vh;
+  background: var(--fondo-secundario);
+  color: var(--texto-principal);
 }
 
-.asesor-container .panel-financiero {
+/* ==============================
+   PANEL FINANCIERO
+   ============================== */
+
+.panel-financiero {
   display: flex;
   width: 100%;
   min-height: 100vh;
+  background: var(--fondo-secundario);
+  color: var(--dorado);
 }
 
-.asesor-container .panel-contenido {
-  flex: 1;
-  display: flex;
-  justify-content: center;
+/* ==============================
+   SIDEBAR
+   ============================== */
+
+.sidebar {
+  width: 250px;
+  min-width: 250px;
   min-height: 100vh;
-  padding: 40px 20px;
-}
-
-.asesor-container .asesor-panel {
-  width: 100%;
-  max-width: 1000px;
-}
-
-.asesor-container .sidebar {
-  flex: 0 0 250px;
-  min-height: 100vh;
-  background: rgba(11, 32, 55, 0.8);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 20px 15px;
+  background: linear-gradient(180deg, #121829, #0b0f16);
+  padding: 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  box-sizing: border-box;
 }
 
-.asesor-container .sidebar ul {
+.sidebar ul {
   list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
+  margin: 0;
+  padding: 0;
 }
 
-.asesor-container .sidebar li {
-  display: flex;
+.sidebar ul li {
+  margin: 18px 0;
 }
 
-.asesor-container .sidebar a {
+.sidebar ul li a {
+  text-decoration: none;
+  color: var(--texto-secundario);
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 100%;
-  padding: 10px 12px;
+  padding: 10px;
   border-radius: 10px;
-  color: #e2e8f0;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.asesor-container .sidebar a:hover {
-  background: rgba(245, 184, 65, 0.12);
-  color: #f5b841;
-}
-
-.asesor-container .logout {
-  margin-top: 20px;
-  width: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  background: #f5b841;
-  color: #0f172a;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-/* ==========================================================
-   TITULO
-   ========================================================== */
-
-.asesor-container h1 {
-  text-align: center;
-  color: #f5b841;
-  font-size: 36px;
-  margin-bottom: 30px;
-}
-
-.asesor-container .panel-contenido h1 {
-  text-align: center;
-}
-
-.asesor-formulario {
-  width: 100%;
-  max-width: 700px;
-  margin: 0 auto 28px;
-  padding: 24px;
-  background: rgba(19, 41, 75, 0.95);
-  border: 1px solid rgba(245, 184, 65, 0.45);
-  border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
-}
-
-.asesor-form-header h2 {
-  color: #f5b841;
-  font-size: 24px;
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-.asesor-input-grupo {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 18px;
-}
-
-.asesor-input-grupo label {
-  color: #e2e8f0;
-  font-weight: 600;
-}
-
-.asesor-input-grupo input {
-  width: 100%;
-  padding: 12px 14px;
-  border: 1px solid rgba(245, 184, 65, 0.4);
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.7);
-  color: #f8fafc;
-  font-size: 15px;
-}
-
-.asesor-input-grupo input:focus {
-  outline: none;
-  border-color: #f5b841;
-  box-shadow: 0 0 0 3px rgba(245, 184, 65, 0.15);
-}
-
-.asesor-boton-guardar {
-  width: 100%;
-  padding: 12px 16px;
-  border: none;
-  border-radius: 10px;
-  background: #f5b841;
-  color: #0f172a;
-  font-weight: bold;
-  font-size: 15px;
-  cursor: pointer;
-  transition: 0.3s ease;
-}
-
-.asesor-boton-guardar:hover {
-  background: #ffd166;
-  transform: translateY(-2px);
-}
-
-.asesor-boton-guardar:disabled {
-  opacity: 0.7;
-  cursor: wait;
-}
-
-.asesor-mensaje-exito {
-  margin-top: 14px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: rgba(34, 197, 94, 0.12);
-  border: 1px solid rgba(34, 197, 94, 0.45);
-  color: #bbf7d0;
-  text-align: center;
-  font-weight: 600;
-}
-
-/* ==========================================================
-   MENSAJES
-   ========================================================== */
-
-.asesor-container > p {
-  text-align: center;
-  color: #cbd5e1;
-  font-size: 16px;
-}
-
-/* ==========================================================
-   LISTA DE ASESORES
-   ========================================================== */
-
-.asesores-lista {
-  width: 100%;
-  max-width: 1000px;
-  margin: 0 auto;
-
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
-}
-
-.asesor-acciones {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.asesor-resultado button:disabled {
-  opacity: 0.7;
-  cursor: wait;
-}
-
-/* ==========================================================
-   TARJETA DEL ASESOR
-   ========================================================== */
-
-.asesor-resultado {
-  background: #13294b;
-  border: 1px solid #1e3a5f;
-
-  border-radius: 15px;
-
-  padding: 25px;
-
-  display: flex;
-  flex-direction: column;
-
-  gap: 10px;
-
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-
   transition: 0.3s;
 }
 
-/* ==========================================================
-   EFECTO TARJETA
-   ========================================================== */
+.sidebar ul li a:hover,
+.sidebar ul li a.active {
+  background: rgba(242, 201, 76, 0.1);
+  color: var(--dorado);
+}
 
-.asesor-resultado:hover {
+/* ==============================
+   BOTON CERRAR SESION
+   ============================== */
+
+.logout {
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(242, 201, 76, 0.3);
+  color: var(--texto-secundario);
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.logout:hover {
+  background: rgba(242, 201, 76, 0.1);
+  color: var(--dorado);
+  transform: none;
+}
+
+/* ==============================
+   CONTENIDO PRINCIPAL
+   ============================== */
+
+.contenido-asesores {
+  flex: 1;
+  min-width: 0;
+  min-height: 100vh;
+  padding: 30px;
+  overflow-y: auto;
+  background: radial-gradient(
+    circle at 25% 25%,
+    #0f1524,
+    #0b0f16 65%
+  );
+  box-sizing: border-box;
+}
+
+/* ==============================
+   TITULO
+   ============================== */
+
+.contenido-asesores h1 {
+  margin: 0 0 30px 0;
+  color: var(--dorado);
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.subtitulo-asesores {
+  margin: -20px 0 25px;
+  color: var(--texto-secundario);
+  font-size: 18px;
+}
+
+.contenido-lista-asesores {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.panel-lista-asesores {
+  flex: 1;
+  min-width: 0;
+}
+
+.formulario-asesor {
+  flex: 0 0 290px;
+  margin: 0;
+  padding: 22px;
+  background: var(--fondo-tarjeta);
+  border: 1px solid rgba(242, 201, 76, 0.2);
+  border-radius: 12px;
+}
+
+.formulario-asesor h2 {
+  margin: 0 0 18px;
+  color: var(--dorado);
+  font-size: 20px;
+}
+
+.campos-asesor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.campos-asesor label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.campos-asesor input,
+.campos-asesor select {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid rgba(168, 179, 207, 0.3);
+  border-radius: 7px;
+  background: #0b0f16;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
+  font: inherit;
+}
+
+.campos-asesor select {
+  appearance: auto;
+}
+
+.campos-asesor select option {
+  background: #0b0f16;
+  color: #ffffff;
+}
+
+.campos-asesor input::placeholder {
+  color: #ffffff;
+  opacity: 1;
+}
+
+.campos-asesor input:-webkit-autofill,
+.campos-asesor input:-webkit-autofill:hover,
+.campos-asesor input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #ffffff;
+  -webkit-box-shadow: 0 0 0 1000px #0b0f16 inset;
+}
+
+.campos-asesor input:focus,
+.campos-asesor select:focus {
+  outline: 2px solid var(--dorado);
+  outline-offset: 1px;
+}
+
+.campos-asesor input[readonly] {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.campos-asesor button {
+  padding: 11px 16px;
+  border: none;
+  border-radius: 7px;
+  background: var(--dorado);
+  color: #0b0f16;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.campos-asesor button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+/* ==============================
+   MENSAJES
+   ============================== */
+
+.contenido-asesores > p {
+  color: var(--texto-secundario);
+  font-size: 16px;
+}
+
+.mensaje-error {
+  color: #f3a5a5 !important;
+}
+
+.mensaje-exito {
+  color: #82d6a5 !important;
+}
+
+.tabla-asesores-contenedor {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid rgba(242, 201, 76, 0.2);
+  border-radius: 10px;
+  background: var(--fondo-tarjeta);
+}
+
+.tabla-asesores {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+.tabla-asesores th,
+.tabla-asesores td {
+  padding: 15px 16px;
+  border-bottom: 1px solid rgba(168, 179, 207, 0.14);
+  text-align: left;
+}
+
+.tabla-asesores th {
+  color: var(--dorado);
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.tabla-asesores td {
+  color: #ffffff;
+}
+
+.tabla-asesores tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.boton-eliminar {
+  padding: 8px 12px;
+  border: 1px solid #e06b6b;
+  border-radius: 6px;
+  background: transparent;
+  color: #f3a5a5;
+}
+
+.boton-eliminar:hover {
+  background: #e06b6b;
+  color: #ffffff;
+}
+
+/* ==============================
+   LISTA DE ASESORES
+   ============================== */
+
+.lista-asesores {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(280px, 1fr)
+  );
+  gap: 20px;
+  width: 100%;
+}
+
+/* ==============================
+   TARJETA DEL ASESOR
+   ============================== */
+
+.tarjeta-asesor {
+  background: var(--fondo-tarjeta);
+  padding: 25px;
+  border-radius: 15px;
+  border: 1px solid rgba(242, 201, 76, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  transition: 0.3s;
+}
+
+.tarjeta-asesor:hover {
   transform: translateY(-5px);
-  border-color: #f5b841;
+  border-color: rgba(242, 201, 76, 0.25);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
 }
 
-/* ==========================================================
+/* ==============================
    NOMBRE DEL ASESOR
-   ========================================================== */
+   ============================== */
 
-.asesor-resultado h2 {
-  color: #f5b841;
-  font-size: 22px;
-  margin-bottom: 10px;
+.tarjeta-asesor h2 {
+  margin: 0 0 20px 0;
+  color: var(--dorado);
+  font-size: 21px;
 }
 
-/* ==========================================================
-   DATOS
-   ========================================================== */
+/* ==============================
+   INFORMACION
+   ============================== */
 
-.asesor-resultado p {
-  color: #cbd5e1;
-  font-size: 15px;
+.tarjeta-asesor p {
+  margin: 10px 0;
+  color: var(--texto-secundario);
+  font-size: 14px;
   line-height: 1.5;
 }
 
-/* ==========================================================
-   ETIQUETAS
-   ========================================================== */
-
-.asesor-resultado strong {
-  color: #f5b841;
+.tarjeta-asesor strong {
+  color: var(--texto-principal);
 }
 
-/* ==========================================================
-   BOTÓN
-   ========================================================== */
+/* ==============================
+   ROL
+   ============================== */
 
-.asesor-resultado button {
+.tarjeta-asesor p:last-of-type {
+  color: var(--dorado);
+}
+
+/* ==============================
+   BOTON VER ASESOR
+   ============================== */
+
+.tarjeta-asesor button {
   width: 100%;
-
-  margin-top: 15px;
-
-  padding: 12px;
-
+  margin-top: 18px;
+  background: linear-gradient(
+    90deg,
+    var(--azul-acento),
+    var(--dorado)
+  );
+  color: #fff;
   border: none;
-
-  border-radius: 8px;
-
-  background: #f5b841;
-
-  color: black;
-
-  font-weight: bold;
-
-  font-size: 14px;
-
+  padding: 11px;
+  border-radius: 10px;
   cursor: pointer;
-
+  font-weight: 600;
   transition: 0.3s;
 }
 
-/* ==========================================================
-   HOVER BOTÓN
-   ========================================================== */
-
-.asesor-resultado button:hover {
-  background: #ffd166;
-  transform: translateY(-2px);
+.tarjeta-asesor button:hover {
+  transform: scale(1.03);
 }
 
-/* ==========================================================
-   CARGANDO
-   ========================================================== */
+/* ==============================
+   CUENTAS
+   ============================== */
 
-.asesor-cargando {
-  text-align: center;
-
-  padding: 40px;
-
-  color: #cbd5e1;
-
-  font-size: 16px;
+.cuenta-activa,
+.cuenta-inactiva {
+  display: block;
+  margin: 6px 0;
+  font-weight: 600;
 }
 
-/* ==========================================================
-   SIN ASESORES
-   ========================================================== */
+.cuenta-activa {
+  color: #2eaf72;
+}
 
-.asesor-sin-resultados {
+.cuenta-inactiva {
+  color: #e06b6b;
+}
+
+/* ==============================
+   BOTONES GENERALES
+   ============================== */
+
+button {
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  transform: scale(1.03);
+}
+
+/* ==============================
+   SIDEBAR LINK
+   ============================== */
+
+.sidebar-link {
   width: 100%;
-  max-width: 700px;
-
-  margin: 0 auto;
-
-  padding: 30px;
-
-  text-align: center;
-
-  background: #13294b;
-
-  border: 1px solid #1e3a5f;
-
-  border-radius: 15px;
-
-  color: #cbd5e1;
+  background: transparent;
+  color: var(--texto-secundario);
+  padding: 10px;
+  text-align: left;
+  font: inherit;
+  border: none;
 }
 
-/* ==========================================================
-   RESPONSIVE TABLET
-   ========================================================== */
+.sidebar-link:hover {
+  background: rgba(242, 201, 76, 0.1);
+  color: var(--dorado);
+  transform: none;
+}
+
+/* ==============================
+   MODAL CERTIFICADO
+   ============================== */
+
+.certificado-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(5, 8, 14, 0.78);
+}
+
+.certificado-modal {
+  position: relative;
+  width: min(100%, 440px);
+  padding: 30px;
+  border: 1px solid rgba(242, 201, 76, 0.3);
+  border-radius: 16px;
+  background: #1a2238;
+  color: var(--texto-principal);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.certificado-modal h2 {
+  margin: 0 30px 12px 0;
+  color: var(--dorado);
+}
+
+.certificado-modal p {
+  margin: 0 0 24px;
+  color: var(--texto-secundario);
+  line-height: 1.5;
+}
+
+.certificado-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  padding: 4px 9px;
+  background: transparent;
+  color: var(--texto-secundario);
+  font-size: 26px;
+  line-height: 1;
+}
+
+.certificado-modal-close:hover {
+  color: var(--texto-principal);
+  transform: none;
+}
+
+.certificado-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.modal-secondary-button,
+.modal-primary-button {
+  padding: 11px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.modal-secondary-button {
+  background: transparent;
+  border: 1px solid #46516d;
+  color: var(--texto-secundario);
+}
+
+.modal-primary-button {
+  background: var(--dorado);
+  color: #111722;
+}
+
+/* ==============================
+   RESPONSIVE
+   ============================== */
 
 @media (max-width: 900px) {
-
-  .asesores-lista {
-    grid-template-columns: 1fr;
+  .sidebar {
+    width: 200px;
+    min-width: 200px;
   }
 
-}
-
-/* ==========================================================
-   RESPONSIVE CELULAR
-   ========================================================== */
-
-@media (max-width: 600px) {
-
-  .asesor-container {
-    padding: 25px 15px;
-  }
-
-  .asesor-container h1 {
-    font-size: 28px;
-    margin-bottom: 25px;
-  }
-
-  .asesor-resultado {
+  .contenido-asesores {
     padding: 20px;
   }
 
-  .asesor-resultado h2 {
-    font-size: 20px;
+  .lista-asesores {
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(240px, 1fr)
+    );
+  }
+}
+
+/* ==============================
+   CELULARES
+   ============================== */
+
+@media (max-width: 650px) {
+  .panel-financiero {
+    flex-direction: column;
   }
 
-  .asesor-resultado p {
-    font-size: 14px;
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+    min-height: auto;
+    padding: 15px;
   }
 
+  .sidebar ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .sidebar ul li {
+    margin: 0;
+  }
+
+  .sidebar ul li a {
+    padding: 8px;
+  }
+
+  .logout {
+    margin-top: 15px;
+  }
+
+  .contenido-asesores {
+    min-height: auto;
+    padding: 20px;
+  }
+
+  .contenido-asesores h1 {
+    font-size: 26px;
+  }
+
+  .contenido-lista-asesores {
+    flex-direction: column;
+  }
+
+  .formulario-asesor {
+    width: 100%;
+  }
+
+  .campos-asesor {
+    grid-template-columns: 1fr;
+  }
+
+  .campos-asesor button {
+    width: 100%;
+  }
+
+  .lista-asesores {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==============================
+   MODAL RESPONSIVE
+   ============================== */
+
+@media (max-width: 520px) {
+  .certificado-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-secondary-button,
+  .modal-primary-button {
+    width: 100%;
+  }
 }
