@@ -255,29 +255,40 @@ function ListaAsesores() {
                     <th>N.° documento</th>
                     <th>Tipo documento</th>
                     <th>Cargo</th>
-                    <th>Código asesor</th>
+                    <th>Estado</th>
                     <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {asesores.map((asesor) => (
-                    <tr key={asesor.id_asesor}>
-                      <td>{asesor.nombre || "Sin nombre"}</td>
-                      <td>{asesor.documento || "Sin documento"}</td>
-                      <td>{asesor.tipo_documento || "Cédula de ciudadanía"}</td>
-                      <td>{asesor.cargo || "Asesor bancario"}</td>
-                      <td>{asesor.codigo_asesor || "No registrado"}</td>
-                      <td>
-                        <button
-                          className="boton-eliminar"
-                          onClick={() => eliminarAsesor(asesor.id_asesor)}
-                          type="button"
-                        >
-                          Eliminar
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {asesores.map((asesor) => {
+                    const estado = (asesor.estado || "activo").toLowerCase();
+                    const estadoTexto = estado === "activo" ? "Activo" : "Inactivo";
+
+                    return (
+                      <tr key={asesor.id_asesor}>
+                        <td>{asesor.nombre || "Sin nombre"}</td>
+                        <td>{asesor.documento || "Sin documento"}</td>
+                        <td>{asesor.tipo_documento || "Cédula de ciudadanía"}</td>
+                        <td>{asesor.cargo || "Asesor bancario"}</td>
+                        <td>
+                          <span
+                            className={`estado-badge ${estado === "activo" ? "activo" : "inactivo"}`}
+                          >
+                            {estadoTexto}
+                          </span>
+                        </td>
+                        <td>
+                          <button
+                            className="boton-eliminar"
+                            onClick={() => eliminarAsesor(asesor.id_asesor)}
+                            type="button"
+                          >
+                            Eliminar
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
                   </table>
                 </div>
