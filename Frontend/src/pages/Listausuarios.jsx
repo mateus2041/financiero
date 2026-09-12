@@ -7,6 +7,8 @@ const API_URL = "http://localhost:8000";
 
 export default function ListaUsuarios() {
   const navigate = useNavigate();
+  const rol = (localStorage.getItem("rol") || "").trim().toLowerCase();
+  const esAdministrador = rol === "administrador";
 
   const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -124,17 +126,21 @@ export default function ListaUsuarios() {
 
         <aside className="sidebar">
           <ul>
-            <li>
-              <Link to="/Administradores">
-                📜 Principal
-              </Link>
-            </li>
+            {esAdministrador && (
+              <li>
+                <Link to="/Administradores">
+                  📜 Principal
+                </Link>
+              </li>
+            )}
 
-            <li>
-              <Link to="/lista-asesores">
-                📜 Asesores
-              </Link>
-            </li>
+            {esAdministrador && (
+              <li>
+                <Link to="/lista-asesores">
+                  📜 Asesores
+                </Link>
+              </li>
+            )}
 
             <li>
               <Link to="/lista-usuarios">
@@ -256,18 +262,20 @@ export default function ListaUsuarios() {
                           >
                             Ver
                           </button>
-                          <button
-                            type="button"
-                            className="boton-inhabilitar"
-                            onClick={() =>
-                              inhabilitarUsuario(usuario.id_usuario)
-                            }
-                            disabled={usuario.estado === "inactivo"}
-                          >
-                            {usuario.estado === "inactivo"
-                              ? "Inhabilitado"
-                              : "Inhabilitar"}
-                          </button>
+                          {esAdministrador && (
+                            <button
+                              type="button"
+                              className="boton-inhabilitar"
+                              onClick={() =>
+                                inhabilitarUsuario(usuario.id_usuario)
+                              }
+                              disabled={usuario.estado === "inactivo"}
+                            >
+                              {usuario.estado === "inactivo"
+                                ? "Inhabilitado"
+                                : "Inhabilitar"}
+                            </button>
+                          )}
                         </td>
 
                       </tr>
@@ -288,6 +296,16 @@ export default function ListaUsuarios() {
             >
               {cargando ? "Actualizando..." : "Actualizar"}
             </button>
+
+            {!esAdministrador && (
+              <button
+                type="button"
+                className="boton-volver-asesor"
+                onClick={() => navigate("/asesor-bancario")}
+              >
+                Volver al inicio del asesor
+              </button>
+            )}
           </div>
 
           {mensajeAccion && (

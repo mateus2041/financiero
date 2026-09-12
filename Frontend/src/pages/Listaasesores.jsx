@@ -249,6 +249,7 @@ function ListaAsesores() {
                     <th>Nombre</th>
                     <th>N.° documento</th>
                     <th>Tipo documento</th>
+                    <th>Código de asesor</th>
                     <th>Cargo</th>
                     <th>Estado</th>
                     <th>Acciones</th>
@@ -264,6 +265,7 @@ function ListaAsesores() {
                         <td>{asesor.nombre || "Sin nombre"}</td>
                         <td>{asesor.documento || "Sin documento"}</td>
                         <td>{asesor.tipo_documento || "Cédula de ciudadanía"}</td>
+                        <td>{asesor.codigo_asesor || "Sin código"}</td>
                         <td>{asesor.cargo || "Asesor bancario"}</td>
                         <td>
                           <span

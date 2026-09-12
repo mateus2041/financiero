@@ -71,3 +71,56 @@ def test_administrador_puede_listar_cuentas(monkeypatch):
 
     app.dependency_overrides.clear()
     db.close()
+
+
+def test_asesor_puede_listar_cuentas():
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(bind=engine)
+    SessionLocal = sessionmaker(bind=engine)
+    db = SessionLocal()
+
+    asesor = Usuario(
+        nombre="Asesor Bancario",
+        email="asesor@test.com",
+        documento="3333333333",
+        password=hash_password("Segura123"),
+        rol="asesor",
+    )
+    cliente = Usuario(
+        nombre="Cliente Dos",
+        email="cliente2@test.com",
+        documento="4444444444",
+        password=hash_password("Segura123"),
+        rol="usuario",
+    )
+    db.add_all([asesor, cliente])
+    db.commit()
+    db.refresh(asesor)
+    db.refresh(cliente)
+
+    db.add(
+        Cuenta(
+            id_usuario=cliente.id_usuario,
+            numero_cuenta="9876543210123456",
+            tipo_cuenta="corriente",
+            saldo=25000,
+            estado="inactiva",
+        )
+    )
+    db.commit()
+
+    app = main.app
+    app.dependency_overrides[main.get_db] = lambda: db
+    app.dependency_overrides[main.token_required] = lambda: asesor.id_usuario
+
+    client = TestClient(app)
+    response = client.get("/administradores/cuentas")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload["cuentas"]) == 1
+    assert payload["cuentas"][0]["nombre"] == "Cliente Dos"
+    assert payload["cuentas"][0]["estado"] == "inactivo"
+
+    app.dependency_overrides.clear()
+    db.close()

@@ -1,5 +1,6 @@
 ﻿# Dependencias de Node.js del Frontend
-Frontend/node_modules/
+/node_modules/
+/Frontend/node_modules/
 
 # Archivos de entorno
 .env
