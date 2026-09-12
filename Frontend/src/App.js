@@ -14,6 +14,7 @@ import Historial from "./pages/historial";
 import Reporte from "./pages/reporte";
 import VerificacionIdentidad from "./pages/VerificacionIdentidad";
 import AsesorBancario from "./pages/AsesorBancario";
+import ChatIA from "./pages/ChatIA";
 import Administradores from "./pages/Administradores";
 import ListaAsesores from "./pages/Listaasesores";
 import ListaCuentas from "./pages/ListaCuentas";
@@ -74,6 +75,11 @@ function App() {
       <Route
         path="/asesor-bancario"
         element={<AsesorBancario />}
+      />
+
+      <Route
+        path="/ChatIA"
+        element={<ChatIA />}
       />
 
       <Route

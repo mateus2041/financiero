@@ -18,6 +18,15 @@ class SaldoCuenta(BaseModel):
     saldo: float
 
 
+class SaldoCuentaAutorizado(BaseModel):
+    saldo: float
+    codigo_autorizacion: str
+
+
+class CodigoAutorizacion(BaseModel):
+    codigo_autorizacion: str
+
+
 class UltimosDigitosCuenta(BaseModel):
     ultimos_digitos: str
 
@@ -312,6 +321,21 @@ def asesor_requerido(
     return asesor_independiente
 
 
+def administrador_o_asesor_requerido(
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    administrador = db.query(Administrador).filter(
+        Administrador.id_usuario == current_user
+    ).first()
+
+    if administrador:
+        return current_user
+
+    asesor_requerido(current_user=current_user, db=db)
+    return current_user
+
+
 # ==========================================================
 # INICIO
 # ==========================================================
@@ -341,7 +365,6 @@ def ubicacion_real(
 
     parametros = urlencode({
         "street": direccion,
-        "neighbourhood": barrio,
         "city": ciudad or localidad,
         "country": "Colombia",
         "postalcode": codigo,
@@ -374,7 +397,7 @@ def ubicacion_real(
         return False
 
 
-@app.post("/register")
+        current_user: int = Depends(administrador_o_asesor_requerido),
 def register(
     data: dict,
     db: Session = Depends(get_db)
@@ -1199,19 +1222,9 @@ def perfil(
 
 @app.get("/usuarios")
 def listar_usuarios(
-    current_user: int = Depends(token_required),
+    current_user: int = Depends(administrador_o_asesor_requerido),
     db: Session = Depends(get_db)
 ):
-    administrador = db.query(Administrador).filter(
-        Administrador.id_usuario == current_user
-    ).first()
-
-    if not administrador:
-        raise HTTPException(
-            status_code=403,
-            detail="Solo un administrador puede consultar usuarios"
-        )
-
     usuarios = db.query(Usuario).filter(
         Usuario.rol == "usuario"
     ).order_by(Usuario.id_usuario).all()
@@ -1233,19 +1246,9 @@ def listar_usuarios(
 
 @app.get("/administradores/cuentas")
 def listar_cuentas_admin(
-    current_user: int = Depends(token_required),
+    current_user: int = Depends(administrador_o_asesor_requerido),
     db: Session = Depends(get_db)
 ):
-    administrador = db.query(Administrador).filter(
-        Administrador.id_usuario == current_user
-    ).first()
-
-    if not administrador:
-        raise HTTPException(
-            status_code=403,
-            detail="Solo un administrador puede consultar las cuentas"
-        )
-
     cuentas = (
         db.query(Cuenta, Usuario)
         .join(Usuario, Usuario.id_usuario == Cuenta.id_usuario)
@@ -1283,19 +1286,9 @@ def listar_cuentas_admin(
 @app.get("/usuarios/{id_usuario}/cuentas")
 def listar_cuentas_usuario(
     id_usuario: int,
-    current_user: int = Depends(token_required),
+    current_user: int = Depends(administrador_o_asesor_requerido),
     db: Session = Depends(get_db)
 ):
-    administrador = db.query(Administrador).filter(
-        Administrador.id_usuario == current_user
-    ).first()
-
-    if not administrador:
-        raise HTTPException(
-            status_code=403,
-            detail="Solo un administrador puede consultar las cuentas"
-        )
-
     usuario = db.query(Usuario).filter(
         Usuario.id_usuario == id_usuario,
         Usuario.rol == "usuario",
@@ -1657,6 +1650,29 @@ def mis_cuentas(
 # CONSULTAR USUARIO Y SUS CUENTAS
 # ==========================================================
 
+@app.get("/asesor-bancario/usuarios")
+def asesor_listar_usuarios(
+    asesor: Usuario = Depends(asesor_requerido),
+    db: Session = Depends(get_db)
+):
+    usuarios = db.query(Usuario).filter(
+        Usuario.rol == "usuario"
+    ).order_by(
+        Usuario.fecha_creacion.desc(),
+        Usuario.id_usuario.desc()
+    ).all()
+
+    return [
+        {
+            "id_usuario": usuario.id_usuario,
+            "nombre": usuario.nombre,
+            "codigo_registro": usuario.codigo_registro,
+            "fecha_creacion": usuario.fecha_creacion.isoformat()
+            if usuario.fecha_creacion else None
+        }
+        for usuario in usuarios
+    ]
+
 @app.put("/cuentas/{id_cuenta}/tipo-operacion")
 def actualizar_tipo_operacion_cuenta(
     id_cuenta: int,
@@ -1946,6 +1962,111 @@ def asesor_actualizar_saldo(
         "id_cuenta": cuenta.id_cuenta,
         "saldo": float(cuenta.saldo or 0),
         "estado": cuenta.estado
+    }
+
+
+@app.put("/administradores/cuenta/{id_cuenta}/saldo")
+def administrador_actualizar_saldo(
+    id_cuenta: int,
+    datos: SaldoCuentaAutorizado,
+    current_user: int = Depends(administrador_o_asesor_requerido),
+    db: Session = Depends(get_db)
+):
+    if datos.saldo < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="El saldo no puede ser negativo."
+        )
+
+    codigo = datos.codigo_autorizacion.strip()
+    codigo_administrador = db.query(Administrador).filter(
+        Administrador.codigo_administrador == codigo
+    ).first()
+    codigo_asesor = db.execute(
+        text(
+            """
+            SELECT id_asesor
+            FROM asesores_banco
+            WHERE codigo_asesor = :codigo
+              AND estado = 'activo'
+            LIMIT 1
+            """
+        ),
+        {"codigo": codigo},
+    ).first()
+
+    if not codigo_administrador and not codigo_asesor:
+        raise HTTPException(
+            status_code=401,
+            detail="El código de administrador o asesor no es válido."
+        )
+
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_cuenta == id_cuenta
+    ).first()
+
+    if not cuenta:
+        raise HTTPException(
+            status_code=404,
+            detail="Cuenta no encontrada."
+        )
+
+    cuenta.saldo = Decimal(str(datos.saldo))
+    db.commit()
+    db.refresh(cuenta)
+
+    return {
+        "mensaje": "Saldo actualizado correctamente.",
+        "id_cuenta": cuenta.id_cuenta,
+        "saldo": float(cuenta.saldo or 0),
+        "estado": cuenta.estado
+    }
+
+
+@app.post("/administradores/cuenta/{id_cuenta}/autorizar-saldo")
+def autorizar_edicion_saldo(
+    id_cuenta: int,
+    datos: CodigoAutorizacion,
+    current_user: int = Depends(administrador_o_asesor_requerido),
+    db: Session = Depends(get_db)
+):
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_cuenta == id_cuenta
+    ).first()
+
+    if not cuenta:
+        raise HTTPException(
+            status_code=404,
+            detail="Cuenta no encontrada."
+        )
+
+    codigo = datos.codigo_autorizacion.strip()
+    codigo_administrador = db.query(Administrador).filter(
+        Administrador.codigo_administrador == codigo
+    ).first()
+    codigo_asesor = db.execute(
+        text(
+            """
+            SELECT id_asesor
+            FROM asesores_banco
+            WHERE codigo_asesor = :codigo
+              AND estado = 'activo'
+            LIMIT 1
+            """
+        ),
+        {"codigo": codigo},
+    ).first()
+
+    if not codigo_administrador and not codigo_asesor:
+        raise HTTPException(
+            status_code=401,
+            detail="El código de administrador o asesor no es válido."
+        )
+
+    return {
+        "mensaje": "Código autorizado correctamente.",
+        "id_cuenta": cuenta.id_cuenta,
+        "autorizado": True
     }
 
 

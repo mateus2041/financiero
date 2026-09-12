@@ -178,8 +178,62 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS `Usuarios`;
 SET FOREIGN_KEY_CHECKS = 1;
 -- SQLBook: Code
+SET @id_usuario = 2;
+
+START TRANSACTION;
+
+DELETE FROM transferencias_breb
+WHERE id_cuenta_origen IN (
+    SELECT id_cuenta FROM cuentas WHERE id_usuario = @id_usuario
+ )
+ OR id_cuenta_destino IN (
+    SELECT id_cuenta FROM cuentas WHERE id_usuario = @id_usuario
+ )
+ OR id_llave_destino IN (
+    SELECT id_llave FROM llaves_breb WHERE id_usuario = @id_usuario
+ )
+ OR id_transaccion IN (
+    SELECT t.id_transaccion
+    FROM transacciones AS t
+    INNER JOIN cuentas AS c ON c.id_cuenta = t.id_cuenta
+    WHERE c.id_usuario = @id_usuario
+ );
+
+DELETE FROM tarjetas
+WHERE id_cuenta IN (
+    SELECT id_cuenta FROM cuentas WHERE id_usuario = @id_usuario
+ );
+
+DELETE FROM llaves_breb
+WHERE id_usuario = @id_usuario
+   OR id_cuenta IN (
+       SELECT id_cuenta FROM cuentas WHERE id_usuario = @id_usuario
+   );
+
+DELETE FROM transacciones
+WHERE id_cuenta IN (
+    SELECT id_cuenta FROM cuentas WHERE id_usuario = @id_usuario
+ );
+
+DELETE FROM cuentas
+WHERE id_usuario = @id_usuario;
+
+DELETE FROM notificaciones
+WHERE id_usuario = @id_usuario;
+
+DELETE FROM control_topes_breb
+WHERE id_usuario = @id_usuario;
+
+DELETE FROM administradores
+WHERE id_usuario = @id_usuario;
+
+DELETE FROM asesores_banco
+WHERE id_usuario = @id_usuario;
+
 DELETE FROM usuario
-WHERE id_usuario = 2;
+WHERE id_usuario = @id_usuario;
+
+COMMIT;
 -- SQLBook: Code
 SET @id_usuario = 20;
 
