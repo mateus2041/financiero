@@ -31,8 +31,18 @@ class UltimosDigitosCuenta(BaseModel):
     ultimos_digitos: str
 
 
+class UltimosDigitosCuentaAutorizada(BaseModel):
+    ultimos_digitos: str
+    codigo_autorizacion: str
+
+
 class TipoOperacionCuenta(BaseModel):
     tipo_operacion: str
+
+
+class TipoOperacionCuentaAutorizada(BaseModel):
+    tipo_operacion: str
+    codigo_autorizacion: str
 
 from Backend.ai.router import router as ia_router
 from Backend.models import (
@@ -397,7 +407,7 @@ def ubicacion_real(
         return False
 
 
-        current_user: int = Depends(administrador_o_asesor_requerido),
+@app.post("/register")
 def register(
     data: dict,
     db: Session = Depends(get_db)
@@ -1275,6 +1285,7 @@ def listar_cuentas_admin(
                 "rol": usuario.rol,
                 "numero_cuenta": cuenta.numero_cuenta,
                 "tipo_cuenta": cuenta.tipo_cuenta,
+                "tipo_operacion": cuenta.tipo_operacion or "debito",
                 "saldo": float(cuenta.saldo or 0),
                 "estado": "activo" if cuenta.estado == "activa" else "inactivo",
             }
@@ -2020,6 +2031,247 @@ def administrador_actualizar_saldo(
         "id_cuenta": cuenta.id_cuenta,
         "saldo": float(cuenta.saldo or 0),
         "estado": cuenta.estado
+    }
+
+
+@app.put("/administradores/cuenta/{id_cuenta}/tipo-operacion")
+def administrador_actualizar_tipo_operacion(
+    id_cuenta: int,
+    datos: TipoOperacionCuentaAutorizada,
+    current_user: int = Depends(administrador_o_asesor_requerido),
+    db: Session = Depends(get_db)
+):
+    tipo_operacion = datos.tipo_operacion.strip().lower()
+    if tipo_operacion not in {"debito", "credito"}:
+        raise HTTPException(
+            status_code=400,
+            detail="El tipo de operación debe ser débito o crédito."
+        )
+
+    codigo = datos.codigo_autorizacion.strip()
+    codigo_administrador = db.query(Administrador).filter(
+        Administrador.codigo_administrador == codigo
+    ).first()
+    codigo_asesor = db.execute(
+        text(
+            """
+            SELECT id_asesor
+            FROM asesores_banco
+            WHERE codigo_asesor = :codigo
+              AND estado = 'activo'
+            LIMIT 1
+            """
+        ),
+        {"codigo": codigo},
+    ).first()
+
+    if not codigo_administrador and not codigo_asesor:
+        raise HTTPException(
+            status_code=401,
+            detail="El código de administrador o asesor no es válido."
+        )
+
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_cuenta == id_cuenta
+    ).first()
+
+    if not cuenta:
+        raise HTTPException(
+            status_code=404,
+            detail="Cuenta no encontrada."
+        )
+
+    if cuenta.tipo_cuenta != "corriente":
+        raise HTTPException(
+            status_code=400,
+            detail="El tipo de operación solo aplica a cuentas corrientes."
+        )
+
+    cuenta.tipo_operacion = tipo_operacion
+    db.commit()
+    db.refresh(cuenta)
+
+    return {
+        "mensaje": "Tipo de operación actualizado correctamente.",
+        "id_cuenta": cuenta.id_cuenta,
+        "tipo_operacion": cuenta.tipo_operacion,
+        "tipo_cuenta": cuenta.tipo_cuenta,
+        "estado": cuenta.estado
+    }
+
+
+@app.put("/administradores/cuenta/{id_cuenta}/ultimos-digitos")
+def administrador_actualizar_ultimos_digitos(
+    id_cuenta: int,
+    datos: UltimosDigitosCuentaAutorizada,
+    current_user: int = Depends(administrador_o_asesor_requerido),
+    db: Session = Depends(get_db)
+):
+    codigo = datos.codigo_autorizacion.strip()
+    codigo_administrador = db.query(Administrador).filter(
+        Administrador.codigo_administrador == codigo
+    ).first()
+    codigo_asesor = db.execute(
+        text(
+            """
+            SELECT id_asesor
+            FROM asesores_banco
+            WHERE codigo_asesor = :codigo
+              AND estado = 'activo'
+            LIMIT 1
+            """
+        ),
+        {"codigo": codigo},
+    ).first()
+
+    if not codigo_administrador and not codigo_asesor:
+        raise HTTPException(
+            status_code=401,
+            detail="El código de administrador o asesor no es válido."
+        )
+
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_cuenta == id_cuenta
+    ).first()
+
+    if not cuenta:
+        raise HTTPException(
+            status_code=404,
+            detail="Cuenta no encontrada."
+        )
+
+    try:
+        numero_nuevo = formatear_numero_cuenta(
+            cuenta.numero_cuenta,
+            datos.ultimos_digitos
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    numero_existente = (
+        db.query(Cuenta.id_cuenta)
+        .filter(
+            Cuenta.numero_cuenta == numero_nuevo,
+            Cuenta.id_cuenta != id_cuenta
+        )
+        .first()
+    )
+
+    if numero_existente:
+        raise HTTPException(
+            status_code=400,
+            detail="Los últimos 4 dígitos ya están asignados a otra cuenta."
+        )
+
+    cuenta.numero_cuenta = numero_nuevo
+    db.commit()
+    db.refresh(cuenta)
+
+    return {
+        "mensaje": "Los últimos 4 dígitos de la cuenta fueron actualizados correctamente.",
+        "id_cuenta": cuenta.id_cuenta,
+        "numero_cuenta": cuenta.numero_cuenta,
+        "estado": cuenta.estado
+    }
+
+
+@app.post("/administradores/cuenta/{id_cuenta}/autorizar-tipo-operacion")
+def autorizar_edicion_tipo_operacion(
+    id_cuenta: int,
+    datos: CodigoAutorizacion,
+    current_user: int = Depends(administrador_o_asesor_requerido),
+    db: Session = Depends(get_db)
+):
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_cuenta == id_cuenta
+    ).first()
+
+    if not cuenta:
+        raise HTTPException(
+            status_code=404,
+            detail="Cuenta no encontrada."
+        )
+
+    if cuenta.tipo_cuenta != "corriente":
+        raise HTTPException(
+            status_code=400,
+            detail="El tipo de operación solo aplica a cuentas corrientes."
+        )
+
+    codigo = datos.codigo_autorizacion.strip()
+    codigo_administrador = db.query(Administrador).filter(
+        Administrador.codigo_administrador == codigo
+    ).first()
+    codigo_asesor = db.execute(
+        text(
+            """
+            SELECT id_asesor
+            FROM asesores_banco
+            WHERE codigo_asesor = :codigo
+              AND estado = 'activo'
+            LIMIT 1
+            """
+        ),
+        {"codigo": codigo},
+    ).first()
+
+    if not codigo_administrador and not codigo_asesor:
+        raise HTTPException(
+            status_code=401,
+            detail="El código de administrador o asesor no es válido."
+        )
+
+    return {
+        "mensaje": "Código autorizado correctamente.",
+        "id_cuenta": cuenta.id_cuenta,
+        "autorizado": True
+    }
+
+
+@app.post("/administradores/cuenta/{id_cuenta}/autorizar-ultimos-digitos")
+def autorizar_edicion_ultimos_digitos(
+    id_cuenta: int,
+    datos: CodigoAutorizacion,
+    current_user: int = Depends(administrador_o_asesor_requerido),
+    db: Session = Depends(get_db)
+):
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_cuenta == id_cuenta
+    ).first()
+
+    if not cuenta:
+        raise HTTPException(
+            status_code=404,
+            detail="Cuenta no encontrada."
+        )
+
+    codigo = datos.codigo_autorizacion.strip()
+    codigo_administrador = db.query(Administrador).filter(
+        Administrador.codigo_administrador == codigo
+    ).first()
+    codigo_asesor = db.execute(
+        text(
+            """
+            SELECT id_asesor
+            FROM asesores_banco
+            WHERE codigo_asesor = :codigo
+              AND estado = 'activo'
+            LIMIT 1
+            """
+        ),
+        {"codigo": codigo},
+    ).first()
+
+    if not codigo_administrador and not codigo_asesor:
+        raise HTTPException(
+            status_code=401,
+            detail="El código de administrador o asesor no es válido."
+        )
+
+    return {
+        "mensaje": "Código autorizado correctamente.",
+        "id_cuenta": cuenta.id_cuenta,
+        "autorizado": True
     }
 
 
@@ -3144,9 +3396,10 @@ def registrar_llave_bre_b(
 
 ):
 
-    llave = (
-        data or {}
-    ).get("llave")
+    payload = data or {}
+
+    llave = payload.get("llave")
+    id_cuenta = payload.get("id_cuenta")
 
     if not llave:
 
@@ -3162,6 +3415,13 @@ def registrar_llave_bre_b(
         raise HTTPException(
             status_code=400,
             detail="La llave Bre-B no es válida."
+        )
+
+    if not id_cuenta:
+
+        raise HTTPException(
+            status_code=400,
+            detail="Debe seleccionar una cuenta activa."
         )
 
     usuario = db.query(
@@ -3207,14 +3467,15 @@ def registrar_llave_bre_b(
         Cuenta
     ).filter(
 
+        Cuenta.id_cuenta ==
+        id_cuenta,
+
         Cuenta.id_usuario ==
         current_user,
 
         Cuenta.estado ==
         "activa"
 
-    ).order_by(
-        Cuenta.id_cuenta
     ).first()
 
     if not cuenta_usuario:

@@ -442,6 +442,12 @@ export default function Transferencia() {
                   </Link>
                 </li>
 
+                <li>
+                  <Link to="/transferencias-scr">
+                    📤 Registrar Llave Bre-B
+                  </Link>
+                </li>
+
               </ul>
             )}
 

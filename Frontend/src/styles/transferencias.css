@@ -9,6 +9,15 @@ body{
     background:#1a2238;
 }
 
+.panel-financiero .contenido-principal{
+    display:flex;
+    flex:1;
+    min-height:100vh;
+    align-items:center;
+    justify-content:center;
+    padding:40px;
+}
+
 .transfer-container{
     display:flex;
     justify-content:center;
@@ -108,4 +117,152 @@ body{
         padding:20px;
     }
 
+}
+
+.breb-card{
+    width:min(680px, 100%);
+    background:#131a2c;
+    border:1px solid #34415f;
+    border-radius:12px;
+    padding:30px;
+    color:#f4f6fb;
+}
+
+.breb-card form{
+    width:100%;
+}
+
+.breb-card h2{
+    color:#f2c94c;
+    margin-bottom:8px;
+}
+
+.breb-intro{
+    color:#c1c9dc;
+    margin-bottom:24px;
+}
+
+.breb-cuentas h3{
+    color:#f4f6fb;
+    margin-bottom:12px;
+}
+
+.breb-cuenta{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:14px;
+    margin-bottom:10px;
+    border:1px solid #34415f;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.breb-cuenta input[type="radio"]{
+    position:absolute;
+    opacity:0;
+    pointer-events:none;
+}
+
+.breb-cuenta.seleccionada{
+    border-color:#f2c94c;
+    background:#202b47;
+}
+
+.breb-cuenta span{
+    display:flex;
+    flex:1;
+    flex-direction:column;
+    gap:4px;
+}
+
+.breb-cuenta small{
+    color:#aeb8cf;
+}
+
+.breb-label{
+    display:block;
+    color:#f2c94c;
+    font-weight:bold;
+    margin:24px 0 8px;
+}
+
+.breb-llave-fields{
+    display:flex;
+    align-items:stretch;
+    gap:8px;
+}
+
+.breb-prefijo{
+    display:flex;
+    align-items:center;
+    padding:12px 14px;
+    border:1px solid #8390ad;
+    border-radius:8px;
+    background:#202b47;
+    color:#fff;
+    font-weight:bold;
+    white-space:nowrap;
+}
+
+.breb-input{
+    flex:1;
+    width:100%;
+    padding:12px;
+    border:1px solid #8390ad;
+    border-radius:8px;
+    font-size:16px;
+    color:#fff !important;
+    -webkit-text-fill-color:#fff !important;
+    background:#202b47 !important;
+    caret-color:#fff !important;
+}
+
+.breb-input::placeholder{
+    color:#c1c9dc !important;
+    -webkit-text-fill-color:#c1c9dc !important;
+    opacity:1;
+}
+
+.breb-input:focus{
+    outline:none;
+    border-color:#f2c94c;
+    box-shadow:0 0 0 2px rgba(242,201,76,.2);
+}
+
+.breb-button{
+    width:100%;
+    margin-top:18px;
+    padding:13px;
+    border:0;
+    border-radius:8px;
+    background:#2563eb;
+    color:#fff;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.breb-button:disabled{
+    opacity:.65;
+    cursor:wait;
+}
+
+.breb-state{
+    margin-top:18px;
+    font-weight:bold;
+}
+
+.breb-success{ color:#72e6a1; }
+.breb-error{ color:#ff9696; }
+
+@media(max-width:800px){
+    .panel-financiero .contenido-principal{
+        min-height:auto;
+        padding:24px 16px;
+    }
+
+    .breb-llave-fields{
+        flex-direction:column;
+    }
 }
