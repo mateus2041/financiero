@@ -22,6 +22,12 @@ export default function ListaCuentas() {
   const [nuevoSaldo, setNuevoSaldo] = useState("");
   const [codigoAutorizacion, setCodigoAutorizacion] = useState("");
   const [guardandoSaldo, setGuardandoSaldo] = useState(false);
+  const [autorizandoTipoOperacion, setAutorizandoTipoOperacion] = useState(false);
+  const [editandoTipoOperacion, setEditandoTipoOperacion] = useState(false);
+  const [nuevoTipoOperacion, setNuevoTipoOperacion] = useState("");
+  const [autorizandoNumeroCuenta, setAutorizandoNumeroCuenta] = useState(false);
+  const [editandoNumeroCuenta, setEditandoNumeroCuenta] = useState(false);
+  const [ultimosDigitos, setUltimosDigitos] = useState("");
 
   useEffect(() => {
     cargarCuentas();
@@ -98,6 +104,11 @@ export default function ListaCuentas() {
             ? { ...cuenta, estado }
             : cuenta
         )
+      );
+      setCuentaSeleccionada((cuenta) =>
+        cuenta?.id_cuenta === idCuenta
+          ? { ...cuenta, estado }
+          : cuenta
       );
       setMensaje(respuesta.data?.mensaje || "Estado actualizado correctamente.");
     } catch (error) {
@@ -233,6 +244,191 @@ export default function ListaCuentas() {
       setError(
         error.response?.data?.detail ||
           "No se pudo actualizar el saldo."
+      );
+    } finally {
+      setGuardandoSaldo(false);
+    }
+  };
+
+  const abrirEdicionTipoOperacion = () => {
+    setCodigoAutorizacion("");
+    setError("");
+    setAutorizandoTipoOperacion(true);
+  };
+
+  const autorizarEdicionTipoOperacion = async (evento) => {
+    evento.preventDefault();
+
+    if (!codigoAutorizacion.trim()) {
+      setError("Ingrese el código de administrador o asesor.");
+      return;
+    }
+
+    try {
+      setError("");
+      setMensaje("");
+      setGuardandoSaldo(true);
+
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${API_URL}/administradores/cuenta/${cuentaSeleccionada.id_cuenta}/autorizar-tipo-operacion`,
+        { codigo_autorizacion: codigoAutorizacion.trim() },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setNuevoTipoOperacion(cuentaSeleccionada.tipo_operacion || "debito");
+      setAutorizandoTipoOperacion(false);
+      setEditandoTipoOperacion(true);
+    } catch (error) {
+      setError(
+        error.response?.data?.detail ||
+          "No se pudo validar el código de autorización."
+      );
+    } finally {
+      setGuardandoSaldo(false);
+    }
+  };
+
+  const actualizarTipoOperacion = async (evento) => {
+    evento.preventDefault();
+
+    try {
+      setError("");
+      setMensaje("");
+      setGuardandoSaldo(true);
+
+      const token = localStorage.getItem("token");
+      const respuesta = await axios.put(
+        `${API_URL}/administradores/cuenta/${cuentaSeleccionada.id_cuenta}/tipo-operacion`,
+        {
+          tipo_operacion: nuevoTipoOperacion,
+          codigo_autorizacion: codigoAutorizacion.trim(),
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const tipoActualizado =
+        respuesta.data?.tipo_operacion ?? nuevoTipoOperacion;
+      setCuentas((cuentasActuales) =>
+        cuentasActuales.map((cuenta) =>
+          cuenta.id_cuenta === cuentaSeleccionada.id_cuenta
+            ? { ...cuenta, tipo_operacion: tipoActualizado }
+            : cuenta
+        )
+      );
+      setCuentaSeleccionada((cuenta) => ({
+        ...cuenta,
+        tipo_operacion: tipoActualizado,
+      }));
+      setEditandoTipoOperacion(false);
+      setCodigoAutorizacion("");
+      setMensaje(
+        respuesta.data?.mensaje ||
+          "Tipo de operación actualizado correctamente."
+      );
+    } catch (error) {
+      setError(
+        error.response?.data?.detail ||
+          "No se pudo actualizar el tipo de operación."
+      );
+    } finally {
+      setGuardandoSaldo(false);
+    }
+  };
+
+  const abrirEdicionNumeroCuenta = () => {
+    setCodigoAutorizacion("");
+    setError("");
+    setAutorizandoNumeroCuenta(true);
+  };
+
+  const autorizarEdicionNumeroCuenta = async (evento) => {
+    evento.preventDefault();
+
+    if (!codigoAutorizacion.trim()) {
+      setError("Ingrese el código de administrador o asesor.");
+      return;
+    }
+
+    try {
+      setError("");
+      setGuardandoSaldo(true);
+
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${API_URL}/administradores/cuenta/${cuentaSeleccionada.id_cuenta}/autorizar-ultimos-digitos`,
+        { codigo_autorizacion: codigoAutorizacion.trim() },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setUltimosDigitos(
+        String(cuentaSeleccionada.numero_cuenta || "").slice(-4)
+      );
+      setAutorizandoNumeroCuenta(false);
+      setEditandoNumeroCuenta(true);
+    } catch (error) {
+      setError(
+        error.response?.data?.detail ||
+          "No se pudo validar el código de autorización."
+      );
+    } finally {
+      setGuardandoSaldo(false);
+    }
+  };
+
+  const actualizarNumeroCuenta = async (evento) => {
+    evento.preventDefault();
+
+    if (!/^\d{4}$/.test(ultimosDigitos)) {
+      setError("Ingrese exactamente los últimos 4 dígitos.");
+      return;
+    }
+
+    try {
+      setError("");
+      setMensaje("");
+      setGuardandoSaldo(true);
+
+      const token = localStorage.getItem("token");
+      const respuesta = await axios.put(
+        `${API_URL}/administradores/cuenta/${cuentaSeleccionada.id_cuenta}/ultimos-digitos`,
+        {
+          ultimos_digitos: ultimosDigitos,
+          codigo_autorizacion: codigoAutorizacion.trim(),
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const numeroActualizado =
+        respuesta.data?.numero_cuenta ?? cuentaSeleccionada.numero_cuenta;
+      setCuentas((cuentasActuales) =>
+        cuentasActuales.map((cuenta) =>
+          cuenta.id_cuenta === cuentaSeleccionada.id_cuenta
+            ? { ...cuenta, numero_cuenta: numeroActualizado }
+            : cuenta
+        )
+      );
+      setCuentaSeleccionada((cuenta) => ({
+        ...cuenta,
+        numero_cuenta: numeroActualizado,
+      }));
+      setEditandoNumeroCuenta(false);
+      setCodigoAutorizacion("");
+      setMensaje(
+        respuesta.data?.mensaje ||
+          "Los últimos 4 dígitos fueron actualizados correctamente."
+      );
+    } catch (error) {
+      setError(
+        error.response?.data?.detail ||
+          "No se pudieron actualizar los últimos 4 dígitos."
       );
     } finally {
       setGuardandoSaldo(false);
@@ -381,12 +577,13 @@ export default function ListaCuentas() {
                             </button>
                             <button
                               className="boton-habilitar"
-                              onClick={() =>
+                              onClick={() => {
+                                setCuentaSeleccionada(cuenta);
                                 cambiarEstadoCuenta(
                                   cuenta.id_cuenta,
                                   "activa"
-                                )
-                              }
+                                );
+                              }}
                               disabled={estado === "activa"}
                             >
                               Habilitar
@@ -466,6 +663,29 @@ export default function ListaCuentas() {
                           ✎
                         </button>
                       )}
+                      {clave === "numero_cuenta" && (
+                        <button
+                          type="button"
+                          className="boton-editar-saldo"
+                          onClick={abrirEdicionNumeroCuenta}
+                          aria-label="Editar últimos 4 dígitos de la cuenta"
+                          title="Editar últimos 4 dígitos"
+                        >
+                          ✎
+                        </button>
+                      )}
+                      {clave === "tipo_operacion" &&
+                        cuentaSeleccionada.tipo_cuenta === "corriente" && (
+                          <button
+                            type="button"
+                            className="boton-editar-saldo"
+                            onClick={abrirEdicionTipoOperacion}
+                            aria-label="Editar tipo de operación"
+                            title="Editar tipo de operación"
+                          >
+                            ✎
+                          </button>
+                        )}
                     </div>
                   </div>
                 ))}
@@ -558,6 +778,198 @@ export default function ListaCuentas() {
                       disabled={guardandoSaldo}
                     >
                       {guardandoSaldo ? "Guardando..." : "Guardar saldo"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {autorizandoTipoOperacion && (
+              <div
+                className="modal-edicion-overlay"
+                role="presentation"
+                onClick={() => setAutorizandoTipoOperacion(false)}
+              >
+                <form
+                  className="modal-edicion-saldo"
+                  onSubmit={autorizarEdicionTipoOperacion}
+                  onClick={(evento) => evento.stopPropagation()}
+                >
+                  <h2>Autorización para editar tipo de operación</h2>
+                  <p>Ingrese el código de administrador o asesor.</p>
+                  <label htmlFor="codigo-autorizacion-operacion">
+                    Código de autorización
+                  </label>
+                  <input
+                    id="codigo-autorizacion-operacion"
+                    type="password"
+                    value={codigoAutorizacion}
+                    onChange={(evento) =>
+                      setCodigoAutorizacion(evento.target.value)
+                    }
+                    autoComplete="off"
+                    required
+                    autoFocus
+                  />
+                  <div className="acciones-formulario-saldo">
+                    <button
+                      type="button"
+                      className="boton-cancelar-saldo"
+                      onClick={() => setAutorizandoTipoOperacion(false)}
+                      disabled={guardandoSaldo}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="boton-guardar-saldo"
+                      disabled={guardandoSaldo}
+                    >
+                      {guardandoSaldo ? "Validando..." : "Continuar"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {editandoTipoOperacion && (
+              <div
+                className="modal-edicion-overlay"
+                role="presentation"
+                onClick={() => setEditandoTipoOperacion(false)}
+              >
+                <form
+                  className="modal-edicion-saldo"
+                  onSubmit={actualizarTipoOperacion}
+                  onClick={(evento) => evento.stopPropagation()}
+                >
+                  <h2>Editar tipo de operación</h2>
+                  <label htmlFor="nuevo-tipo-operacion">
+                    Tipo de operación
+                  </label>
+                  <select
+                    id="nuevo-tipo-operacion"
+                    value={nuevoTipoOperacion}
+                    onChange={(evento) =>
+                      setNuevoTipoOperacion(evento.target.value)
+                    }
+                    required
+                  >
+                    <option value="debito">Débito</option>
+                    <option value="credito">Crédito</option>
+                  </select>
+                  <div className="acciones-formulario-saldo">
+                    <button
+                      type="button"
+                      className="boton-cancelar-saldo"
+                      onClick={() => setEditandoTipoOperacion(false)}
+                      disabled={guardandoSaldo}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="boton-guardar-saldo"
+                      disabled={guardandoSaldo}
+                    >
+                      {guardandoSaldo ? "Guardando..." : "Guardar tipo"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {autorizandoNumeroCuenta && (
+              <div
+                className="modal-edicion-overlay"
+                role="presentation"
+                onClick={() => setAutorizandoNumeroCuenta(false)}
+              >
+                <form
+                  className="modal-edicion-saldo"
+                  onSubmit={autorizarEdicionNumeroCuenta}
+                  onClick={(evento) => evento.stopPropagation()}
+                >
+                  <h2>Autorización para editar número de cuenta</h2>
+                  <p>Ingrese el código de administrador o asesor.</p>
+                  <label htmlFor="codigo-autorizacion-numero">
+                    Código de autorización
+                  </label>
+                  <input
+                    id="codigo-autorizacion-numero"
+                    type="password"
+                    value={codigoAutorizacion}
+                    onChange={(evento) =>
+                      setCodigoAutorizacion(evento.target.value)
+                    }
+                    autoComplete="off"
+                    required
+                    autoFocus
+                  />
+                  <div className="acciones-formulario-saldo">
+                    <button
+                      type="button"
+                      className="boton-cancelar-saldo"
+                      onClick={() => setAutorizandoNumeroCuenta(false)}
+                      disabled={guardandoSaldo}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="boton-guardar-saldo"
+                      disabled={guardandoSaldo}
+                    >
+                      {guardandoSaldo ? "Validando..." : "Continuar"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {editandoNumeroCuenta && (
+              <div
+                className="modal-edicion-overlay"
+                role="presentation"
+                onClick={() => setEditandoNumeroCuenta(false)}
+              >
+                <form
+                  className="modal-edicion-saldo"
+                  onSubmit={actualizarNumeroCuenta}
+                  onClick={(evento) => evento.stopPropagation()}
+                >
+                  <h2>Editar últimos 4 dígitos</h2>
+                  <label htmlFor="ultimos-digitos">Últimos 4 dígitos</label>
+                  <input
+                    id="ultimos-digitos"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength="4"
+                    pattern="[0-9]{4}"
+                    value={ultimosDigitos}
+                    onChange={(evento) =>
+                      setUltimosDigitos(
+                        evento.target.value.replace(/\D/g, "").slice(0, 4)
+                      )
+                    }
+                    required
+                    autoFocus
+                  />
+                  <div className="acciones-formulario-saldo">
+                    <button
+                      type="button"
+                      className="boton-cancelar-saldo"
+                      onClick={() => setEditandoNumeroCuenta(false)}
+                      disabled={guardandoSaldo}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="boton-guardar-saldo"
+                      disabled={guardandoSaldo}
+                    >
+                      {guardandoSaldo ? "Guardando..." : "Guardar número"}
                     </button>
                   </div>
                 </form>
