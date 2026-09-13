@@ -1,128 +1,308 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import { Link } from "react-router-dom";
 import "../styles/transferencias.css";
 
-function Transferencia() {
+const API_URL = "http://127.0.0.1:8000";
 
-  const [usuario, setUsuario] = useState(null);
+export default function RegistrarLlaveBreB() {
+    const [llave, setLlave] = useState("");
+    const [cuentas, setCuentas] = useState([]);
+    const [cuentaSeleccionada, setCuentaSeleccionada] = useState("");
+    const [mensaje, setMensaje] = useState("");
+    const [error, setError] = useState("");
+    const [cargando, setCargando] = useState(false);
+    const [cargandoCuentas, setCargandoCuentas] = useState(true);
 
-  const [monto, setMonto] = useState("");
+    const [openTransfer, setOpenTransfer] = useState(false);
+    const [openCertificado, setOpenCertificado] = useState(false);
 
-  useEffect(() => {
+    const chatbotActivo = true;
 
-    const token = localStorage.getItem("token");
+    useEffect(() => {
+        const cargarCuentas = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                const respuesta = await axios.get(
+                    `${API_URL}/cuentas/mis-cuentas`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                );
 
-    fetch("http://127.0.0.1:8000/usuario", {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-      .then(res => res.json())
-      .then(data => setUsuario(data));
+                const cuentasActivas = (respuesta.data || []).filter(
+                    (cuenta) => cuenta.estado === "activa"
+                );
 
-  }, []);
+                setCuentas(cuentasActivas);
+                if (cuentasActivas.length > 0) {
+                    setCuentaSeleccionada(String(cuentasActivas[0].id_cuenta));
+                }
+            } catch (err) {
+                setError(
+                    err.response?.data?.detail ||
+                    "No se pudieron cargar tus cuentas."
+                );
+            } finally {
+                setCargandoCuentas(false);
+            }
+        };
 
-  const realizarTransferencia = async () => {
+        cargarCuentas();
+    }, []);
 
-    if (Number(monto) <= 0) {
-      alert("Ingrese un monto válido.");
-      return;
-    }
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("usuario_id");
+        localStorage.removeItem("documento");
 
-    if (Number(monto) > Number(usuario.saldo_corriente)) {
-      alert("No tiene suficiente saldo en la Cuenta Corriente.");
-      return;
-    }
+        window.location.href = "/login";
+    };
 
-    const token = localStorage.getItem("token");
+    const registrarLlave = async (e) => {
+        e.preventDefault();
 
-    const respuesta = await fetch(
-      "http://127.0.0.1:8000/usuario/transferencia",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          monto: Number(monto)
-        })
-      }
+        setMensaje("");
+        setError("");
+
+        const numeroTelefono = llave.replace(/\D/g, "");
+
+        if (!numeroTelefono) {
+            setError("Ingrese un número telefónico.");
+            return;
+        }
+
+        if (!/^\d{10}$/.test(numeroTelefono)) {
+            setError("El número telefónico debe tener exactamente 10 dígitos.");
+            return;
+        }
+
+        if (!cuentaSeleccionada) {
+            setError("Seleccione una cuenta activa.");
+            return;
+        }
+
+        try {
+            setCargando(true);
+
+            const token = localStorage.getItem("token");
+            const llaveCompleta = `@financiero${numeroTelefono}`;
+
+            const respuesta = await axios.put(
+                `${API_URL}/bre-b/llave`,
+                {
+                    llave: llaveCompleta,
+                    id_cuenta: Number(cuentaSeleccionada)
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            setMensaje(
+                respuesta.data.mensaje ||
+                "Llave Bre-B registrada correctamente"
+            );
+
+            setLlave("");
+        } catch (err) {
+            if (err.response) {
+                setError(
+                    err.response.data.detail ||
+                    "No fue posible registrar la llave Bre-B"
+                );
+            } else {
+                setError("No se pudo conectar con el servidor");
+            }
+        } finally {
+            setCargando(false);
+        }
+    };
+
+    return (
+        <div className="panel-financiero">
+
+            <aside className="sidebar">
+
+                <ul>
+
+                    <li>
+                        <Link
+                            to="/cuenta"
+                            className="active"
+                        >
+                            💷 Cuenta
+                        </Link>
+                    </li>
+
+                    <li>
+                        <Link to="/historial">
+                            📜 Historial Monetario
+                        </Link>
+                    </li>
+
+                    <li>
+                        <Link to="/reporte">
+                            📜 Reportes
+                        </Link>
+                    </li>
+
+                    <li>
+                        <div
+                            className="menu-item"
+                            onClick={() =>
+                                setOpenTransfer(!openTransfer)
+                            }
+                        >
+                            💳 Otros{" "}
+                            {openTransfer ? "▲" : "▼"}
+                        </div>
+
+                        {openTransfer && (
+                            <ul className="submenu">
+
+                                <li>
+                                    <Link to="/transferencias">
+                                        ➡ Enviar dinero
+                                    </Link>
+                                </li>
+
+                                <li>
+                                    <Link to="/corriente">
+                                        🧾 Transferir
+                                    </Link>
+                                </li>
+
+                                <li>
+                                    <Link to="/transferencias-scr">
+                                        📤 Registrar Llave Bre-B
+                                    </Link>
+                                </li>
+
+                            </ul>
+                        )}
+                    </li>
+
+                    <li>
+                        <button
+                            type="button"
+                            className="sidebar-link"
+                            onClick={() =>
+                                setOpenCertificado(true)
+                            }
+                        >
+                            📄 Certificado Bancario
+                        </button>
+                    </li>
+
+                    <li>
+                        <Link
+                            to="/ajustes"
+                            className="btn-nav"
+                        >
+                            ⚙️ Ajustes
+                        </Link>
+                    </li>
+
+                    {chatbotActivo && (
+                        <li>
+                            <button
+                                type="button"
+                                className="sidebar-link"
+                                onClick={() =>
+                                    alert("Asistente IA")
+                                }
+                            >
+                                🤖 Asistente IA
+                            </button>
+                        </li>
+                    )}
+
+                </ul>
+
+                <button
+                    className="logout"
+                    onClick={handleLogout}
+                >
+                    🚪 Cerrar sesión
+                </button>
+
+            </aside>
+
+            <main className="contenido-principal">
+
+                <section className="breb-card">
+                    <h2>Registrar tu llave Bre-B</h2>
+                    <p className="breb-intro">
+                        Selecciona la cuenta que quieres asociar a tu llave.
+                    </p>
+
+                    {cargandoCuentas ? (
+                        <p className="breb-state">Cargando tus cuentas...</p>
+                    ) : cuentas.length === 0 ? (
+                        <p className="breb-state breb-error">
+                            No tienes cuentas activas disponibles.
+                        </p>
+                    ) : (
+                        <form onSubmit={registrarLlave}>
+                            <div className="breb-cuentas">
+                                <h3>Tus cuentas</h3>
+                                {cuentas.map((cuenta) => (
+                                    <label
+                                        className={`breb-cuenta ${String(cuentaSeleccionada) === String(cuenta.id_cuenta) ? "seleccionada" : ""}`}
+                                        key={cuenta.id_cuenta}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="cuenta-breb"
+                                            value={cuenta.id_cuenta}
+                                            checked={String(cuentaSeleccionada) === String(cuenta.id_cuenta)}
+                                            onChange={(e) => setCuentaSeleccionada(e.target.value)}
+                                        />
+                                        <span>
+                                            <strong>{cuenta.tipo_cuenta}</strong>
+                                            <small>Cuenta {cuenta.numero_cuenta || cuenta.id_cuenta}</small>
+                                        </span>
+                                        <b>${Number(cuenta.saldo || 0).toLocaleString("es-CO")}</b>
+                                    </label>
+                                ))}
+                            </div>
+
+                            <label className="breb-label" htmlFor="llave-breb">
+                                Llave Bre-B
+                            </label>
+                            <div className="breb-llave-fields">
+                                <span className="breb-prefijo">@financiero</span>
+                                <input
+                                    id="llave-breb"
+                                    className="breb-input"
+                                    type="tel"
+                                    inputMode="numeric"
+                                    value={llave}
+                                    onChange={(e) => setLlave(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                                    placeholder="3001234567"
+                                    minLength={10}
+                                    maxLength={10}
+                                    disabled={cargando}
+                                />
+                            </div>
+
+                            <button className="breb-button" type="submit" disabled={cargando}>
+                                {cargando ? "Registrando..." : "Registrar llave"}
+                            </button>
+                        </form>
+                    )}
+
+                    {mensaje && <p className="breb-state breb-success">{mensaje}</p>}
+                    {error && <p className="breb-state breb-error">{error}</p>}
+                </section>
+
+            </main>
+
+        </div>
     );
-
-    const data = await respuesta.json();
-
-    if (respuesta.ok) {
-
-      alert("Transferencia realizada correctamente.");
-
-      setUsuario({
-        ...usuario,
-        saldo_corriente: data.saldo_corriente,
-        saldo_ahorro: data.saldo_ahorro
-      });
-
-      setMonto("");
-
-    } else {
-
-      alert(data.detail);
-
-    }
-
-  };
-
-  if (!usuario) {
-
-    return <h2>Cargando...</h2>;
-
-  }
-
-  const formatoMoneda = (valor) => {
-    return Number(valor).toLocaleString("es-CO", {
-      style: "currency",
-      currency: "COP",
-      minimumFractionDigits: 0
-    });
-  };
-
-  return (
-
-    <div className="transferencia-container">
-
-      <h1>Transferencia entre Cuentas</h1>
-
-      <div className="saldo">
-
-        <p>
-          <strong>
-            Cuenta Corriente ({formatoMoneda(usuario.saldo_corriente)})
-          </strong>
-        </p>
-
-        <p>
-          <strong>
-            Cuenta de Ahorro ({formatoMoneda(usuario.saldo_ahorro)})
-          </strong>
-        </p>
-
-      </div>
-
-      <input
-        type="number"
-        placeholder="Monto a transferir"
-        value={monto}
-        onChange={(e) => setMonto(e.target.value)}
-      />
-
-      <button onClick={realizarTransferencia}>
-        Transferir de Cuenta Corriente a Cuenta de Ahorro
-      </button>
-
-    </div>
-
-  );
-
 }
-
-export default Transferencia;

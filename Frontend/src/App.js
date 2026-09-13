@@ -19,11 +19,11 @@ import Administradores from "./pages/Administradores";
 import ListaAsesores from "./pages/Listaasesores";
 import ListaCuentas from "./pages/ListaCuentas";
 import ListaUsuarios from "./pages/Listausuarios";
+import TransferenciasScr from "./pages/transferenciascr";
 
 function App() {
   return (
     <Routes>
-
       <Route path="/" element={<Inicio />} />
 
       <Route path="/login" element={<Login />} />
@@ -102,6 +102,15 @@ function App() {
         element={<ListaUsuarios />}
       />
 
+      <Route
+        path="/transferencias-scr"
+        element={<TransferenciasScr />}
+      />
+
+      <Route
+        path="/transferenciascr"
+        element={<TransferenciasScr />}
+      />
     </Routes>
   );
 }
