@@ -44,11 +44,16 @@ class TipoOperacionCuentaAutorizada(BaseModel):
     tipo_operacion: str
     codigo_autorizacion: str
 
+class ConfirmarContrasena(BaseModel):
+    password: str
+
+
 from Backend.ai.router import router as ia_router
 from Backend.models import (
     Usuario,
     Administrador,
     Cuenta,
+    Tarjeta,
     Transaccion,
     LlaveBreb,
     Notificacion
@@ -356,6 +361,97 @@ def inicio():
     return {
         "message": "API funcionando correctamente"
     }
+
+
+@app.get("/notificaciones")
+def listar_notificaciones(
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    notificaciones = db.query(Notificacion).filter(
+        Notificacion.id_usuario == current_user
+    ).order_by(Notificacion.fecha.desc()).all()
+
+    return [
+        {
+            "id_notificacion": notificacion.id_notificacion,
+            "nombre_asesor": notificacion.usuario.nombre if notificacion.usuario else "Sin nombre",
+            "mensaje": notificacion.mensaje,
+            "leida": notificacion.leido,
+            "fecha_creacion": notificacion.fecha,
+        }
+        for notificacion in notificaciones
+    ]
+
+
+@app.put("/notificaciones/leer-todas")
+def marcar_todas_notificaciones_leidas(
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    db.query(Notificacion).filter(
+        Notificacion.id_usuario == current_user,
+        Notificacion.leido.is_(False)
+    ).update(
+        {Notificacion.leido: True},
+        synchronize_session=False
+    )
+    db.commit()
+
+    return {"message": "Notificaciones marcadas como leídas."}
+
+
+@app.put("/notificaciones/{id_notificacion}/leer")
+def marcar_notificacion_leida(
+    id_notificacion: int,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    notificacion = db.query(Notificacion).filter(
+        Notificacion.id_notificacion == id_notificacion,
+        Notificacion.id_usuario == current_user
+    ).first()
+
+    if not notificacion:
+        raise HTTPException(status_code=404, detail="Notificación no encontrada")
+
+    notificacion.leido = True
+    db.commit()
+
+    return {"message": "Notificación marcada como leída."}
+
+
+@app.delete("/notificaciones/{id_notificacion}")
+def eliminar_notificacion(
+    id_notificacion: int,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    notificacion = db.query(Notificacion).filter(
+        Notificacion.id_notificacion == id_notificacion,
+        Notificacion.id_usuario == current_user
+    ).first()
+
+    if not notificacion:
+        raise HTTPException(status_code=404, detail="Notificación no encontrada")
+
+    db.delete(notificacion)
+    db.commit()
+
+    return {"message": "Notificación eliminada."}
+
+
+@app.delete("/notificaciones")
+def eliminar_todas_notificaciones(
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    db.query(Notificacion).filter(
+        Notificacion.id_usuario == current_user
+    ).delete(synchronize_session=False)
+    db.commit()
+
+    return {"message": "Notificaciones eliminadas."}
 
 
 # ==========================================================
@@ -1597,6 +1693,125 @@ def cuenta_existe(
 # ==========================================================
 # MIS CUENTAS
 # ==========================================================
+
+@app.get("/tarjeta")
+def consultar_tarjeta(
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_usuario == current_user,
+        Cuenta.tipo_cuenta == "corriente"
+    ).order_by(Cuenta.id_cuenta).first()
+
+    if not cuenta:
+        raise HTTPException(
+            status_code=404,
+            detail="No tienes una cuenta corriente asociada."
+        )
+
+    tarjeta = db.query(Tarjeta).filter(
+        Tarjeta.id_cuenta == cuenta.id_cuenta
+    ).first()
+
+    if not tarjeta:
+        numero_tarjeta = f"{secrets.randbelow(10**16):016d}"
+        while db.query(Tarjeta).filter(
+            Tarjeta.numero_tarjeta == numero_tarjeta
+        ).first():
+            numero_tarjeta = f"{secrets.randbelow(10**16):016d}"
+
+        tarjeta = Tarjeta(
+            id_cuenta=cuenta.id_cuenta,
+            numero_tarjeta=numero_tarjeta,
+            estado="bloqueada" if cuenta.estado == "bloqueada" else "activa"
+        )
+        db.add(tarjeta)
+        db.commit()
+        db.refresh(tarjeta)
+
+    estado = "bloqueada" if cuenta.estado == "bloqueada" else tarjeta.estado
+
+    return {
+        "id_tarjeta": tarjeta.id_tarjeta,
+        "ultimos_digitos": str(tarjeta.numero_tarjeta)[-4:],
+        "numero_cuenta": cuenta.numero_cuenta,
+        "tipo_cuenta": cuenta.tipo_cuenta,
+        "estado": estado
+    }
+
+
+@app.put("/tarjeta/bloquear")
+def bloquear_tarjeta(
+    datos: ConfirmarContrasena,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    usuario = db.query(Usuario).filter(
+        Usuario.id_usuario == current_user
+    ).first()
+
+    if not usuario or not check_password(datos.password, usuario.password):
+        raise HTTPException(
+            status_code=401,
+            detail="La contraseña es incorrecta."
+        )
+
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_usuario == current_user,
+        Cuenta.tipo_cuenta == "corriente"
+    ).order_by(Cuenta.id_cuenta).first()
+
+    if not cuenta:
+        raise HTTPException(
+            status_code=404,
+            detail="No tienes una cuenta corriente asociada."
+        )
+
+    tarjeta = db.query(Tarjeta).filter(
+        Tarjeta.id_cuenta == cuenta.id_cuenta
+    ).first()
+
+    if tarjeta:
+        tarjeta.estado = "bloqueada"
+    cuenta.estado = "bloqueada"
+    db.commit()
+
+    return {
+        "mensaje": "La tarjeta y la cuenta corriente fueron bloqueadas correctamente.",
+        "estado": "bloqueada"
+    }
+
+
+@app.put("/tarjeta/desbloquear")
+def desbloquear_tarjeta(
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_usuario == current_user,
+        Cuenta.tipo_cuenta == "corriente"
+    ).order_by(Cuenta.id_cuenta).first()
+
+    if not cuenta:
+        raise HTTPException(
+            status_code=404,
+            detail="No tienes una cuenta corriente asociada."
+        )
+
+    tarjeta = db.query(Tarjeta).filter(
+        Tarjeta.id_cuenta == cuenta.id_cuenta
+    ).first()
+
+    if tarjeta:
+        tarjeta.estado = "activa"
+    cuenta.estado = "activa"
+    db.commit()
+
+    return {
+        "mensaje": "La tarjeta y la cuenta corriente fueron desbloqueadas correctamente.",
+        "estado": "activa"
+    }
 
 @app.get("/cuentas/mis-cuentas")
 def mis_cuentas(
