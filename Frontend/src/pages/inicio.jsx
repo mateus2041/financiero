@@ -1,9 +1,31 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/inicio.css";
 import logo from "../assets/images/logo.jpeg";
+import Login from "./login";
+import Registro from "./registro";
 
 function Home() {
+  const [modalActivo, setModalActivo] = useState(null);
+
+  useEffect(() => {
+    const cerrarConEscape = (event) => {
+      if (event.key === "Escape") {
+        setLoginModalOpen(false);
+      }
+    };
+
+    if (modalActivo) {
+      document.addEventListener("keydown", cerrarConEscape);
+      document.body.style.overflow = "hidden";
+    }
+
+    return () => {
+      document.removeEventListener("keydown", cerrarConEscape);
+      document.body.style.overflow = "";
+    };
+  }, [modalActivo]);
+
   return (
     <div className="home-container">
       {/* NAVBAR */}
@@ -16,19 +38,23 @@ function Home() {
           <li>Bre-Be</li>
 
           <li>
-            <Link to="/login">
-              <button className="home-btn-registro">
-                Inicio
-              </button>
-            </Link>
+            <button
+              className="home-btn-registro"
+              type="button"
+              onClick={() => setModalActivo("login")}
+            >
+              Inicio
+            </button>
           </li>
 
           <li>
-            <Link to="/registro">
-              <button className="home-btn-registro">
-                Registro
-              </button>
-            </Link>
+            <button
+              className="home-btn-registro"
+              type="button"
+              onClick={() => setModalActivo("registro")}
+            >
+              Registro
+            </button>
           </li>
         </ul>
       </nav>
@@ -67,6 +93,46 @@ function Home() {
           </div>
         </div>
       </section>
+
+      {modalActivo && (
+        <div
+          className="home-login-modal-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setModalActivo(null);
+            }
+          }}
+        >
+          <div
+            className={`home-login-modal ${
+              modalActivo === "registro" ? "home-register-modal" : ""
+            }`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="home-login-modal-title"
+          >
+            <div className="home-login-modal-header">
+              <h2 id="home-login-modal-title">
+                {modalActivo === "registro" ? "Registro" : "Inicio de sesión"}
+              </h2>
+              <button
+                className="home-login-modal-close"
+                type="button"
+                aria-label="Cerrar inicio de sesión"
+                onClick={() => setModalActivo(null)}
+              >
+                ×
+              </button>
+            </div>
+            {modalActivo === "registro" ? (
+              <Registro isModal />
+            ) : (
+              <Login isModal />
+            )}
+          </div>
+        </div>
+      )}
 
       {/* GARANTÍAS */}
       <section className="home-garantias">

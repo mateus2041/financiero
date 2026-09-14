@@ -353,6 +353,7 @@ export default function ListaUsuarios() {
                         >
                           <p><strong>Número:</strong> {cuenta.numero_cuenta || "No disponible"}</p>
                           <p><strong>Tipo:</strong> {cuenta.tipo_cuenta || "No disponible"}</p>
+                          <p><strong>Tipo de operación:</strong> {cuenta.tipo_operacion || "debito"}</p>
                           <p><strong>Saldo:</strong> ${Number(cuenta.saldo || 0).toLocaleString("es-CO")}</p>
                           <p><strong>Estado:</strong> {cuenta.estado || "No disponible"}</p>
                         </div>

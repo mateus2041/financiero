@@ -246,6 +246,12 @@ export default function Administradores() {
                 🌐 Cuentas
               </Link>
             </li>
+
+            <li>
+              <Link to="/notoficaciones">
+                🔔 notoficaciones
+              </Link>
+            </li>
             
           </ul>
 

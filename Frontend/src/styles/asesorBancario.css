@@ -140,6 +140,126 @@ body {
   color: var(--dorado);
 }
 
+.enlace-mensaje-admin {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--texto-secundario);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.enlace-mensaje-admin:hover {
+  background: rgba(242, 201, 76, 0.1);
+  color: var(--dorado);
+}
+
+.modal-mensaje-admin-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(11, 15, 22, 0.78);
+}
+
+.modal-mensaje-admin {
+  width: min(100%, 420px);
+  padding: 24px;
+  border: 1px solid rgba(242, 201, 76, 0.35);
+  border-radius: 12px;
+  background: var(--fondo-tarjeta);
+  color: var(--texto-principal);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+}
+
+.modal-mensaje-admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.modal-mensaje-admin-header h2 {
+  margin: 0;
+  color: var(--dorado);
+  font-size: 1.25rem;
+}
+
+.cerrar-mensaje-admin {
+  border: 0;
+  background: transparent;
+  color: var(--texto-secundario);
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-mensaje-admin-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-mensaje-admin-label {
+  color: var(--texto-secundario);
+  font-size: 0.96rem;
+}
+
+#mensaje-admin-input.codigo-mensaje-admin-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid rgba(242, 201, 76, 0.8);
+  border-radius: 8px;
+  background: #0b0f16 !important;
+  color: #ffffff !important;
+  font-size: 1.05rem;
+  outline: none;
+  caret-color: #f2c94c;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.codigo-mensaje-admin-input::placeholder {
+  color: rgba(242, 201, 76, 0.7);
+}
+
+.codigo-mensaje-admin-input:focus {
+  border-color: var(--dorado);
+  box-shadow: 0 0 0 2px rgba(242, 201, 76, 0.15);
+}
+
+.boton-enviar-mensaje-admin {
+  margin-top: 4px;
+  padding: 11px 18px;
+  border: none;
+  border-radius: 8px;
+  background: var(--dorado);
+  color: #0b0f16;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.codigo-mensaje-admin {
+  display: block;
+  padding: 12px;
+  border: 1px solid rgba(242, 201, 76, 0.3);
+  border-radius: 8px;
+  color: var(--dorado);
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
 /* ==============================
    BOTON CERRAR SESION
    ============================== */
