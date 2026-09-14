@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/registro.css";
 
-function Registro() {
+function Registro({ isModal = false }) {
   const navigate = useNavigate();
 
   const [paso, setPaso] = useState(1);
@@ -146,7 +146,7 @@ function Registro() {
   };
 
   return (
-    <div className="container">
+    <div className={isModal ? "container registro-modal-container" : "container"}>
       <div className="form-box">
         <h1>REGISTRO</h1>
 

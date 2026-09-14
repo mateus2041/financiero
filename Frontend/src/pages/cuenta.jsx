@@ -510,6 +510,17 @@ const Cuenta = () => {
 
           </li>
 
+          <li>
+
+            <Link
+              to="/desbloquear-cuenta"
+              className="btn-nav"
+              
+            >
+              🚫 bloque de trajeta 
+            </Link>
+
+          </li>
 
 
 
