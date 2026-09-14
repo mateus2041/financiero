@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/login.css";
 
-function Login() {
+function Login({ isModal = false }) {
   const navigate = useNavigate();
 
   const [documento, setDocumento] = useState("");
@@ -141,6 +141,9 @@ function Login() {
       localStorage.setItem("usuario_id", data.usuario.id);
       localStorage.setItem("nombre_usuario", data.usuario.nombre);
       localStorage.setItem("rol", data.usuario.rol || "usuario");
+      if (esAsesor) {
+        localStorage.setItem("nombre_asesor", data.usuario.nombre);
+      }
       if (data.codigo_verificacion) {
         localStorage.setItem("codigo_verificacion", data.codigo_verificacion);
       }
@@ -168,7 +171,7 @@ function Login() {
   };
 
   return (
-    <div className="container">
+    <div className={isModal ? "container login-modal-container" : "container"}>
       <form className="form-box" onSubmit={manejarSubmit}>
         <h1>Inicio de Sesión</h1>
 

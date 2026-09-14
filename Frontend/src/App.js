@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route } from "react-router-dom";
 
 import Inicio from "./pages/inicio";
 import Login from "./pages/login";
@@ -20,6 +20,9 @@ import ListaAsesores from "./pages/Listaasesores";
 import ListaCuentas from "./pages/ListaCuentas";
 import ListaUsuarios from "./pages/Listausuarios";
 import TransferenciasScr from "./pages/transferenciascr";
+import Notificaciones from "./pages/notificaiones";
+import Mensajes from "./pages/mensaje-Admin";
+import DesbloquearTarjeta from "./pages/desbloquearTarjeta";
 
 function App() {
   return (
@@ -110,6 +113,31 @@ function App() {
       <Route
         path="/transferenciascr"
         element={<TransferenciasScr />}
+      />
+
+      <Route
+        path="/notificaciones"
+        element={<Notificaciones />}
+      />
+
+      <Route
+        path="/notoficaciones"
+        element={<Navigate to="/notificaciones" replace />}
+      />
+
+      <Route
+        path="/mensajes"
+        element={<Mensajes />}
+      />
+
+      <Route
+        path="/mensaje-Admin"
+        element={<Navigate to="/mensajes" replace />}
+      />
+
+      <Route
+        path="/desbloquear-cuenta"
+        element={<DesbloquearTarjeta />}
       />
     </Routes>
   );

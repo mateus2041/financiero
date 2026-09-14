@@ -7,17 +7,21 @@ function DesbloquearTarjeta() {
     const [tarjeta, setTarjeta] = useState(null);
     const [cargando, setCargando] = useState(true);
     const [desbloqueando, setDesbloqueando] = useState(false);
+    const [bloqueando, setBloqueando] = useState(false);
+    const [solicitandoPassword, setSolicitandoPassword] = useState(false);
+    const [passwordBloqueo, setPasswordBloqueo] = useState("");
     const [mensaje, setMensaje] = useState("");
     const [error, setError] = useState("");
+
+    const [openTransfer, setOpenTransfer] = useState(false);
+    const [openCertificado, setOpenCertificado] = useState(false);
 
     useEffect(() => {
         cargarTarjeta();
     }, []);
 
     const cargarTarjeta = async () => {
-
         try {
-
             const token = localStorage.getItem("token");
 
             const respuesta = await fetch(
@@ -40,14 +44,12 @@ function DesbloquearTarjeta() {
             setTarjeta(datos);
 
         } catch (error) {
-
             console.error(error);
-            setError("No fue posible consultar el estado de la tarjeta.");
-
+            setError(
+                "No fue posible consultar el estado de la tarjeta."
+            );
         } finally {
-
             setCargando(false);
-
         }
     };
 
@@ -84,12 +86,14 @@ function DesbloquearTarjeta() {
 
             if (!respuesta.ok) {
                 throw new Error(
-                    datos.detail || "No fue posible desbloquear la tarjeta"
+                    datos.detail ||
+                    "No fue posible desbloquear la tarjeta"
                 );
             }
 
             setMensaje(
-                datos.mensaje || "Tu tarjeta fue desbloqueada correctamente."
+                datos.mensaje ||
+                "Tu tarjeta fue desbloqueada correctamente."
             );
 
             setTarjeta((tarjetaAnterior) => ({
@@ -109,6 +113,71 @@ function DesbloquearTarjeta() {
         }
     };
 
+    const bloquearTarjeta = async () => {
+        setError("");
+        setMensaje("");
+        setPasswordBloqueo("");
+        setSolicitandoPassword(true);
+    };
+
+    const confirmarBloqueo = async (evento) => {
+        evento.preventDefault();
+
+        if (!passwordBloqueo) {
+            setError("Ingresa tu contraseña para bloquear la tarjeta.");
+            return;
+        }
+
+        try {
+            setBloqueando(true);
+            setMensaje("");
+            setError("");
+
+            const respuesta = await fetch(
+                "http://127.0.0.1:8000/tarjeta/bloquear",
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem("token")}`
+                    },
+                    body: JSON.stringify({ password: passwordBloqueo })
+                }
+            );
+
+            const datos = await respuesta.json();
+
+            if (!respuesta.ok) {
+                throw new Error(
+                    datos.detail || "No fue posible bloquear la tarjeta"
+                );
+            }
+
+            setMensaje(datos.mensaje || "Tu tarjeta fue bloqueada correctamente.");
+            setTarjeta((tarjetaAnterior) => ({
+                ...tarjetaAnterior,
+                estado: "bloqueada"
+            }));
+            setPasswordBloqueo("");
+            setSolicitandoPassword(false);
+        } catch (error) {
+            console.error(error);
+            setError(error.message);
+        } finally {
+            setBloqueando(false);
+        }
+    };
+
+    const handleLogout = () => {
+
+        localStorage.removeItem("token");
+        localStorage.removeItem("usuario_id");
+        localStorage.removeItem("documento");
+        localStorage.removeItem("fotoPerfil");
+
+        window.location.href = "/login";
+    };
+
     if (cargando) {
         return (
             <div className="tarjeta-container">
@@ -120,97 +189,305 @@ function DesbloquearTarjeta() {
     }
 
     return (
-        <div className="tarjeta-container">
+        <div className="panel-financiero">
 
-            <div className="tarjeta-box">
+            <aside className="sidebar">
 
-                <div className="tarjeta-icono">
-                    💳
-                </div>
+                <ul>
 
-                <h1>Desbloqueo de tarjeta</h1>
+                    <li>
+                        <Link
+                            to="/cuenta"
+                            className="active"
+                        >
+                            💷 Cuenta
+                        </Link>
+                    </li>
 
-                <p className="tarjeta-descripcion">
-                    Administra el estado de tu tarjeta y vuelve a utilizarla
-                    cuando esté desbloqueada.
-                </p>
+                    <li>
+                        <Link to="/historial">
+                            📜 Historial Monetario
+                        </Link>
+                    </li>
 
-                {error && (
-                    <div className="tarjeta-error">
-                        {error}
-                    </div>
-                )}
+                    <li>
+                        <Link to="/reporte">
+                            📜 Reportes
+                        </Link>
+                    </li>
 
-                {mensaje && (
-                    <div className="tarjeta-exito">
-                        {mensaje}
-                    </div>
-                )}
+                    <li>
 
-                {tarjeta && (
-                    <>
+                        <div
+                            className="menu-item"
+                            onClick={() =>
+                                setOpenTransfer(!openTransfer)
+                            }
+                        >
+                            💳 Otros
 
-                        <div className="tarjeta-visual">
-
-                            <div className="tarjeta-chip">
-                                ▦
-                            </div>
-
-                            <div className="tarjeta-numero">
-                                **** **** ****{" "}
-                                {tarjeta.ultimos_digitos ||
-                                    tarjeta.ultimo_digito ||
-                                    "0000"}
-                            </div>
-
-                            <div className="tarjeta-tipo">
-                                BILLETERA DIGITAL
-                            </div>
-
+                            {openTransfer ? "▲" : "▼"}
                         </div>
 
-                        <div className="tarjeta-estado">
+                        {openTransfer && (
+                            <ul className="submenu">
 
-                            <span>Estado actual:</span>
+                                <li>
+                                    <Link to="/transferencias">
+                                        ➡ Enviar dinero
+                                    </Link>
+                                </li>
 
-                            <strong
-                                className={
-                                    String(tarjeta.estado).toLowerCase() ===
-                                    "activa"
-                                        ? "activa"
-                                        : "bloqueada"
-                                }
-                            >
-                                {tarjeta.estado || "Bloqueada"}
-                            </strong>
+                                <li>
+                                    <Link to="/corriente">
+                                        🧾 Transferir
+                                    </Link>
+                                </li>
 
-                        </div>
+                                <li>
+                                    <Link to="/transferencias-scr">
+                                        📤 Registrar Llave Bre-B
+                                    </Link>
+                                </li>
 
-                        {String(tarjeta.estado).toLowerCase() ===
-                            "bloqueada" ? (
-
-                            <button
-                                className="btn-desbloquear"
-                                onClick={desbloquearTarjeta}
-                                disabled={desbloqueando}
-                            >
-                                {desbloqueando
-                                    ? "Desbloqueando..."
-                                    : "🔓 Desbloquear tarjeta"}
-                            </button>
-
-                        ) : (
-
-                            <div className="tarjeta-activa">
-                                ✅ Tu tarjeta ya está desbloqueada
-                            </div>
-
+                            </ul>
                         )}
 
-                    </>
-                )}
+                    </li>
 
-            </div>
+                    <li>
+
+                        <button
+                            type="button"
+                            className="sidebar-link"
+                            onClick={() =>
+                                setOpenCertificado(true)
+                            }
+                        >
+                            📄 Certificado Bancario
+                        </button>
+
+                    </li>
+
+                    <li>
+
+                        <Link
+                            to="/ajustes"
+                            className="btn-nav"
+                        >
+                            ⚙️ Ajustes
+                        </Link>
+
+                    </li>
+
+                    <li>
+
+                        <Link
+                            to="/desbloquear-cuenta"
+                            className="btn-nav"
+                        >
+                            🚫 Bloqueo de tarjeta
+                        </Link>
+
+                    </li>
+
+                    <li>
+
+                        <Link
+                            to="/ChatIA"
+                            className="btn-nav"
+                        >
+                            🤖 Asistente IA
+                        </Link>
+
+                    </li>
+
+                </ul>
+
+                <button
+                    className="logout"
+                    onClick={handleLogout}
+                >
+                    🚪 Cerrar sesión
+                </button>
+
+            </aside>
+
+            <main className="tarjeta-container">
+
+                <div className="tarjeta-box">
+
+                    <h1>
+                        Mi tarjeta bancaria
+                    </h1>
+
+                    <p className="tarjeta-descripcion">
+                        Consulta los datos de tu cuenta corriente y controla
+                        la seguridad de tu tarjeta.
+                    </p>
+
+                    {error && (
+                        <div className="tarjeta-error">
+                            {error}
+                        </div>
+                    )}
+
+                    {mensaje && (
+                        <div className="tarjeta-exito">
+                            {mensaje}
+                        </div>
+                    )}
+
+                    {tarjeta && (
+                        <>
+
+                            <div className="tarjeta-visual">
+
+                                <div className="tarjeta-marca">BILLETERA</div>
+
+                                <div className="tarjeta-chip">▦</div>
+
+                                <div className="tarjeta-numero">
+                                    **** **** ****{" "}
+                                    {tarjeta.ultimos_digitos ||
+                                        tarjeta.ultimo_digito ||
+                                        "0000"}
+                                </div>
+
+                                <div className="tarjeta-cuenta">
+                                    <span>CUENTA CORRIENTE</span>
+                                    <strong>{tarjeta.numero_cuenta || "No disponible"}</strong>
+                                </div>
+
+                                <div className="tarjeta-tipo">
+                                    BILLETERA DIGITAL
+                                </div>
+
+                            </div>
+
+                            <div className="tarjeta-estado">
+
+                                <span>
+                                    Estado actual:
+                                </span>
+
+                                <strong
+                                    className={
+                                        String(tarjeta.estado)
+                                            .toLowerCase() === "activa"
+                                            ? "activa"
+                                            : "bloqueada"
+                                    }
+                                >
+                                    {tarjeta.estado || "Bloqueada"}
+                                </strong>
+
+                            </div>
+
+                            <div className="tarjeta-acciones">
+                                {String(tarjeta.estado).toLowerCase() ===
+                                "bloqueada" ? (
+
+                                <button
+                                    className="btn-desbloquear"
+                                    onClick={desbloquearTarjeta}
+                                    disabled={desbloqueando}
+                                >
+                                    {desbloqueando
+                                        ? "Desbloqueando..."
+                                        : "🔓 Desbloquear tarjeta"}
+                                </button>
+
+                                ) : solicitandoPassword ? (
+                                    <form
+                                        className="formulario-bloqueo"
+                                        onSubmit={confirmarBloqueo}
+                                    >
+                                        <label htmlFor="password-bloqueo">
+                                            Confirma tu contraseña para bloquear
+                                        </label>
+                                        <input
+                                            id="password-bloqueo"
+                                            type="password"
+                                            value={passwordBloqueo}
+                                            onChange={(evento) =>
+                                                setPasswordBloqueo(evento.target.value)
+                                            }
+                                            placeholder="Contraseña de usuario"
+                                            autoComplete="current-password"
+                                            autoFocus
+                                            disabled={bloqueando}
+                                        />
+                                        <button
+                                            type="submit"
+                                            className="btn-bloquear"
+                                            disabled={bloqueando}
+                                        >
+                                            {bloqueando
+                                                ? "Bloqueando..."
+                                                : "🔒 Confirmar bloqueo"}
+                                        </button>
+                                    </form>
+                                ) : (
+                                    <button
+                                        className="btn-bloquear"
+                                        onClick={bloquearTarjeta}
+                                        disabled={bloqueando}
+                                    >
+                                        {bloqueando
+                                            ? "Bloqueando..."
+                                            : "🔒 Bloquear tarjeta por completo"}
+                                    </button>
+                                )}
+                            </div>
+
+
+                        </>
+                    )}
+
+                </div>
+
+            </main>
+
+            {openCertificado && (
+
+                <div className="certificado-modal">
+
+                    <div className="certificado-contenido">
+
+                        <h2>
+                            Certificado Bancario
+                        </h2>
+
+                        <p>
+                            Puedes consultar tu certificado bancario
+                            desde la sección correspondiente.
+                        </p>
+
+                        <Link
+                            to="/certificado"
+                            className="btn-nav"
+                            onClick={() =>
+                                setOpenCertificado(false)
+                            }
+                        >
+                            📄 Ir al certificado
+                        </Link>
+
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setOpenCertificado(false)
+                            }
+                        >
+                            Cerrar
+                        </button>
+
+                    </div>
+
+                </div>
+
+            )}
 
         </div>
     );
