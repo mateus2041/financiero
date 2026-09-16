@@ -134,7 +134,7 @@ function ListaAsesores() {
     localStorage.removeItem("documento");
     localStorage.removeItem("usuario_id");
 
-    navigate("/login");
+    navigate("/");
   };
 
   return (

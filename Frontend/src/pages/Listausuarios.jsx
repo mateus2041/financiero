@@ -57,7 +57,7 @@ export default function ListaUsuarios() {
     localStorage.removeItem("documento");
     localStorage.removeItem("usuario_id");
 
-    navigate("/login");
+    navigate("/");
   };
 
   const verUsuario = async (usuario) => {
@@ -119,6 +119,18 @@ export default function ListaUsuarios() {
       "Usuario inhabilitado en la lista. La persistencia requiere conectar el endpoint del backend."
     );
   };
+
+  const cuentasActivasUsuario =
+    usuarioSeleccionado?.cuentas?.filter((cuenta) => {
+      const estado = (cuenta.estado || "").trim().toLowerCase();
+      return (
+        estado === "activa" ||
+        estado === "activo" ||
+        estado === "habilitada" ||
+        estado === "habilitado" ||
+        estado === ""
+      );
+    }) || [];
 
   return (
     <div className="asesor-container">
@@ -342,11 +354,11 @@ export default function ListaUsuarios() {
                 )}
 
                 {!cargandoDetalle && !errorDetalle && (
-                  usuarioSeleccionado.cuentas.length === 0 ? (
-                    <p>Este usuario no tiene cuentas registradas.</p>
+                  cuentasActivasUsuario.length === 0 ? (
+                    <p>Este usuario no tiene una cuenta habilitada.</p>
                   ) : (
                     <div className="cuentas-modal-usuario">
-                      {usuarioSeleccionado.cuentas.map((cuenta) => (
+                      {cuentasActivasUsuario.map((cuenta) => (
                         <div
                           className="cuenta-modal-usuario"
                           key={cuenta.id_cuenta}

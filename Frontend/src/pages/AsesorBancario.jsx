@@ -98,7 +98,7 @@ export default function AsesorBancario() {
     localStorage.removeItem("usuario_id");
     localStorage.removeItem("documento");
 
-    window.location.href = "/login";
+    window.location.href = "/";
   };
 
   const convertirArchivoADataUrl = (archivo) =>

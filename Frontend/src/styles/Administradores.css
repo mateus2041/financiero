@@ -668,7 +668,17 @@ body {
   border-radius: 8px;
   background: #0b0f16;
   color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
   caret-color: #ffffff;
+}
+
+.formulario-cambio-codigo input:-webkit-autofill,
+.formulario-cambio-codigo input:-webkit-autofill:hover,
+.formulario-cambio-codigo input:-webkit-autofill:focus,
+.formulario-cambio-codigo input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #0b0f16 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
 }
 
 .formulario-cambio-codigo button {

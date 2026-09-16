@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "../styles/registro.css";
 
 function Registro({ isModal = false }) {
@@ -326,6 +326,12 @@ function Registro({ isModal = false }) {
             {mensaje}
           </p>
         )}
+
+        <p>
+          <Link to="/" state={{ modal: "login" }}>
+            ¿Ya tienes una cuenta? Inicia sesión
+          </Link>
+        </p>
 
         <div className="footer">
           <p>

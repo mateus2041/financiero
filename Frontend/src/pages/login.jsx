@@ -22,7 +22,9 @@ function Login({ isModal = false }) {
   const [verificandoCodigo, setVerificandoCodigo] = useState(false);
 
   const irRegistro = () => {
-    navigate("/registro");
+    navigate(isModal ? "/" : "/registro", {
+      state: isModal ? { modal: "registro" } : undefined,
+    });
   };
 
   const irRecuperar = () => {

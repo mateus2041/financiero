@@ -58,17 +58,32 @@ export default function Administradores() {
       return { fecha: "No disponible", hora: "No disponible" };
     }
 
-    const fecha = new Date(fechaIngreso);
+    const valorFecha = /Z$|[+-]\d{2}:?\d{2}$/.test(fechaIngreso)
+      ? fechaIngreso
+      : `${fechaIngreso}Z`;
+
+    const fecha = new Date(valorFecha);
     if (Number.isNaN(fecha.getTime())) {
       return { fecha: "No disponible", hora: "No disponible" };
     }
 
+    const fechaBogota = new Intl.DateTimeFormat("es-CO", {
+      timeZone: "America/Bogota",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(fecha);
+
+    const horaBogota = new Intl.DateTimeFormat("es-CO", {
+      timeZone: "America/Bogota",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }).format(fecha);
+
     return {
-      fecha: fecha.toLocaleDateString("es-CO"),
-      hora: fecha.toLocaleTimeString("es-CO", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      fecha: fechaBogota,
+      hora: horaBogota,
     };
   };
 
@@ -202,7 +217,7 @@ export default function Administradores() {
     localStorage.removeItem("usuario_id");
     localStorage.removeItem("documento");
 
-    navigate("/login");
+    navigate("/");
   };
 
   if (cargando) {
@@ -486,6 +501,12 @@ export default function Administradores() {
                           onChange={(e) => setNuevoCodigoAsesor(e.target.value)}
                           maxLength={30}
                           autoFocus
+                          style={{
+                            color: "#ffffff",
+                            WebkitTextFillColor: "#ffffff",
+                            caretColor: "#ffffff",
+                            backgroundColor: "#0b0f16",
+                          }}
                         />
                       </label>
                       <button type="submit" disabled={guardandoCodigo}>

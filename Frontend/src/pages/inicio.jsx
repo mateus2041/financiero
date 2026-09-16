@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import "../styles/inicio.css";
 import logo from "../assets/images/logo.jpeg";
 import Login from "./login";
@@ -7,11 +7,18 @@ import Registro from "./registro";
 
 function Home() {
   const [modalActivo, setModalActivo] = useState(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (["login", "registro"].includes(location.state?.modal)) {
+      setModalActivo(location.state.modal);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const cerrarConEscape = (event) => {
       if (event.key === "Escape") {
-        setLoginModalOpen(false);
+        setModalActivo(null);
       }
     };
 

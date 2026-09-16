@@ -124,3 +124,66 @@ def test_asesor_puede_listar_cuentas():
 
     app.dependency_overrides.clear()
     db.close()
+
+
+def test_codigo_administrador_acepta_mayusculas_minusculas():
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(bind=engine)
+    SessionLocal = sessionmaker(bind=engine)
+    db = SessionLocal()
+
+    admin = Usuario(
+        nombre="Admin Principal",
+        email="admin@test.com",
+        documento="5555555555",
+        password=hash_password("Segura123"),
+        rol="usuario",
+    )
+    db.add(admin)
+    db.commit()
+    db.refresh(admin)
+
+    db.add(
+        Administrador(
+            id_usuario=admin.id_usuario,
+            codigo_administrador="ADM-001",
+        )
+    )
+
+    cliente = Usuario(
+        nombre="Cliente Tres",
+        email="cliente3@test.com",
+        documento="6666666666",
+        password=hash_password("Segura123"),
+        rol="usuario",
+    )
+    db.add(cliente)
+    db.commit()
+    db.refresh(cliente)
+
+    db.add(
+        Cuenta(
+            id_usuario=cliente.id_usuario,
+            numero_cuenta="1111222233334444",
+            tipo_cuenta="ahorros",
+            saldo=5000,
+            estado="activa",
+        )
+    )
+    db.commit()
+
+    app = main.app
+    app.dependency_overrides[main.get_db] = lambda: db
+    app.dependency_overrides[main.token_required] = lambda: admin.id_usuario
+
+    client = TestClient(app)
+    response = client.put(
+        "/administradores/cuenta/1/saldo",
+        json={"saldo": 20000, "codigo_autorizacion": "adm-001"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["mensaje"] == "Saldo actualizado correctamente."
+
+    app.dependency_overrides.clear()
+    db.close()

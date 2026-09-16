@@ -6,6 +6,8 @@ import hmac
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import json
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 from Backend.database.database import Base, engine
 from fastapi.middleware.cors import CORSMiddleware
@@ -77,6 +79,52 @@ app = FastAPI(
     title="Financiero API",
     version="1.0"
 )
+
+
+def convertir_a_hora_local(fecha):
+    if fecha is None:
+        return None
+
+    if isinstance(fecha, str):
+        fecha = datetime.fromisoformat(fecha)
+
+    if fecha.tzinfo is None:
+        fecha = fecha.replace(tzinfo=timezone.utc)
+
+    return fecha.astimezone(ZoneInfo("America/Bogota"))
+
+
+def fecha_hora_actual_local():
+    return datetime.now(ZoneInfo("America/Bogota"))
+
+
+def codigo_autorizacion_es_valido(db: Session, codigo: str) -> bool:
+    codigo_normalizado = (codigo or "").strip().lower()
+
+    if not codigo_normalizado:
+        return False
+
+    administrador = db.query(Administrador).filter(
+        text("LOWER(codigo_administrador) = :codigo")
+    ).params(codigo=codigo_normalizado).first()
+
+    if administrador:
+        return True
+
+    asesor = db.execute(
+        text(
+            """
+            SELECT id_asesor
+            FROM asesores_banco
+            WHERE LOWER(codigo_asesor) = :codigo
+              AND estado = 'activo'
+            LIMIT 1
+            """
+        ),
+        {"codigo": codigo_normalizado},
+    ).first()
+
+    return bool(asesor)
 
 
 # ==========================================================
@@ -609,13 +657,15 @@ def registrar_usuario(
                     id_usuario,
                     codigo_asesor,
                     especialidad,
-                    estado
+                    estado,
+                    fecha_ingreso
                 )
                 VALUES (
                     :id_usuario,
                     :codigo_asesor,
                     :especialidad,
-                    'activo'
+                    'activo',
+                    :fecha_ingreso
                 )
                 """
             ),
@@ -623,6 +673,7 @@ def registrar_usuario(
                 "id_usuario": nuevo_usuario.id_usuario,
                 "codigo_asesor": f"ASESOR-{nuevo_usuario.id_usuario:06d}",
                 "especialidad": data.get("especialidad", "Asesoría bancaria"),
+                "fecha_ingreso": fecha_hora_actual_local(),
             },
         )
 
@@ -870,11 +921,11 @@ def registrar_codigo_asesor(
             """
             INSERT INTO asesores_banco (
                 nombre, documento, tipo_documento,
-                codigo_asesor, especialidad, estado
+                codigo_asesor, especialidad, estado, fecha_ingreso
             )
             VALUES (
                 :nombre, :documento, :tipo_documento,
-                :codigo_asesor, :cargo, 'activo'
+                :codigo_asesor, :cargo, 'activo', :fecha_ingreso
             )
             """
         ),
@@ -884,6 +935,7 @@ def registrar_codigo_asesor(
             "tipo_documento": tipo_documento,
             "codigo_asesor": codigo_asesor,
             "cargo": cargo,
+            "fecha_ingreso": fecha_hora_actual_local(),
         },
     )
     db.commit()
@@ -937,7 +989,7 @@ def consultar_asesores(
         "asesores": [
             {
                 **dict(asesor),
-                "fecha_ingreso": asesor["fecha_ingreso"].isoformat()
+                "fecha_ingreso": convertir_a_hora_local(asesor["fecha_ingreso"]).isoformat()
                 if asesor["fecha_ingreso"] else None
             }
             for asesor in consulta
@@ -2205,23 +2257,8 @@ def administrador_actualizar_saldo(
         )
 
     codigo = datos.codigo_autorizacion.strip()
-    codigo_administrador = db.query(Administrador).filter(
-        Administrador.codigo_administrador == codigo
-    ).first()
-    codigo_asesor = db.execute(
-        text(
-            """
-            SELECT id_asesor
-            FROM asesores_banco
-            WHERE codigo_asesor = :codigo
-              AND estado = 'activo'
-            LIMIT 1
-            """
-        ),
-        {"codigo": codigo},
-    ).first()
 
-    if not codigo_administrador and not codigo_asesor:
+    if not codigo_autorizacion_es_valido(db, codigo):
         raise HTTPException(
             status_code=401,
             detail="El código de administrador o asesor no es válido."
@@ -2264,23 +2301,8 @@ def administrador_actualizar_tipo_operacion(
         )
 
     codigo = datos.codigo_autorizacion.strip()
-    codigo_administrador = db.query(Administrador).filter(
-        Administrador.codigo_administrador == codigo
-    ).first()
-    codigo_asesor = db.execute(
-        text(
-            """
-            SELECT id_asesor
-            FROM asesores_banco
-            WHERE codigo_asesor = :codigo
-              AND estado = 'activo'
-            LIMIT 1
-            """
-        ),
-        {"codigo": codigo},
-    ).first()
 
-    if not codigo_administrador and not codigo_asesor:
+    if not codigo_autorizacion_es_valido(db, codigo):
         raise HTTPException(
             status_code=401,
             detail="El código de administrador o asesor no es válido."
@@ -2323,23 +2345,8 @@ def administrador_actualizar_ultimos_digitos(
     db: Session = Depends(get_db)
 ):
     codigo = datos.codigo_autorizacion.strip()
-    codigo_administrador = db.query(Administrador).filter(
-        Administrador.codigo_administrador == codigo
-    ).first()
-    codigo_asesor = db.execute(
-        text(
-            """
-            SELECT id_asesor
-            FROM asesores_banco
-            WHERE codigo_asesor = :codigo
-              AND estado = 'activo'
-            LIMIT 1
-            """
-        ),
-        {"codigo": codigo},
-    ).first()
 
-    if not codigo_administrador and not codigo_asesor:
+    if not codigo_autorizacion_es_valido(db, codigo):
         raise HTTPException(
             status_code=401,
             detail="El código de administrador o asesor no es válido."
@@ -2414,23 +2421,8 @@ def autorizar_edicion_tipo_operacion(
         )
 
     codigo = datos.codigo_autorizacion.strip()
-    codigo_administrador = db.query(Administrador).filter(
-        Administrador.codigo_administrador == codigo
-    ).first()
-    codigo_asesor = db.execute(
-        text(
-            """
-            SELECT id_asesor
-            FROM asesores_banco
-            WHERE codigo_asesor = :codigo
-              AND estado = 'activo'
-            LIMIT 1
-            """
-        ),
-        {"codigo": codigo},
-    ).first()
 
-    if not codigo_administrador and not codigo_asesor:
+    if not codigo_autorizacion_es_valido(db, codigo):
         raise HTTPException(
             status_code=401,
             detail="El código de administrador o asesor no es válido."
@@ -2461,23 +2453,8 @@ def autorizar_edicion_ultimos_digitos(
         )
 
     codigo = datos.codigo_autorizacion.strip()
-    codigo_administrador = db.query(Administrador).filter(
-        Administrador.codigo_administrador == codigo
-    ).first()
-    codigo_asesor = db.execute(
-        text(
-            """
-            SELECT id_asesor
-            FROM asesores_banco
-            WHERE codigo_asesor = :codigo
-              AND estado = 'activo'
-            LIMIT 1
-            """
-        ),
-        {"codigo": codigo},
-    ).first()
 
-    if not codigo_administrador and not codigo_asesor:
+    if not codigo_autorizacion_es_valido(db, codigo):
         raise HTTPException(
             status_code=401,
             detail="El código de administrador o asesor no es válido."
@@ -2508,23 +2485,8 @@ def autorizar_edicion_saldo(
         )
 
     codigo = datos.codigo_autorizacion.strip()
-    codigo_administrador = db.query(Administrador).filter(
-        Administrador.codigo_administrador == codigo
-    ).first()
-    codigo_asesor = db.execute(
-        text(
-            """
-            SELECT id_asesor
-            FROM asesores_banco
-            WHERE codigo_asesor = :codigo
-              AND estado = 'activo'
-            LIMIT 1
-            """
-        ),
-        {"codigo": codigo},
-    ).first()
 
-    if not codigo_administrador and not codigo_asesor:
+    if not codigo_autorizacion_es_valido(db, codigo):
         raise HTTPException(
             status_code=401,
             detail="El código de administrador o asesor no es válido."

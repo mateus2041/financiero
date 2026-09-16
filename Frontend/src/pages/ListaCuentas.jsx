@@ -441,7 +441,7 @@ export default function ListaCuentas() {
     localStorage.removeItem("documento");
     localStorage.removeItem("fotoPerfil");
 
-    navigate("/login");
+    navigate("/");
   };
 
   return (
@@ -647,48 +647,76 @@ export default function ListaCuentas() {
               </div>
 
               <div className="detalles-cuenta">
-                {Object.entries(cuentaSeleccionada).map(([clave, valor]) => (
-                  <div className="detalle-cuenta" key={clave}>
-                    <strong>{clave.replaceAll("_", " ")}</strong>
-                    <div className="valor-detalle-cuenta">
-                      <span>{formatearValor(clave, valor)}</span>
-                      {clave === "saldo" && (
-                        <button
-                          type="button"
-                          className="boton-editar-saldo"
-                          onClick={abrirEdicionSaldo}
-                          aria-label="Editar saldo"
-                          title="Editar saldo"
-                        >
-                          ✎
-                        </button>
-                      )}
-                      {clave === "numero_cuenta" && (
-                        <button
-                          type="button"
-                          className="boton-editar-saldo"
-                          onClick={abrirEdicionNumeroCuenta}
-                          aria-label="Editar últimos 4 dígitos de la cuenta"
-                          title="Editar últimos 4 dígitos"
-                        >
-                          ✎
-                        </button>
-                      )}
-                      {clave === "tipo_operacion" &&
-                        cuentaSeleccionada.tipo_cuenta === "corriente" && (
+                {Object.entries(cuentaSeleccionada)
+                  .filter(([clave, valor]) => {
+                    if (clave === "id_cuenta") {
+                      return false;
+                    }
+
+                    if (
+                      clave === "tipo_cuenta" &&
+                      String(cuentaSeleccionada.tipo_cuenta || "")
+                        .trim()
+                        .toLowerCase() !== "corriente"
+                    ) {
+                      return false;
+                    }
+
+                    if (
+                      clave === "tipo_operacion" &&
+                      String(cuentaSeleccionada.tipo_cuenta || "")
+                        .trim()
+                        .toLowerCase() !== "corriente"
+                    ) {
+                      return false;
+                    }
+
+                    return true;
+                  })
+                  .map(([clave, valor]) => (
+                    <div className="detalle-cuenta" key={clave}>
+                      <strong>{clave.replaceAll("_", " ")}</strong>
+                      <div className="valor-detalle-cuenta">
+                        <span>{formatearValor(clave, valor)}</span>
+                        {clave === "saldo" && (
                           <button
                             type="button"
                             className="boton-editar-saldo"
-                            onClick={abrirEdicionTipoOperacion}
-                            aria-label="Editar tipo de operación"
-                            title="Editar tipo de operación"
+                            onClick={abrirEdicionSaldo}
+                            aria-label="Editar saldo"
+                            title="Editar saldo"
                           >
                             ✎
                           </button>
                         )}
+                        {clave === "numero_cuenta" && (
+                          <button
+                            type="button"
+                            className="boton-editar-saldo"
+                            onClick={abrirEdicionNumeroCuenta}
+                            aria-label="Editar últimos 4 dígitos de la cuenta"
+                            title="Editar últimos 4 dígitos"
+                          >
+                            ✎
+                          </button>
+                        )}
+                        {clave === "tipo_operacion" &&
+                          String(cuentaSeleccionada.tipo_cuenta || "")
+                            .trim()
+                            .toLowerCase() === "corriente" && (
+                              <button
+                                type="button"
+                                className="boton-editar-saldo"
+                                onClick={abrirEdicionTipoOperacion}
+                                aria-label="Editar tipo de operación"
+                                title="Editar tipo de operación"
+                              >
+                                ✎
+                              </button>
+                            )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
 
             </section>
