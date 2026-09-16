@@ -183,6 +183,22 @@ body {
   opacity: 0.6;
 }
 
+.boton-nueva-cuenta {
+  padding: 10px 16px;
+  border: 1px solid #6fcf97;
+  border-radius: 7px;
+  background: #6fcf97;
+  color: #0b0f16;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.boton-nueva-cuenta:hover {
+  background: #8be3ae;
+  border-color: #8be3ae;
+}
+
 .contenido-cuentas {
   flex: 1;
   min-width: 0;
@@ -792,6 +808,20 @@ body {
 }
 
 .modal-edicion-saldo input:focus {
+  outline: 2px solid var(--dorado);
+  outline-offset: 1px;
+}
+
+.modal-edicion-saldo select {
+  padding: 11px 12px;
+  border: 1px solid rgba(168, 179, 207, 0.35);
+  border-radius: 7px;
+  background: #0b0f16;
+  color: #ffffff;
+  font: inherit;
+}
+
+.modal-edicion-saldo select:focus {
   outline: 2px solid var(--dorado);
   outline-offset: 1px;
 }

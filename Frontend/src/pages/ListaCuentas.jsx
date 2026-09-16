@@ -13,7 +13,14 @@ export default function ListaCuentas() {
   const esAsesor = rol === "asesor";
 
   const [cuentas, setCuentas] = useState([]);
+  const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [creandoCuenta, setCreandoCuenta] = useState(false);
+  const [guardandoCuenta, setGuardandoCuenta] = useState(false);
+  const [nuevaCuenta, setNuevaCuenta] = useState({
+    id_usuario: "",
+    tipo_cuenta: "ahorros",
+  });
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [cuentaSeleccionada, setCuentaSeleccionada] = useState(null);
@@ -31,7 +38,23 @@ export default function ListaCuentas() {
 
   useEffect(() => {
     cargarCuentas();
+    cargarUsuarios();
   }, []);
+
+  const cargarUsuarios = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const respuesta = await axios.get(`${API_URL}/usuarios`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUsuarios(respuesta.data || []);
+    } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+      }
+    }
+  };
 
   const cargarCuentas = async () => {
     try {
@@ -122,6 +145,44 @@ export default function ListaCuentas() {
         error.response?.data?.detail ||
           "No se pudo actualizar el estado de la cuenta."
       );
+    }
+  };
+
+  const crearNuevaCuenta = async (evento) => {
+    evento.preventDefault();
+
+    try {
+      setError("");
+      setMensaje("");
+      setGuardandoCuenta(true);
+
+      const token = localStorage.getItem("token");
+      const respuesta = await axios.post(
+        `${API_URL}/administradores/cuentas`,
+        {
+          id_usuario: Number(nuevaCuenta.id_usuario),
+          tipo_cuenta: nuevaCuenta.tipo_cuenta,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setCreandoCuenta(false);
+      setNuevaCuenta({ id_usuario: "", tipo_cuenta: "ahorros" });
+      await cargarCuentas();
+      setMensaje(respuesta.data?.mensaje || "Cuenta creada correctamente.");
+    } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+
+      setError(
+        error.response?.data?.detail ||
+          "No se pudo crear la cuenta."
+      );
+    } finally {
+      setGuardandoCuenta(false);
     }
   };
 
@@ -499,6 +560,16 @@ export default function ListaCuentas() {
             >
               {cargando ? "Actualizando..." : "Actualizar lista"}
             </button>
+            <button
+              type="button"
+              className="boton-nueva-cuenta"
+              onClick={() => {
+                setError("");
+                setCreandoCuenta(true);
+              }}
+            >
+              + Nueva cuenta
+            </button>
           </div>
 
           <p className="subtitulo-cuentas">
@@ -620,6 +691,73 @@ export default function ListaCuentas() {
           )}
 
         </main>
+
+        {creandoCuenta && (
+          <div
+            className="modal-edicion-overlay"
+            role="presentation"
+            onClick={() => setCreandoCuenta(false)}
+          >
+            <form
+              className="modal-edicion-saldo"
+              onSubmit={crearNuevaCuenta}
+              onClick={(evento) => evento.stopPropagation()}
+            >
+              <h2>Añadir nueva cuenta</h2>
+              <p>Seleccione el usuario y el tipo de cuenta.</p>
+              <label htmlFor="usuario-nueva-cuenta">Usuario</label>
+              <select
+                id="usuario-nueva-cuenta"
+                value={nuevaCuenta.id_usuario}
+                onChange={(evento) =>
+                  setNuevaCuenta({
+                    ...nuevaCuenta,
+                    id_usuario: evento.target.value,
+                  })
+                }
+                required
+              >
+                <option value="">Seleccione un usuario</option>
+                {usuarios.map((usuario) => (
+                  <option key={usuario.id_usuario} value={usuario.id_usuario}>
+                    {usuario.nombre} - {usuario.documento}
+                  </option>
+                ))}
+              </select>
+              <label htmlFor="tipo-nueva-cuenta">Tipo de cuenta</label>
+              <select
+                id="tipo-nueva-cuenta"
+                value={nuevaCuenta.tipo_cuenta}
+                onChange={(evento) =>
+                  setNuevaCuenta({
+                    ...nuevaCuenta,
+                    tipo_cuenta: evento.target.value,
+                  })
+                }
+              >
+                <option value="ahorros">Ahorros</option>
+                <option value="corriente">Corriente</option>
+              </select>
+              <div className="acciones-formulario-saldo">
+                <button
+                  type="button"
+                  className="boton-cancelar-saldo"
+                  onClick={() => setCreandoCuenta(false)}
+                  disabled={guardandoCuenta}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="boton-guardar-saldo"
+                  disabled={guardandoCuenta}
+                >
+                  {guardandoCuenta ? "Creando..." : "Crear cuenta"}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
         {cuentaSeleccionada && (
           <div

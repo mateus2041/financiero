@@ -9,16 +9,18 @@ export default function Administradores() {
   const navigate = useNavigate();
 
   const [asesores, setAsesores] = useState([]);
+  const [busquedaAsesor, setBusquedaAsesor] = useState("");
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-  const [errorConsulta, setErrorConsulta] = useState("");
   const [mensaje, setMensaje] = useState("");
-  const [codigoAsesorConsulta, setCodigoAsesorConsulta] = useState("");
   const [asesorConsultado, setAsesorConsultado] = useState(null);
-  const [consultandoAsesor, setConsultandoAsesor] = useState(false);
   const [nuevoCodigoAsesor, setNuevoCodigoAsesor] = useState("");
+  const [nuevoTipoDocumento, setNuevoTipoDocumento] = useState("");
+  const [nuevoDocumento, setNuevoDocumento] = useState("");
+  const [nuevoEmail, setNuevoEmail] = useState("");
   const [guardandoCodigo, setGuardandoCodigo] = useState(false);
   const [editandoCodigo, setEditandoCodigo] = useState(false);
+  const [campoEditando, setCampoEditando] = useState("");
 
   useEffect(() => {
     cargarDatos();
@@ -28,6 +30,7 @@ export default function Administradores() {
     const cerrarConEscape = (e) => {
       if (e.key === "Escape") {
         setEditandoCodigo(false);
+        setCampoEditando("");
       }
     };
 
@@ -114,58 +117,15 @@ export default function Administradores() {
     }
   };
 
-  const consultarAsesor = async (e) => {
-    e.preventDefault();
-
-    if (!codigoAsesorConsulta.trim()) {
-      setErrorConsulta("Ingrese el código del asesor.");
-      return;
-    }
-
-    try {
-      setError("");
-      setErrorConsulta("");
-      setMensaje("");
-      setConsultandoAsesor(true);
-      setAsesorConsultado(null);
-      setEditandoCodigo(false);
-
-      const token = localStorage.getItem("token");
-
-      const respuesta = await axios.get(
-        `${API_URL}/administradores/asesores`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          params: {
-            codigo_asesor: codigoAsesorConsulta.trim(),
-          },
-        }
-      );
-
-      const lista = respuesta.data?.asesores || [];
-      setAsesorConsultado(lista[0] || null);
-      setNuevoCodigoAsesor(lista[0]?.codigo_asesor || "");
-
-      if (!lista[0]) {
-        setErrorConsulta("No se encontró un asesor con ese código.");
-      }
-    } catch (error) {
-      console.error(error);
-      setAsesorConsultado(null);
-      setErrorConsulta(formatearError(error, "No se pudo consultar el asesor."));
-    } finally {
-      setConsultandoAsesor(false);
-    }
-  };
-
   const cambiarCodigoAsesor = async (e) => {
     e.preventDefault();
 
     const codigo = nuevoCodigoAsesor.trim();
-    if (!codigo) {
-      setError("Ingrese el nuevo código del asesor.");
+    const tipoDocumento = nuevoTipoDocumento.trim();
+    const documento = nuevoDocumento.trim();
+    const email = nuevoEmail.trim();
+    if (!codigo || !tipoDocumento || !documento || !email) {
+      setError("Complete todos los datos del asesor.");
       return;
     }
 
@@ -180,6 +140,9 @@ export default function Administradores() {
         {
           id_asesor: asesorConsultado.id_asesor,
           codigo_asesor: codigo,
+          tipo_documento: tipoDocumento,
+          documento,
+          email,
         },
         {
           headers: {
@@ -192,14 +155,25 @@ export default function Administradores() {
       setAsesorConsultado((actual) => ({
         ...actual,
         codigo_asesor: codigoActualizado,
+        tipo_documento: tipoDocumento,
+        documento,
+        email,
       }));
-      setCodigoAsesorConsulta(codigoActualizado);
       setNuevoCodigoAsesor(codigoActualizado);
+      setNuevoTipoDocumento(tipoDocumento);
+      setNuevoDocumento(documento);
+      setNuevoEmail(email);
       setEditandoCodigo(false);
       setAsesores((actuales) =>
         actuales.map((asesor) =>
           asesor.id_asesor === asesorConsultado.id_asesor
-            ? { ...asesor, codigo_asesor: codigoActualizado }
+            ? {
+                ...asesor,
+                codigo_asesor: codigoActualizado,
+                tipo_documento: tipoDocumento,
+                documento,
+                email,
+              }
             : asesor
         )
       );
@@ -219,6 +193,19 @@ export default function Administradores() {
 
     navigate("/");
   };
+
+  const asesoresFiltrados = asesores.filter((asesor) =>
+    String(asesor.nombre || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .includes(
+        busquedaAsesor
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+      )
+  );
 
   if (cargando) {
     return (
@@ -303,12 +290,25 @@ export default function Administradores() {
 
               <h2>Lista de asesores</h2>
 
+              <div className="buscador-asesores">
+                <label htmlFor="buscar-asesor">Buscar por nombre</label>
+                <input
+                  id="buscar-asesor"
+                  type="search"
+                  value={busquedaAsesor}
+                  onChange={(e) => setBusquedaAsesor(e.target.value)}
+                  placeholder="Escribe el nombre del asesor"
+                />
+              </div>
+
               {asesores.length === 0 ? (
                 <p>No hay asesores registrados.</p>
+              ) : asesoresFiltrados.length === 0 ? (
+                <p>No se encontraron asesores con ese nombre.</p>
               ) : (
                 <div className="lista-asesores-compacta">
 
-                  {asesores.map((asesor) => (
+                  {asesoresFiltrados.map((asesor) => (
 
                     <div
                       className="fila-asesor"
@@ -385,6 +385,25 @@ export default function Administradores() {
 
                       </div>
 
+                      <div className="fila-asesor-dato fila-acciones">
+                        <span className="fila-label">Acciones</span>
+                        <button
+                          type="button"
+                          className="boton-editar-asesor"
+                          onClick={() => {
+                            setAsesorConsultado(asesor);
+                            setNuevoCodigoAsesor(asesor.codigo_asesor || "");
+                            setNuevoTipoDocumento(asesor.tipo_documento || "");
+                            setNuevoDocumento(asesor.documento || "");
+                            setNuevoEmail(asesor.email || "");
+                            setCampoEditando("todos");
+                            setEditandoCodigo(true);
+                          }}
+                        >
+                          ✎ Editar información
+                        </button>
+                      </div>
+
                     </div>
 
                   ))}
@@ -394,130 +413,87 @@ export default function Administradores() {
 
             </section>
 
-            <aside className="panel-consulta-asesor">
-              <h3>Consultar asesor</h3>
+            </div>
 
-              <form onSubmit={consultarAsesor} className="formulario-consulta-asesor">
-                <label>
-                  Código del asesor
-                  <input
-                    type="text"
-                    value={codigoAsesorConsulta}
-                    onChange={(e) => setCodigoAsesorConsulta(e.target.value)}
-                    placeholder="Ingrese el código"
-                    style={{
-                      color: "#ffffff",
-                      WebkitTextFillColor: "#ffffff",
-                      caretColor: "#ffffff",
-                      backgroundColor: "#0b0f16",
-                    }}
-                  />
-                </label>
-
-                <button type="submit" disabled={consultandoAsesor}>
-                  {consultandoAsesor ? "Consultando..." : "Consultar"}
-                </button>
-              </form>
-
-              {errorConsulta && (
-                <p className="mensaje-error mensaje-error-consulta">
-                  {errorConsulta}
-                </p>
-              )}
-
-              {asesorConsultado ? (
-                <div className="resultado-asesor-consultado">
-                  <p>
-                    <strong>Nombre:</strong> {asesorConsultado.nombre || "Sin nombre"}
-                  </p>
-                  <p>
-                    <strong>Código actual:</strong>{" "}
-                    <span className="codigo-asesor-actual">
-                      {asesorConsultado.codigo_asesor || "Sin código"}
-                      <button
-                        type="button"
-                        className="boton-editar-codigo"
-                        onClick={() => setEditandoCodigo((actual) => !actual)}
-                        aria-label="Editar código del asesor"
-                        title="Editar código del asesor"
-                      >
-                        ✎
-                      </button>
-                    </span>
-                  </p>
-                  <p>
-                    <strong>Estado:</strong>{" "}
-                    <span
-                      className={
-                        asesorConsultado.estado === "inactivo"
-                          ? "estado-badge inactivo"
-                          : "estado-badge activo"
-                      }
-                    >
-                      {asesorConsultado.estado || "activo"}
-                    </span>
-                  </p>
-                </div>
-              ) : (
-                <p className="texto-empty-consulta">
-                  Busca un asesor por su código.
-                </p>
-              )}
-
-              {editandoCodigo && asesorConsultado && (
+            {editandoCodigo && asesorConsultado && (
+              <div
+                className="modal-cambio-codigo-overlay"
+                onClick={() => setEditandoCodigo(false)}
+                role="presentation"
+              >
                 <div
-                  className="modal-cambio-codigo-overlay"
-                  onClick={() => setEditandoCodigo(false)}
-                  role="presentation"
+                  className="modal-cambio-codigo"
+                  onClick={(e) => e.stopPropagation()}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="titulo-modal-cambio-codigo"
                 >
-                  <div
-                    className="modal-cambio-codigo"
-                    onClick={(e) => e.stopPropagation()}
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="titulo-modal-cambio-codigo"
-                  >
-                    <div className="encabezado-modal-cambio-codigo">
-                      <h2 id="titulo-modal-cambio-codigo">Cambiar código del asesor</h2>
-                      <button
-                        type="button"
-                        className="boton-cerrar-modal"
-                        onClick={() => setEditandoCodigo(false)}
-                        aria-label="Cerrar ventana"
-                        title="Cerrar"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <form onSubmit={cambiarCodigoAsesor} className="formulario-cambio-codigo">
-                      <p className="asesor-modal-nombre">
-                        {asesorConsultado.nombre || "Asesor bancario"}
-                      </p>
-                      <label>
-                        Nuevo código del asesor
-                        <input
-                          type="text"
-                          value={nuevoCodigoAsesor}
-                          onChange={(e) => setNuevoCodigoAsesor(e.target.value)}
-                          maxLength={30}
-                          autoFocus
-                          style={{
-                            color: "#ffffff",
-                            WebkitTextFillColor: "#ffffff",
-                            caretColor: "#ffffff",
-                            backgroundColor: "#0b0f16",
-                          }}
-                        />
-                      </label>
-                      <button type="submit" disabled={guardandoCodigo}>
-                        {guardandoCodigo ? "Guardando..." : "Cambiar código"}
-                      </button>
-                    </form>
+                  <div className="encabezado-modal-cambio-codigo">
+                    <h2 id="titulo-modal-cambio-codigo">
+                      Editar información del asesor
+                    </h2>
+                    <button
+                      type="button"
+                      className="boton-cerrar-modal"
+                      onClick={() => setEditandoCodigo(false)}
+                      aria-label="Cerrar ventana"
+                      title="Cerrar"
+                    >
+                      ×
+                    </button>
                   </div>
+                  <form onSubmit={cambiarCodigoAsesor} className="formulario-cambio-codigo">
+                    <p className="asesor-modal-nombre">
+                      {asesorConsultado.nombre || "Asesor bancario"}
+                    </p>
+                    <label>
+                      Tipo de documento
+                      <input
+                        type="text"
+                        value={nuevoTipoDocumento}
+                        onChange={(e) => setNuevoTipoDocumento(e.target.value)}
+                        maxLength={50}
+                        autoFocus
+                        required
+                      />
+                    </label>
+                    <label>
+                      Número de documento
+                      <input
+                        type="text"
+                        value={nuevoDocumento}
+                        onChange={(e) => setNuevoDocumento(e.target.value)}
+                        maxLength={50}
+                        required
+                      />
+                    </label>
+                    <label>
+                      Correo electrónico
+                      <input
+                        type="email"
+                        value={nuevoEmail}
+                        onChange={(e) => setNuevoEmail(e.target.value)}
+                        maxLength={100}
+                        required
+                      />
+                    </label>
+                    <label>
+                      Código del asesor
+                      <input
+                        type="text"
+                        value={nuevoCodigoAsesor}
+                        onChange={(e) => setNuevoCodigoAsesor(e.target.value)}
+                        maxLength={30}
+                        required
+                      />
+                    </label>
+                    <button type="submit" disabled={guardandoCodigo}>
+                      {guardandoCodigo ? "Guardando..." : "Guardar información"}
+                    </button>
+                  </form>
                 </div>
-              )}
-            </aside>
-          </div>
+              </div>
+            )}
 
         </main>
 

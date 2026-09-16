@@ -971,7 +971,8 @@ def consultar_asesores(
                      COALESCE(a.documento, u.documento) AS documento,
                      COALESCE(a.tipo_documento, td.nombre_doc) AS tipo_documento,
                      COALESCE(a.especialidad, u.rol) AS cargo,
-                     a.email, a.codigo_asesor,
+                     COALESCE(a.email, u.email) AS email,
+                     a.codigo_asesor,
                      a.estado, a.fecha_ingreso
             FROM asesores_banco AS a
             LEFT JOIN usuario AS u ON u.id_usuario = a.id_usuario
@@ -1056,6 +1057,21 @@ def actualizar_asesor(
         raise HTTPException(status_code=400, detail="Ingrese un ID de asesor válido")
 
     codigo_asesor = str(data.get("codigo_asesor", "")).strip()
+    tipo_documento = str(data.get("tipo_documento", "")).strip()
+    documento = str(data.get("documento", "")).strip()
+    email = str(data.get("email", "")).strip()
+
+    if not tipo_documento or not documento or not email:
+        raise HTTPException(
+            status_code=400,
+            detail="Tipo de documento, número de documento y correo son obligatorios"
+        )
+
+    if "@" not in email:
+        raise HTTPException(
+            status_code=400,
+            detail="Ingrese un correo electrónico válido"
+        )
     if not codigo_asesor:
         raise HTTPException(status_code=400, detail="Ingrese el código de asesor")
     if len(codigo_asesor) > 30:
@@ -1093,22 +1109,50 @@ def actualizar_asesor(
         text(
             """
             UPDATE asesores_banco
-            SET id_asesor = :nuevo_id_asesor, codigo_asesor = :codigo_asesor
+            SET id_asesor = :nuevo_id_asesor,
+                codigo_asesor = :codigo_asesor,
+                tipo_documento = :tipo_documento,
+                documento = :documento,
+                email = :email
             WHERE id_asesor = :id_asesor
             """
         ),
         {
             "nuevo_id_asesor": nuevo_id_asesor,
             "codigo_asesor": codigo_asesor,
+            "tipo_documento": tipo_documento,
+            "documento": documento,
+            "email": email,
             "id_asesor": id_asesor
         }
     )
+
+    asesor_usuario = db.execute(
+        text("SELECT id_usuario FROM asesores_banco WHERE id_asesor = :id_asesor"),
+        {"id_asesor": nuevo_id_asesor}
+    ).mappings().first()
+    if asesor_usuario and asesor_usuario["id_usuario"]:
+        db.execute(
+            text(
+                "UPDATE usuario SET documento = :documento, email = :email "
+                "WHERE id_usuario = :id_usuario"
+            ),
+            {
+                "documento": documento,
+                "email": email,
+                "id_usuario": asesor_usuario["id_usuario"],
+            }
+        )
+
     db.commit()
 
     return {
         "mensaje": "Asesor actualizado correctamente",
         "id_asesor": nuevo_id_asesor,
-        "codigo_asesor": codigo_asesor
+        "codigo_asesor": codigo_asesor,
+        "tipo_documento": tipo_documento,
+        "documento": documento,
+        "email": email,
     }
 
 
@@ -1439,6 +1483,82 @@ def listar_cuentas_admin(
             }
             for cuenta, usuario in cuentas
         ]
+    }
+
+
+@app.post("/administradores/cuentas")
+def crear_cuenta_admin(
+    data: dict,
+    current_user: int = Depends(administrador_o_asesor_requerido),
+    db: Session = Depends(get_db)
+):
+    try:
+        id_usuario = int(data.get("id_usuario"))
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=400,
+            detail="Debe seleccionar un usuario válido."
+        )
+
+    tipo_cuenta = str(data.get("tipo_cuenta", "")).strip().lower()
+    if tipo_cuenta not in ("ahorros", "corriente"):
+        raise HTTPException(
+            status_code=400,
+            detail="El tipo de cuenta debe ser ahorros o corriente."
+        )
+
+    usuario = db.query(Usuario).filter(
+        Usuario.id_usuario == id_usuario,
+        Usuario.rol == "usuario",
+        ~Usuario.id_usuario.in_(db.query(Administrador.id_usuario)),
+        text(
+            "NOT EXISTS ("
+            "SELECT 1 FROM asesores_banco asesor "
+            "WHERE asesor.id_usuario = usuario.id_usuario"
+            ")"
+        )
+    ).first()
+
+    if not usuario:
+        raise HTTPException(
+            status_code=404,
+            detail="El usuario seleccionado no existe."
+        )
+
+    cuenta_existente = db.query(Cuenta).filter(
+        Cuenta.id_usuario == id_usuario,
+        Cuenta.tipo_cuenta == tipo_cuenta
+    ).first()
+    if cuenta_existente:
+        raise HTTPException(
+            status_code=409,
+            detail="El usuario ya tiene una cuenta de este tipo."
+        )
+
+    cuenta = Cuenta(
+        id_usuario=id_usuario,
+        numero_cuenta=generar_numero_cuenta(db),
+        tipo_cuenta=tipo_cuenta,
+        tipo_operacion="debito",
+        saldo=0,
+        estado="inactiva"
+    )
+    db.add(cuenta)
+    db.commit()
+    db.refresh(cuenta)
+
+    return {
+        "mensaje": "Cuenta creada correctamente. Queda pendiente de habilitación.",
+        "cuenta": {
+            "id_cuenta": cuenta.id_cuenta,
+            "id_usuario": cuenta.id_usuario,
+            "nombre": usuario.nombre,
+            "numero_cuenta": cuenta.numero_cuenta,
+            "tipo_cuenta": cuenta.tipo_cuenta,
+            "tipo_operacion": cuenta.tipo_operacion,
+            "saldo": float(cuenta.saldo or 0),
+            "estado": "inactivo",
+        }
     }
 
 
