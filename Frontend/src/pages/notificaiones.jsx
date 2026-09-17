@@ -326,12 +326,6 @@ export default function Notificaciones() {
             </li>
 
             <li>
-              <Link to="/lista-asesores">
-                📜 Asesores
-              </Link>
-            </li>
-
-            <li>
               <Link to="/lista-usuarios">
                 👤 Usuarios
               </Link>

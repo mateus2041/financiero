@@ -16,7 +16,6 @@ import VerificacionIdentidad from "./pages/VerificacionIdentidad";
 import AsesorBancario from "./pages/AsesorBancario";
 import ChatIA from "./pages/ChatIA";
 import Administradores from "./pages/Administradores";
-import ListaAsesores from "./pages/Listaasesores";
 import ListaCuentas from "./pages/ListaCuentas";
 import ListaUsuarios from "./pages/Listausuarios";
 import TransferenciasScr from "./pages/transferenciascr";
@@ -81,6 +80,16 @@ function App() {
       />
 
       <Route
+        path="/AsesorBancario"
+        element={<Navigate to="/asesor-bancario" replace />}
+      />
+
+      <Route
+        path="/asesorbancario"
+        element={<Navigate to="/asesor-bancario" replace />}
+      />
+
+      <Route
         path="/ChatIA"
         element={<ChatIA />}
       />
@@ -88,11 +97,6 @@ function App() {
       <Route
         path="/administradores"
         element={<Administradores />}
-      />
-
-      <Route
-        path="/lista-asesores"
-        element={<ListaAsesores />}
       />
 
       <Route

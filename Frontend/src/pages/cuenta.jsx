@@ -211,7 +211,6 @@ const Cuenta = () => {
         const saldoAhorroActivo = datosSaldos.cuenta_ahorro_estado === "activa"
           ? Number(datosSaldos.cuenta_ahorro || 0)
           : 0;
-
         setSaldoCorriente(saldoCorrienteActivo);
         setSaldoAhorro(saldoAhorroActivo);
         setNumeroCuentaCorriente(
@@ -645,26 +644,14 @@ const Cuenta = () => {
             </div>
           )}
 
-
           {mostrarCuentaAhorro && (
             <div className="card">
-
               <h3>Ahorros</h3>
-
-              <small className={estadoCuentaAhorro === "activa" ? "cuenta-activa" : "cuenta-inactiva"}>
-                {estadoCuentaAhorro === "activa" ? "Cuenta activa" : "Cuenta deshabilitada"}
-              </small>
-
-              <span>
-                ${saldoAhorro}
-              </span>
-
+              <small className="cuenta-activa">Cuenta activa</small>
+              <span>${saldoAhorro}</span>
               <small>Número de cuenta: {ocultarNumeroCuenta(numeroCuentaAhorro)}</small>
-
             </div>
           )}
-
-
 
 
           <div className="card">
