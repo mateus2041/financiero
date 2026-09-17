@@ -515,10 +515,20 @@ body {
 
 .tabla-cuentas-contenedor {
   width: 100%;
-  overflow-x: auto;
+  max-height: min(62vh, 560px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  overscroll-behavior: contain;
+  cursor: grab;
+  user-select: none;
   border: 1px solid rgba(242, 201, 76, 0.2);
   border-radius: 10px;
   background: var(--fondo-tarjeta);
+}
+
+.tabla-cuentas-contenedor:active {
+  cursor: grabbing;
 }
 
 .tabla-cuentas {
@@ -628,6 +638,17 @@ body {
 
 .boton-ver:hover {
   background: #9ec5ff;
+  color: #0b0f16;
+}
+
+.boton-nueva-cuenta {
+  border: 1px solid var(--dorado);
+  background: transparent;
+  color: var(--dorado);
+}
+
+.boton-nueva-cuenta:hover {
+  background: var(--dorado);
   color: #0b0f16;
 }
 
@@ -1084,5 +1105,136 @@ button:hover {
   .modal-secondary-button,
   .modal-primary-button {
     width: 100%;
+  }
+}
+
+.tipo-cuenta-principal {
+  display: grid;
+  gap: 7px;
+  margin-top: -2px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--dorado);
+  background: rgba(11, 15, 22, 0.45);
+}
+
+.tipo-cuenta-principal span {
+  color: var(--texto-secundario);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.tipo-cuenta-principal strong {
+  color: var(--dorado);
+}
+
+.modal-edicion-saldo select {
+  padding: 11px 12px;
+  border: 1px solid rgba(168, 179, 207, 0.35);
+  border-radius: 7px;
+  background: #0b0f16;
+  color: #ffffff;
+  font: inherit;
+}
+
+.modal-edicion-saldo select option {
+  background: #0b0f16;
+  color: #ffffff;
+}
+
+.ayuda-tipo-operacion {
+  margin: -3px 0 4px;
+  color: var(--texto-secundario);
+  font-size: 13px;
+}
+
+.boton-menu-cuentas {
+  display: none;
+  position: fixed;
+  top: 16px;
+  right: 14px;
+  z-index: 40;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(242, 201, 76, 0.45);
+  border-radius: 8px;
+  background: #121829;
+  color: var(--dorado);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.boton-menu-cuentas:hover,
+.boton-menu-cuentas:focus-visible {
+  background: var(--dorado);
+  color: #0b0f16;
+  outline: 2px solid var(--dorado);
+  outline-offset: 1px;
+}
+
+@media (max-width: 650px) {
+  .panel-financiero {
+    position: relative;
+    flex-direction: row;
+  }
+
+  .boton-menu-cuentas {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 30;
+    width: min(78vw, 260px);
+    min-width: 0;
+    min-height: 100vh;
+    padding: 18px 15px 15px;
+    box-shadow: 8px 0 24px rgba(0, 0, 0, 0.35);
+    transform: translateX(0);
+    transition: transform 0.25s ease;
+  }
+
+  .sidebar-cerrado {
+    width: min(78vw, 260px);
+    min-width: 0;
+    min-height: 100vh;
+    padding: 18px 15px 15px;
+    transform: translateX(-105%);
+  }
+
+  .sidebar ul {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .sidebar ul li {
+    margin: 0;
+  }
+
+  .contenido-cuentas {
+    width: 100%;
+    min-height: 100vh;
+    padding: 72px 16px 24px;
+  }
+
+  .contenido-cuentas h1 {
+    font-size: 26px;
+  }
+
+  .encabezado-cuentas {
+    padding-right: 42px;
+  }
+
+  .detalles-cuenta {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-cuenta,
+  .modal-edicion-saldo {
+    max-width: 100%;
   }
 }

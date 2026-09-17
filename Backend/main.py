@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from decimal import Decimal
 import secrets
 import os
+import re
 import hmac
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -43,6 +44,12 @@ class TipoOperacionCuenta(BaseModel):
 class TipoOperacionCuentaAutorizada(BaseModel):
     tipo_operacion: str
     codigo_autorizacion: str
+
+class NuevaCuenta(BaseModel):
+    tipo_cuenta: str
+    tipo_operacion: str = "debito"
+    opcion_cuenta: str | None = None
+    saldo: float = 0
 
 class ConfirmarContrasena(BaseModel):
     password: str
@@ -628,16 +635,7 @@ def registrar_usuario(
 
     numeros_usados: set[str] = set()
 
-    db.add_all([
-
-        Cuenta(
-            id_usuario=nuevo_usuario.id_usuario,
-            numero_cuenta=generar_numero_cuenta(db, numeros_usados),
-            tipo_cuenta="ahorros",
-            saldo=0,
-            estado="inactiva"
-        ),
-
+    db.add(
         Cuenta(
             id_usuario=nuevo_usuario.id_usuario,
             numero_cuenta=generar_numero_cuenta(db, numeros_usados),
@@ -645,8 +643,7 @@ def registrar_usuario(
             saldo=0,
             estado="inactiva"
         )
-
-    ])
+    )
 
     db.commit()
 
@@ -770,12 +767,13 @@ def asesor_login(
     data: dict,
     db: Session = Depends(get_db)
 ):
+    email_asesor = str(data.get("email", "")).strip().lower()
     codigo_asesor = str(data.get("codigo_asesor", "")).strip()
 
-    if not codigo_asesor:
+    if not email_asesor or not codigo_asesor:
         raise HTTPException(
             status_code=400,
-            detail="Ingrese el código de asesor"
+            detail="Ingrese el correo y el código del asesor"
         )
 
     asesor = db.execute(
@@ -784,26 +782,55 @@ def asesor_login(
                  SELECT a.id_asesor, u.id_usuario,
                      COALESCE(u.nombre, a.nombre) AS nombre,
                      COALESCE(u.documento, a.documento) AS documento,
+                                         COALESCE(a.email, u.email) AS email,
                      COALESCE(u.rol, 'asesor') AS rol
             FROM asesores_banco AS a
             LEFT JOIN usuario AS u ON u.id_usuario = a.id_usuario
-            WHERE a.codigo_asesor = :codigo_asesor
+                        WHERE LOWER(COALESCE(a.email, u.email)) = :email_asesor
+              AND a.codigo_asesor = :codigo_asesor
               AND a.estado = 'activo'
               AND (u.rol = 'asesor' OR u.id_usuario IS NULL)
             LIMIT 1
             """
         ),
-        {"codigo_asesor": codigo_asesor},
+                {
+                    "email_asesor": email_asesor,
+                    "codigo_asesor": codigo_asesor,
+                },
     ).mappings().first()
 
     if not asesor:
         raise HTTPException(
             status_code=401,
-            detail="Código de asesor inválido o inactivo"
+            detail="Correo, código de asesor inválido o asesor inactivo"
         )
+
+    if not asesor["email"]:
+        raise HTTPException(
+            status_code=400,
+            detail="El asesor no tiene un correo electrónico registrado"
+        )
+
+    codigo_verificacion = generar_codigo_verificacion()
+    asunto = "Inicio de sesión de asesor - Código de verificación - Financiero"
+    mensaje = crear_plantilla_email(
+        f"""
+        <p style="margin: 0 0 14px; font-size: 15px; color: #1f1f1f;">
+            Hola <strong>{asesor['nombre']}</strong>,
+        </p>
+        <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+            Tu acceso como asesor bancario fue exitoso.
+        </p>
+        <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+            Tu código de verificación es: <strong style="color: #0d6efd;">{codigo_verificacion}</strong>
+        </p>
+        """
+    )
+    enviar_correo(asesor["email"], asunto, mensaje)
 
     return {
         "message": "Acceso de asesor exitoso",
+        "codigo_verificacion": codigo_verificacion,
         "token": generate_token(
             asesor["id_usuario"]
             if asesor["id_usuario"] is not None
@@ -838,14 +865,18 @@ def registrar_codigo_asesor(
 
     nombre = str(data.get("nombre", "")).strip()
     documento = str(data.get("documento", "")).strip()
+    email = str(data.get("email", "")).strip()
     tipo_documento = str(data.get("tipo_documento", "")).strip()
     cargo = "Asesor"
 
-    if not nombre or not documento or not tipo_documento:
+    if not nombre or not documento or not email or not tipo_documento:
         raise HTTPException(
             status_code=400,
-            detail="Nombre, número y tipo de documento son obligatorios"
+            detail="Nombre, número, correo y tipo de documento son obligatorios"
         )
+
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        raise HTTPException(status_code=400, detail="Ingrese un correo electrónico válido")
 
     caracteres_codigo = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     codigo_asesor = "".join(
@@ -869,11 +900,11 @@ def registrar_codigo_asesor(
         text(
             """
             INSERT INTO asesores_banco (
-                nombre, documento, tipo_documento,
+                nombre, documento, email, tipo_documento,
                 codigo_asesor, especialidad, estado
             )
             VALUES (
-                :nombre, :documento, :tipo_documento,
+                :nombre, :documento, :email, :tipo_documento,
                 :codigo_asesor, :cargo, 'activo'
             )
             """
@@ -881,6 +912,7 @@ def registrar_codigo_asesor(
         {
             "nombre": nombre,
             "documento": documento,
+            "email": email,
             "tipo_documento": tipo_documento,
             "codigo_asesor": codigo_asesor,
             "cargo": cargo,
@@ -919,7 +951,8 @@ def consultar_asesores(
                      COALESCE(a.documento, u.documento) AS documento,
                      COALESCE(a.tipo_documento, td.nombre_doc) AS tipo_documento,
                      COALESCE(a.especialidad, u.rol) AS cargo,
-                     a.email, a.codigo_asesor,
+                     COALESCE(a.email, u.email) AS email,
+                     a.codigo_asesor,
                      a.estado, a.fecha_ingreso
             FROM asesores_banco AS a
             LEFT JOIN usuario AS u ON u.id_usuario = a.id_usuario
@@ -1012,6 +1045,43 @@ def actualizar_asesor(
             detail="El código de asesor no puede superar 30 caracteres"
         )
 
+    nombre = data.get("nombre")
+    if nombre is not None:
+        nombre = str(nombre).strip()
+        if not nombre:
+            raise HTTPException(status_code=400, detail="Ingrese el nombre del asesor")
+
+    documento = data.get("documento")
+    if documento is not None:
+        documento = str(documento).strip()
+        if not documento:
+            raise HTTPException(status_code=400, detail="Ingrese el documento del asesor")
+
+    tipo_documento = data.get("tipo_documento")
+    if tipo_documento is not None:
+        tipo_documento = str(tipo_documento).strip()
+        if not tipo_documento:
+            raise HTTPException(status_code=400, detail="Seleccione el tipo de documento")
+
+    cargo = data.get("cargo")
+    if cargo is not None:
+        cargo = str(cargo).strip()
+        if not cargo:
+            raise HTTPException(status_code=400, detail="Ingrese el cargo del asesor")
+
+    email = data.get("email")
+    if email is not None:
+        email = str(email).strip()
+
+    estado = data.get("estado")
+    if estado is not None:
+        estado = str(estado).strip().lower()
+        if estado not in {"activo", "inactivo"}:
+            raise HTTPException(
+                status_code=400,
+                detail="El estado debe ser activo o inactivo"
+            )
+
     asesor = db.execute(
         text("SELECT id_asesor FROM asesores_banco WHERE id_asesor = :id_asesor"),
         {"id_asesor": id_asesor}
@@ -1041,13 +1111,26 @@ def actualizar_asesor(
         text(
             """
             UPDATE asesores_banco
-            SET id_asesor = :nuevo_id_asesor, codigo_asesor = :codigo_asesor
+            SET id_asesor = :nuevo_id_asesor,
+                codigo_asesor = :codigo_asesor,
+                nombre = COALESCE(:nombre, nombre),
+                documento = COALESCE(:documento, documento),
+                tipo_documento = COALESCE(:tipo_documento, tipo_documento),
+                especialidad = COALESCE(:cargo, especialidad),
+                email = COALESCE(:email, email),
+                estado = COALESCE(:estado, estado)
             WHERE id_asesor = :id_asesor
             """
         ),
         {
             "nuevo_id_asesor": nuevo_id_asesor,
             "codigo_asesor": codigo_asesor,
+            "nombre": nombre,
+            "documento": documento,
+            "tipo_documento": tipo_documento,
+            "cargo": cargo,
+            "email": email,
+            "estado": estado,
             "id_asesor": id_asesor
         }
     )
@@ -1056,7 +1139,8 @@ def actualizar_asesor(
     return {
         "mensaje": "Asesor actualizado correctamente",
         "id_asesor": nuevo_id_asesor,
-        "codigo_asesor": codigo_asesor
+        "codigo_asesor": codigo_asesor,
+        "estado": estado
     }
 
 
@@ -1065,14 +1149,15 @@ def administrador_login(
     data: dict,
     db: Session = Depends(get_db)
 ):
+    documento = str(data.get("documento", "")).strip()
     codigo_administrador = str(
         data.get("codigo_administrador", "")
     ).strip()
 
-    if not codigo_administrador:
+    if not documento or not codigo_administrador:
         raise HTTPException(
             status_code=400,
-            detail="Ingrese el código de administrador"
+            detail="Ingrese el número de documento y el código de administrador"
         )
 
     administrador = db.query(Administrador).filter(
@@ -1095,8 +1180,32 @@ def administrador_login(
             detail="El administrador no está asociado a un usuario válido"
         )
 
+    if usuario.documento != documento:
+        raise HTTPException(
+            status_code=401,
+            detail="El documento no corresponde al administrador"
+        )
+
+    codigo_verificacion = generar_codigo_verificacion()
+    asunto = "Inicio de sesión de administrador - Código de verificación - Financiero"
+    mensaje = crear_plantilla_email(
+        f"""
+        <p style="margin: 0 0 14px; font-size: 15px; color: #1f1f1f;">
+            Hola <strong>{usuario.nombre}</strong>,
+        </p>
+        <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+            Tu acceso como administrador fue exitoso.
+        </p>
+        <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+            Tu código de verificación es: <strong style="color: #0d6efd;">{codigo_verificacion}</strong>
+        </p>
+        """
+    )
+    enviar_correo(usuario.email, asunto, mensaje)
+
     return {
         "message": "Acceso de administrador exitoso",
+        "codigo_verificacion": codigo_verificacion,
         "token": generate_token(usuario.id_usuario),
         "usuario": {
             "id": usuario.id_usuario,
@@ -1376,17 +1485,120 @@ def listar_cuentas_admin(
         "cuentas": [
             {
                 "id_cuenta": cuenta.id_cuenta,
+                "id_usuario": usuario.id_usuario,
                 "nombre": usuario.nombre,
                 "documento": usuario.documento,
                 "rol": usuario.rol,
                 "numero_cuenta": cuenta.numero_cuenta,
                 "tipo_cuenta": cuenta.tipo_cuenta,
                 "tipo_operacion": cuenta.tipo_operacion or "debito",
+                "tipos_cuenta": [
+                    cuenta_usuario.tipo_cuenta
+                    for cuenta_usuario in usuario.cuentas
+                ],
                 "saldo": float(cuenta.saldo or 0),
                 "estado": "activo" if cuenta.estado == "activa" else "inactivo",
             }
             for cuenta, usuario in cuentas
         ]
+    }
+
+
+@app.post("/usuarios/{id_usuario}/cuentas")
+def crear_cuenta_usuario(
+    id_usuario: int,
+    datos: NuevaCuenta,
+    current_user: int = Depends(administrador_o_asesor_requerido),
+    db: Session = Depends(get_db)
+):
+    tipo_cuenta = datos.tipo_cuenta.strip().lower()
+
+    opcion_cuenta = (datos.opcion_cuenta or tipo_cuenta).strip().lower()
+    if opcion_cuenta not in {"ahorros", "credito"}:
+        raise HTTPException(
+            status_code=400,
+            detail="La opción debe ser ahorros o crédito."
+        )
+
+    tipo_cuenta = "ahorros" if opcion_cuenta == "ahorros" else "corriente"
+    tipo_operacion = "credito" if opcion_cuenta == "credito" else "debito"
+    if datos.tipo_operacion.strip().lower() not in {"debito", "credito"}:
+        raise HTTPException(
+            status_code=400,
+            detail="El tipo de operación debe ser débito o crédito."
+        )
+
+    if datos.saldo < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="El saldo no puede ser negativo."
+        )
+
+    usuario = db.query(Usuario).filter(
+        Usuario.id_usuario == id_usuario,
+        Usuario.rol == "usuario",
+        ~Usuario.id_usuario.in_(db.query(Administrador.id_usuario)),
+        text(
+            "NOT EXISTS ("
+            "SELECT 1 FROM asesores_banco asesor "
+            "WHERE asesor.id_usuario = usuario.id_usuario"
+            ")"
+        )
+    ).first()
+
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+
+    cuenta_existente = db.query(Cuenta).filter(
+        Cuenta.id_usuario == id_usuario,
+        Cuenta.tipo_cuenta == tipo_cuenta
+    ).first()
+
+    if cuenta_existente:
+        if opcion_cuenta == "credito" and tipo_cuenta == "corriente":
+            cuenta_existente.tipo_operacion = "credito"
+            cuenta_existente.saldo = Decimal(str(datos.saldo))
+            cuenta_existente.estado = "activa"
+            db.commit()
+            db.refresh(cuenta_existente)
+            return {
+                "mensaje": "La cuenta principal fue configurada como crédito.",
+                "id_cuenta": cuenta_existente.id_cuenta,
+                "id_usuario": usuario.id_usuario,
+                "nombre": usuario.nombre,
+                "numero_cuenta": cuenta_existente.numero_cuenta,
+                "tipo_cuenta": cuenta_existente.tipo_cuenta,
+                "tipo_operacion": cuenta_existente.tipo_operacion,
+                "saldo": float(cuenta_existente.saldo or 0),
+                "estado": cuenta_existente.estado
+            }
+        raise HTTPException(
+            status_code=400,
+            detail=f"El usuario ya tiene una cuenta {tipo_cuenta}."
+        )
+
+    cuenta = Cuenta(
+        id_usuario=id_usuario,
+        numero_cuenta=generar_numero_cuenta(db),
+        tipo_cuenta=tipo_cuenta,
+        tipo_operacion=tipo_operacion,
+        saldo=Decimal(str(datos.saldo)),
+        estado="activa"
+    )
+    db.add(cuenta)
+    db.commit()
+    db.refresh(cuenta)
+
+    return {
+        "mensaje": "Cuenta creada correctamente.",
+        "id_cuenta": cuenta.id_cuenta,
+        "id_usuario": usuario.id_usuario,
+        "nombre": usuario.nombre,
+        "numero_cuenta": cuenta.numero_cuenta,
+        "tipo_cuenta": cuenta.tipo_cuenta,
+        "tipo_operacion": cuenta.tipo_operacion,
+        "saldo": float(cuenta.saldo or 0),
+        "estado": cuenta.estado
     }
 
 
@@ -1417,7 +1629,8 @@ def listar_cuentas_usuario(
         )
 
     cuentas = db.query(Cuenta).filter(
-        Cuenta.id_usuario == id_usuario
+        Cuenta.id_usuario == id_usuario,
+        Cuenta.tipo_cuenta == "corriente"
     ).order_by(Cuenta.id_cuenta).all()
 
     return {
@@ -1824,7 +2037,8 @@ def mis_cuentas(
 
     cuentas = db.query(Cuenta).filter(
 
-        Cuenta.id_usuario == current_user
+        Cuenta.id_usuario == current_user,
+        Cuenta.tipo_cuenta == "corriente"
 
     ).order_by(
 
@@ -2294,12 +2508,6 @@ def administrador_actualizar_tipo_operacion(
         raise HTTPException(
             status_code=404,
             detail="Cuenta no encontrada."
-        )
-
-    if cuenta.tipo_cuenta != "corriente":
-        raise HTTPException(
-            status_code=400,
-            detail="El tipo de operación solo aplica a cuentas corrientes."
         )
 
     cuenta.tipo_operacion = tipo_operacion

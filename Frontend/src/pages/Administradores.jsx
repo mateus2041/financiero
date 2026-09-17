@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/Administradores.css";
+import logoProyecto from "../assets/images/logo.jpeg";
 
 const API_URL = "http://localhost:8000";
 
@@ -9,29 +10,48 @@ export default function Administradores() {
   const navigate = useNavigate();
 
   const [asesores, setAsesores] = useState([]);
+  const [busquedaAsesor, setBusquedaAsesor] = useState("");
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-  const [errorConsulta, setErrorConsulta] = useState("");
   const [mensaje, setMensaje] = useState("");
-  const [codigoAsesorConsulta, setCodigoAsesorConsulta] = useState("");
-  const [asesorConsultado, setAsesorConsultado] = useState(null);
-  const [consultandoAsesor, setConsultandoAsesor] = useState(false);
-  const [nuevoCodigoAsesor, setNuevoCodigoAsesor] = useState("");
-  const [guardandoCodigo, setGuardandoCodigo] = useState(false);
-  const [editandoCodigo, setEditandoCodigo] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useState(true);
+  const [asesorEditando, setAsesorEditando] = useState(null);
+  const [registroModalAbierto, setRegistroModalAbierto] = useState(false);
+  const [formularioRegistro, setFormularioRegistro] = useState({
+    nombre: "",
+    documento: "",
+    email: "",
+    tipo_documento: "",
+  });
+  const [formularioEdicion, setFormularioEdicion] = useState({});
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+  const [guardandoRegistro, setGuardandoRegistro] = useState(false);
+  const [actualizandoEstado, setActualizandoEstado] = useState(null);
 
   useEffect(() => {
     cargarDatos();
   }, []);
 
   useEffect(() => {
-    const cerrarConEscape = (e) => {
-      if (e.key === "Escape") {
-        setEditandoCodigo(false);
+    const actualizarEstadoMenu = () => {
+      setMenuAbierto(window.innerWidth > 650);
+    };
+
+    actualizarEstadoMenu();
+    window.addEventListener("resize", actualizarEstadoMenu);
+
+    return () => window.removeEventListener("resize", actualizarEstadoMenu);
+  }, []);
+
+  useEffect(() => {
+    const cerrarConEscape = (evento) => {
+      if (evento.key === "Escape") {
+        setAsesorEditando(null);
+        setRegistroModalAbierto(false);
       }
     };
 
-    if (editandoCodigo) {
+    if (asesorEditando || registroModalAbierto) {
       document.addEventListener("keydown", cerrarConEscape);
       document.body.style.overflow = "hidden";
     }
@@ -40,7 +60,7 @@ export default function Administradores() {
       document.removeEventListener("keydown", cerrarConEscape);
       document.body.style.overflow = "";
     };
-  }, [editandoCodigo]);
+  }, [asesorEditando, registroModalAbierto]);
 
   const formatearError = (error, mensajeFallback) => {
     const detalle = error?.response?.data?.detail;
@@ -72,6 +92,32 @@ export default function Administradores() {
     };
   };
 
+  const normalizarTexto = (valor) =>
+    String(valor || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+
+  const asesoresFiltrados = asesores.filter((asesor) => {
+    const textoBusqueda = normalizarTexto(busquedaAsesor.trim());
+    if (!textoBusqueda) {
+      return true;
+    }
+
+    return [
+      asesor.nombre,
+      asesor.nombres,
+      asesor.nombre_completo,
+      asesor.documento,
+      asesor.tipo_documento,
+      asesor.cargo,
+      asesor.email,
+      asesor.correo,
+      asesor.codigo_asesor,
+      asesor.codigo,
+    ].some((valor) => normalizarTexto(valor).includes(textoBusqueda));
+  });
+
   const cargarDatos = async () => {
     try {
       setCargando(true);
@@ -99,72 +145,103 @@ export default function Administradores() {
     }
   };
 
-  const consultarAsesor = async (e) => {
-    e.preventDefault();
+  const abrirEdicion = (asesor) => {
+    setError("");
+    setMensaje("");
+    setAsesorEditando(asesor);
+    setFormularioEdicion({
+      nombre: asesor.nombre || "",
+      documento: asesor.documento || "",
+      tipo_documento: asesor.tipo_documento || "",
+      cargo: asesor.cargo || "Asesor bancario",
+      email: asesor.email || asesor.correo || "",
+      codigo_asesor: asesor.codigo_asesor || asesor.codigo || "",
+      estado: asesor.estado || "activo",
+    });
+  };
 
-    if (!codigoAsesorConsulta.trim()) {
-      setErrorConsulta("Ingrese el código del asesor.");
-      return;
-    }
+  const cambiarFormularioEdicion = (evento) => {
+    const { name, value } = evento.target;
+    setFormularioEdicion((actual) => ({ ...actual, [name]: value }));
+  };
+
+  const cambiarFormularioRegistro = (evento) => {
+    const { name, value } = evento.target;
+    setFormularioRegistro((actual) => ({ ...actual, [name]: value }));
+  };
+
+  const registrarAsesor = async (evento) => {
+    evento.preventDefault();
 
     try {
       setError("");
-      setErrorConsulta("");
       setMensaje("");
-      setConsultandoAsesor(true);
-      setAsesorConsultado(null);
-      setEditandoCodigo(false);
+      setGuardandoRegistro(true);
 
       const token = localStorage.getItem("token");
-
-      const respuesta = await axios.get(
+      const respuesta = await axios.post(
         `${API_URL}/administradores/asesores`,
+        formularioRegistro,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-          },
-          params: {
-            codigo_asesor: codigoAsesorConsulta.trim(),
+            "Content-Type": "application/json",
           },
         }
       );
 
-      const lista = respuesta.data?.asesores || [];
-      setAsesorConsultado(lista[0] || null);
-      setNuevoCodigoAsesor(lista[0]?.codigo_asesor || "");
-
-      if (!lista[0]) {
-        setErrorConsulta("No se encontró un asesor con ese código.");
-      }
+      setFormularioRegistro({
+        nombre: "",
+        documento: "",
+        email: "",
+        tipo_documento: "",
+      });
+      setRegistroModalAbierto(false);
+      setMensaje(
+        `${respuesta.data?.mensaje || "Asesor registrado correctamente."}${
+          respuesta.data?.codigo_asesor
+            ? ` Código: ${respuesta.data.codigo_asesor}`
+            : ""
+        }`
+      );
+      await cargarDatos();
     } catch (error) {
       console.error(error);
-      setAsesorConsultado(null);
-      setErrorConsulta(formatearError(error, "No se pudo consultar el asesor."));
+      setError(formatearError(error, "No se pudo registrar el asesor."));
     } finally {
-      setConsultandoAsesor(false);
+      setGuardandoRegistro(false);
     }
   };
 
-  const cambiarCodigoAsesor = async (e) => {
-    e.preventDefault();
+  const guardarEdicion = async (evento) => {
+    evento.preventDefault();
 
-    const codigo = nuevoCodigoAsesor.trim();
-    if (!codigo) {
-      setError("Ingrese el nuevo código del asesor.");
+    const datos = {
+      ...formularioEdicion,
+      nombre: formularioEdicion.nombre.trim(),
+      documento: formularioEdicion.documento.trim(),
+      tipo_documento: formularioEdicion.tipo_documento.trim(),
+      cargo: formularioEdicion.cargo.trim(),
+      email: formularioEdicion.email.trim(),
+      codigo_asesor: formularioEdicion.codigo_asesor.trim(),
+    };
+
+    if (!datos.nombre || !datos.documento || !datos.tipo_documento || !datos.cargo || !datos.codigo_asesor) {
+      setError("Complete los campos obligatorios del asesor.");
       return;
     }
 
     try {
       setError("");
       setMensaje("");
-      setGuardandoCodigo(true);
+      setGuardandoEdicion(true);
 
       const token = localStorage.getItem("token");
       const respuesta = await axios.put(
-        `${API_URL}/administradores/asesores/${asesorConsultado.id_asesor}`,
+        `${API_URL}/administradores/asesores/${asesorEditando.id_asesor}`,
         {
-          id_asesor: asesorConsultado.id_asesor,
-          codigo_asesor: codigo,
+          id_asesor: asesorEditando.id_asesor,
+          ...datos,
         },
         {
           headers: {
@@ -173,27 +250,60 @@ export default function Administradores() {
         }
       );
 
-      const codigoActualizado = respuesta.data?.codigo_asesor || codigo;
-      setAsesorConsultado((actual) => ({
-        ...actual,
-        codigo_asesor: codigoActualizado,
-      }));
-      setCodigoAsesorConsulta(codigoActualizado);
-      setNuevoCodigoAsesor(codigoActualizado);
-      setEditandoCodigo(false);
       setAsesores((actuales) =>
         actuales.map((asesor) =>
-          asesor.id_asesor === asesorConsultado.id_asesor
-            ? { ...asesor, codigo_asesor: codigoActualizado }
+          asesor.id_asesor === asesorEditando.id_asesor
+            ? { ...asesor, ...datos }
             : asesor
         )
       );
-      setMensaje(respuesta.data?.mensaje || "Código actualizado correctamente.");
+      setAsesorEditando(null);
+      setMensaje(respuesta.data?.mensaje || "Asesor actualizado correctamente.");
     } catch (error) {
       console.error(error);
-      setError(formatearError(error, "No se pudo actualizar el código del asesor."));
+      setError(formatearError(error, "No se pudo actualizar el asesor."));
     } finally {
-      setGuardandoCodigo(false);
+      setGuardandoEdicion(false);
+    }
+  };
+
+  const cambiarEstadoAsesor = async (asesor, estado) => {
+    try {
+      setError("");
+      setMensaje("");
+      setActualizandoEstado(asesor.id_asesor);
+
+      const token = localStorage.getItem("token");
+      const respuesta = await axios.put(
+        `${API_URL}/administradores/asesores/${asesor.id_asesor}`,
+        {
+          id_asesor: asesor.id_asesor,
+          codigo_asesor: asesor.codigo_asesor || asesor.codigo,
+          estado,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setAsesores((actuales) =>
+        actuales.map((asesorActual) =>
+          asesorActual.id_asesor === asesor.id_asesor
+            ? { ...asesorActual, estado }
+            : asesorActual
+        )
+      );
+      setMensaje(
+        respuesta.data?.mensaje ||
+        `Asesor ${estado === "activo" ? "habilitado" : "deshabilitado"} correctamente.`
+      );
+    } catch (error) {
+      console.error(error);
+      setError(formatearError(error, "No se pudo actualizar el estado del asesor."));
+    } finally {
+      setActualizandoEstado(null);
     }
   };
 
@@ -202,7 +312,7 @@ export default function Administradores() {
     localStorage.removeItem("usuario_id");
     localStorage.removeItem("documento");
 
-    navigate("/login");
+    navigate("/");
   };
 
   if (cargando) {
@@ -220,39 +330,41 @@ export default function Administradores() {
   return (
     <div className="asesor-container">
       <div className="panel-financiero">
+        <button
+          type="button"
+          className={`boton-menu-administradores ${menuAbierto ? "" : "menu-cerrado"}`}
+          onClick={() => setMenuAbierto((actual) => !actual)}
+          aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+          aria-expanded={menuAbierto}
+        >
+          ☰
+        </button>
 
-        <aside className="sidebar">
+        <aside className={`sidebar ${menuAbierto ? "" : "sidebar-cerrado"}`}>
           <ul>
             <li>
-              <Link to="/Administradores">
+              <Link to="/Administradores" onClick={() => setMenuAbierto(false)}>
                 📜 Principal
               </Link>
             </li>
 
             <li>
-              <Link to="/lista-asesores">
-                📜 Asesores
-              </Link>
-            </li>
-
-            <li>
-              <Link to="/lista-usuarios">
+              <Link to="/lista-usuarios" onClick={() => setMenuAbierto(false)}>
                 👤 Usuarios
               </Link>
             </li>
 
             <li>
-              <Link to="/lista-cuentas">
+              <Link to="/lista-cuentas" onClick={() => setMenuAbierto(false)}>
                 🌐 Cuentas
               </Link>
             </li>
 
             <li>
-              <Link to="/notoficaciones">
+              <Link to="/notoficaciones" onClick={() => setMenuAbierto(false)}>
                 🔔 notoficaciones
               </Link>
             </li>
-            
           </ul>
 
           <button
@@ -265,7 +377,14 @@ export default function Administradores() {
 
         <main className="contenido-asesores">
 
-          <h1>Administración de asesores</h1>
+          <div className="encabezado-administracion-asesores">
+            <img
+              className="logo-administracion-asesores"
+              src={logoProyecto}
+              alt="Logo del proyecto"
+            />
+            <h1>binvenido Administración </h1>
+          </div>
 
           <p className="subtitulo-asesores">
             Gestión de usuarios y asesores bancarios
@@ -286,14 +405,44 @@ export default function Administradores() {
           <div className="admin-grid-asesores">
             <section className="panel-lista-asesores lista-asesores-panel">
 
-              <h2>Lista de asesores</h2>
+              <div className="encabezado-lista-asesores">
+                <h2>Lista de asesores</h2>
+                <button
+                  type="button"
+                  className="boton-registrar-asesor"
+                  onClick={() => {
+                    setError("");
+                    setMensaje("");
+                    setRegistroModalAbierto(true);
+                  }}
+                >
+                  + Registrar asesor
+                </button>
+              </div>
+
+              <div className="buscador-asesores">
+                <span className="icono-buscador-asesores" aria-hidden="true">
+                  &#128269;
+                </span>
+                <input
+                  type="search"
+                  value={busquedaAsesor}
+                  onChange={(evento) => setBusquedaAsesor(evento.target.value)}
+                  placeholder="Buscar asesor por nombre, documento, tipo de documento, cargo..."
+                  aria-label="Buscar asesor"
+                />
+              </div>
 
               {asesores.length === 0 ? (
                 <p>No hay asesores registrados.</p>
+              ) : asesoresFiltrados.length === 0 ? (
+                <p className="mensaje-busqueda-asesores">
+                  No se encontraron asesores para “{busquedaAsesor}”.
+                </p>
               ) : (
                 <div className="lista-asesores-compacta">
 
-                  {asesores.map((asesor) => (
+                  {asesoresFiltrados.map((asesor) => (
 
                     <div
                       className="fila-asesor"
@@ -342,6 +491,16 @@ export default function Administradores() {
 
                       <div className="fila-asesor-dato">
                         <span className="fila-label">
+                          Correo
+                        </span>
+
+                        <strong>
+                          {asesor.email || asesor.correo || "No registrado"}
+                        </strong>
+                      </div>
+
+                      <div className="fila-asesor-dato">
+                        <span className="fila-label">
                           Código
                         </span>
 
@@ -370,6 +529,44 @@ export default function Administradores() {
 
                       </div>
 
+                      <div className="fila-asesor-dato fila-acciones">
+                        <span className="fila-label">
+                          Acciones
+                        </span>
+
+                        <div className="grupo-acciones-asesor">
+                          <button
+                            type="button"
+                            className="boton-editar-asesor"
+                            onClick={() => abrirEdicion(asesor)}
+                            aria-label={`Editar información de ${asesor.nombre || "asesor"}`}
+                            title="Editar información del asesor"
+                          >
+                            ✎
+                          </button>
+                          <button
+                            type="button"
+                            className="boton-estado-asesor boton-deshabilitar-asesor"
+                            onClick={() => cambiarEstadoAsesor(asesor, "inactivo")}
+                            disabled={asesor.estado === "inactivo" || actualizandoEstado === asesor.id_asesor}
+                            aria-label="Deshabilitar asesor"
+                            title="Deshabilitar asesor"
+                          >
+                            ⛔
+                          </button>
+                          <button
+                            type="button"
+                            className="boton-estado-asesor boton-habilitar-asesor"
+                            onClick={() => cambiarEstadoAsesor(asesor, "activo")}
+                            disabled={asesor.estado !== "inactivo" || actualizandoEstado === asesor.id_asesor}
+                            aria-label="Habilitar asesor"
+                            title="Habilitar asesor"
+                          >
+                            ✓
+                          </button>
+                        </div>
+                      </div>
+
                     </div>
 
                   ))}
@@ -379,124 +576,225 @@ export default function Administradores() {
 
             </section>
 
-            <aside className="panel-consulta-asesor">
-              <h3>Consultar asesor</h3>
-
-              <form onSubmit={consultarAsesor} className="formulario-consulta-asesor">
-                <label>
-                  Código del asesor
-                  <input
-                    type="text"
-                    value={codigoAsesorConsulta}
-                    onChange={(e) => setCodigoAsesorConsulta(e.target.value)}
-                    placeholder="Ingrese el código"
-                    style={{
-                      color: "#ffffff",
-                      WebkitTextFillColor: "#ffffff",
-                      caretColor: "#ffffff",
-                      backgroundColor: "#0b0f16",
-                    }}
-                  />
-                </label>
-
-                <button type="submit" disabled={consultandoAsesor}>
-                  {consultandoAsesor ? "Consultando..." : "Consultar"}
-                </button>
-              </form>
-
-              {errorConsulta && (
-                <p className="mensaje-error mensaje-error-consulta">
-                  {errorConsulta}
-                </p>
-              )}
-
-              {asesorConsultado ? (
-                <div className="resultado-asesor-consultado">
-                  <p>
-                    <strong>Nombre:</strong> {asesorConsultado.nombre || "Sin nombre"}
-                  </p>
-                  <p>
-                    <strong>Código actual:</strong>{" "}
-                    <span className="codigo-asesor-actual">
-                      {asesorConsultado.codigo_asesor || "Sin código"}
-                      <button
-                        type="button"
-                        className="boton-editar-codigo"
-                        onClick={() => setEditandoCodigo((actual) => !actual)}
-                        aria-label="Editar código del asesor"
-                        title="Editar código del asesor"
-                      >
-                        ✎
-                      </button>
-                    </span>
-                  </p>
-                  <p>
-                    <strong>Estado:</strong>{" "}
-                    <span
-                      className={
-                        asesorConsultado.estado === "inactivo"
-                          ? "estado-badge inactivo"
-                          : "estado-badge activo"
-                      }
-                    >
-                      {asesorConsultado.estado || "activo"}
-                    </span>
-                  </p>
-                </div>
-              ) : (
-                <p className="texto-empty-consulta">
-                  Busca un asesor por su código.
-                </p>
-              )}
-
-              {editandoCodigo && asesorConsultado && (
-                <div
-                  className="modal-cambio-codigo-overlay"
-                  onClick={() => setEditandoCodigo(false)}
-                  role="presentation"
-                >
-                  <div
-                    className="modal-cambio-codigo"
-                    onClick={(e) => e.stopPropagation()}
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="titulo-modal-cambio-codigo"
-                  >
-                    <div className="encabezado-modal-cambio-codigo">
-                      <h2 id="titulo-modal-cambio-codigo">Cambiar código del asesor</h2>
-                      <button
-                        type="button"
-                        className="boton-cerrar-modal"
-                        onClick={() => setEditandoCodigo(false)}
-                        aria-label="Cerrar ventana"
-                        title="Cerrar"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <form onSubmit={cambiarCodigoAsesor} className="formulario-cambio-codigo">
-                      <p className="asesor-modal-nombre">
-                        {asesorConsultado.nombre || "Asesor bancario"}
-                      </p>
-                      <label>
-                        Nuevo código del asesor
-                        <input
-                          type="text"
-                          value={nuevoCodigoAsesor}
-                          onChange={(e) => setNuevoCodigoAsesor(e.target.value)}
-                          maxLength={30}
-                          autoFocus
-                        />
-                      </label>
-                      <button type="submit" disabled={guardandoCodigo}>
-                        {guardandoCodigo ? "Guardando..." : "Cambiar código"}
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              )}
-            </aside>
           </div>
+
+          {registroModalAbierto && (
+            <div
+              className="modal-edicion-asesor-overlay"
+              onClick={() => setRegistroModalAbierto(false)}
+              role="presentation"
+            >
+              <section
+                className="modal-edicion-asesor"
+                onClick={(evento) => evento.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="titulo-registro-asesor"
+              >
+                <div className="encabezado-modal-edicion-asesor">
+                  <h2 id="titulo-registro-asesor">Registrar asesor</h2>
+                  <button
+                    type="button"
+                    className="boton-cerrar-edicion-asesor"
+                    onClick={() => setRegistroModalAbierto(false)}
+                    aria-label="Cerrar ventana"
+                    title="Cerrar"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <form onSubmit={registrarAsesor} className="formulario-edicion-asesor">
+                  <div className="campos-edicion-asesor">
+                    <label>
+                      Nombre
+                      <input
+                        name="nombre"
+                        type="text"
+                        value={formularioRegistro.nombre}
+                        onChange={cambiarFormularioRegistro}
+                        required
+                        autoFocus
+                      />
+                    </label>
+                    <label>
+                      Documento
+                      <input
+                        name="documento"
+                        type="text"
+                        value={formularioRegistro.documento}
+                        onChange={cambiarFormularioRegistro}
+                        required
+                      />
+                    </label>
+                    <label>
+                      Correo
+                      <input
+                        name="email"
+                        type="email"
+                        value={formularioRegistro.email}
+                        onChange={cambiarFormularioRegistro}
+                        required
+                      />
+                    </label>
+                    <label>
+                      Tipo de documento
+                      <select
+                        name="tipo_documento"
+                        value={formularioRegistro.tipo_documento}
+                        onChange={cambiarFormularioRegistro}
+                        required
+                      >
+                        <option value="">Seleccione una opción</option>
+                        <option value="Cedula de ciudadania">Cédula de ciudadanía</option>
+                        <option value="Tarjeta de identidad">Tarjeta de identidad</option>
+                        <option value="Cedula de extranjeria">Cédula de extranjería</option>
+                        <option value="Pasaporte">Pasaporte</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <button type="submit" disabled={guardandoRegistro}>
+                    {guardandoRegistro ? "Registrando..." : "Registrar asesor"}
+                  </button>
+                </form>
+              </section>
+            </div>
+          )}
+
+          {asesorEditando && (
+            <div
+              className="modal-edicion-asesor-overlay"
+              onClick={() => setAsesorEditando(null)}
+              role="presentation"
+            >
+              <section
+                className="modal-edicion-asesor"
+                onClick={(evento) => evento.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="titulo-edicion-asesor"
+              >
+                <div className="encabezado-modal-edicion-asesor">
+                  <h2 id="titulo-edicion-asesor">Editar información del asesor</h2>
+                  <button
+                    type="button"
+                    className="boton-cerrar-edicion-asesor"
+                    onClick={() => setAsesorEditando(null)}
+                    aria-label="Cerrar ventana"
+                    title="Cerrar"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <form onSubmit={guardarEdicion} className="formulario-edicion-asesor">
+                  <div className="campos-edicion-asesor">
+                    <label>
+                      Nombre
+                      <input
+                        name="nombre"
+                        type="text"
+                        value={formularioEdicion.nombre || ""}
+                        onChange={cambiarFormularioEdicion}
+                        maxLength={100}
+                        autoFocus
+                        required
+                      />
+                    </label>
+                    <label>
+                      Documento
+                      <input
+                        name="documento"
+                        type="text"
+                        value={formularioEdicion.documento || ""}
+                        onChange={cambiarFormularioEdicion}
+                        maxLength={50}
+                        required
+                      />
+                    </label>
+                    <label>
+                      Tipo de documento
+                      <select
+                        name="tipo_documento"
+                        value={formularioEdicion.tipo_documento || ""}
+                        onChange={cambiarFormularioEdicion}
+                        required
+                      >
+                        <option value="">Seleccione una opción</option>
+                        <option value="Cedula de ciudadania">Cédula de ciudadanía</option>
+                        <option value="Tarjeta de identidad">Tarjeta de identidad</option>
+                        <option value="Cedula de extranjeria">Cédula de extranjería</option>
+                        <option value="Pasaporte">Pasaporte</option>
+                      </select>
+                    </label>
+                    <label>
+                      Cargo
+                      <input
+                        name="cargo"
+                        type="text"
+                        value={formularioEdicion.cargo || ""}
+                        onChange={cambiarFormularioEdicion}
+                        maxLength={100}
+                        required
+                      />
+                    </label>
+                    <label>
+                      Correo
+                      <input
+                        name="email"
+                        type="email"
+                        value={formularioEdicion.email || ""}
+                        onChange={cambiarFormularioEdicion}
+                        maxLength={100}
+                      />
+                    </label>
+                    <label>
+                      Código del asesor
+                      <input
+                        name="codigo_asesor"
+                        type="text"
+                        value={formularioEdicion.codigo_asesor || ""}
+                        onChange={cambiarFormularioEdicion}
+                        maxLength={30}
+                        required
+                      />
+                    </label>
+                    <label>
+                      Estado
+                      <select
+                        name="estado"
+                        value={formularioEdicion.estado || "activo"}
+                        onChange={cambiarFormularioEdicion}
+                      >
+                        <option value="activo">Activo</option>
+                        <option value="inactivo">Inactivo</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="datos-sistema-asesor">
+                    <div>
+                      <span>ID del asesor</span>
+                      <strong>{asesorEditando.id_asesor || "No disponible"}</strong>
+                    </div>
+                    <div>
+                      <span>Fecha de ingreso</span>
+                      <strong>{formatearFechaHora(asesorEditando.fecha_ingreso).fecha}</strong>
+                    </div>
+                    <div>
+                      <span>Hora de ingreso</span>
+                      <strong>{formatearFechaHora(asesorEditando.fecha_ingreso).hora}</strong>
+                    </div>
+                  </div>
+
+                  <button type="submit" disabled={guardandoEdicion}>
+                    {guardandoEdicion ? "Guardando..." : "Guardar cambios"}
+                  </button>
+                </form>
+              </section>
+            </div>
+          )}
 
         </main>
 

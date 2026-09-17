@@ -69,6 +69,45 @@ body {
   box-sizing: border-box;
 }
 
+.boton-menu-lateral {
+  position: fixed;
+  top: 20px;
+  left: 238px;
+  z-index: 10;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(242, 201, 76, 0.45);
+  border-radius: 8px;
+  background: #121829;
+  color: var(--dorado);
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.boton-menu-lateral:hover,
+.boton-menu-lateral:focus-visible {
+  background: var(--dorado);
+  color: #0b0f16;
+  outline: 2px solid var(--dorado);
+  outline-offset: 1px;
+}
+
+.boton-menu-lateral.menu-cerrado {
+  left: 10px;
+}
+
+.sidebar-cerrado {
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.sidebar-cerrado + .contenido-asesores {
+  width: 100%;
+}
+
 .sidebar ul {
   list-style: none;
   margin: 0;
@@ -1105,6 +1144,19 @@ button:hover {
     min-width: 100%;
     min-height: auto;
     padding: 15px;
+  }
+
+  .boton-menu-lateral,
+  .boton-menu-lateral.menu-cerrado {
+    top: 10px;
+    left: auto;
+    right: 10px;
+  }
+
+  .sidebar-cerrado {
+    width: 0;
+    min-width: 0;
+    min-height: 0;
   }
 
   .sidebar ul {

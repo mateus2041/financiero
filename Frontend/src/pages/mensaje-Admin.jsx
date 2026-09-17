@@ -7,6 +7,7 @@ export default function Mensajes() {
 
   const [mensaje, setMensaje] = useState("");
   const [mensajes, setMensajes] = useState([]);
+  const [menuAbierto, setMenuAbierto] = useState(true);
 
   useEffect(() => {
     const guardados = JSON.parse(
@@ -91,7 +92,17 @@ export default function Mensajes() {
     <div className="asesor-container">
       <div className="panel-financiero">
 
-        <aside className="sidebar">
+        <button
+          type="button"
+          className={`boton-menu-lateral ${menuAbierto ? "" : "menu-cerrado"}`}
+          onClick={() => setMenuAbierto((abierto) => !abierto)}
+          aria-label={menuAbierto ? "Ocultar menú" : "Mostrar menú"}
+          aria-expanded={menuAbierto}
+        >
+          {menuAbierto ? "‹" : "☰"}
+        </button>
+
+        <aside className={`sidebar ${menuAbierto ? "" : "sidebar-cerrado"}`}>
           <div>
             <ul>
               <li>
@@ -100,10 +111,6 @@ export default function Mensajes() {
 
               <li>
                 <Link to="/asesorbancario">Asesor Bancario</Link>
-              </li>
-
-              <li>
-                <Link to="/lista-asesores">Asesores</Link>
               </li>
 
               <li>

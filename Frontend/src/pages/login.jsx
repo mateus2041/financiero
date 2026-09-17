@@ -6,7 +6,9 @@ function Login({ isModal = false }) {
   const navigate = useNavigate();
 
   const [documento, setDocumento] = useState("");
+  const [documentoAdministrador, setDocumentoAdministrador] = useState("");
   const [password, setPassword] = useState("");
+  const [emailAsesor, setEmailAsesor] = useState("");
   const [codigoAsesor, setCodigoAsesor] = useState("");
   const [codigoAdministrador, setCodigoAdministrador] = useState("");
   const [rol, setRol] = useState("usuario");
@@ -19,6 +21,7 @@ function Login({ isModal = false }) {
   // Estados para verificación
   const [loginExitoso, setLoginExitoso] = useState(false);
   const [codigoVerificacionInput, setCodigoVerificacionInput] = useState("");
+  const [codigoVerificacionEsperado, setCodigoVerificacionEsperado] = useState("");
   const [verificandoCodigo, setVerificandoCodigo] = useState(false);
 
   const irRegistro = () => {
@@ -34,23 +37,30 @@ function Login({ isModal = false }) {
   };
 
   const validarCodigoCuenta = () => {
-    const codigoEsperado = localStorage.getItem("codigo_verificacion") || "";
-
     if (!/^\d{4}$/.test(codigoVerificacionInput)) {
       setMensaje("❌ Ingresa un código de verificación de 4 dígitos.");
       return;
     }
 
-    if (codigoVerificacionInput !== codigoEsperado) {
+    if (codigoVerificacionInput !== codigoVerificacionEsperado) {
       setMensaje("❌ El código de verificación no es correcto.");
       return;
     }
 
     setVerificandoCodigo(true);
-    setMensaje("✅ Código correcto. Redirigiendo a tu cuenta...");
+    setMensaje(
+      `✅ Código correcto. Redirigiendo a ${localStorage.getItem("rol") === "asesor" ? "tu panel de asesor" : "tu cuenta"}...`
+    );
 
     setTimeout(() => {
-      navigate("/cuenta");
+      const rolUsuario = localStorage.getItem("rol");
+      navigate(
+        rolUsuario === "asesor"
+          ? "/asesor-bancario"
+          : rolUsuario === "administrador"
+            ? "/administradores"
+            : "/cuenta"
+      );
     }, 800);
   };
 
@@ -62,13 +72,16 @@ function Login({ isModal = false }) {
       return;
     }
 
-    if (rol === "asesor" && !codigoAsesor.trim()) {
-      setMensaje("Ingresa el código de asesor");
+    if (rol === "asesor" && (!emailAsesor.trim() || !codigoAsesor.trim())) {
+      setMensaje("Ingresa el correo y el código del asesor");
       return;
     }
 
-    if (rol === "administrador" && !codigoAdministrador.trim()) {
-      setMensaje("Ingresa el código de administrador");
+    if (
+      rol === "administrador" &&
+      (!documentoAdministrador.trim() || !codigoAdministrador.trim())
+    ) {
+      setMensaje("Ingresa el documento y el código de administrador");
       return;
     }
 
@@ -89,9 +102,12 @@ function Login({ isModal = false }) {
         },
         body: JSON.stringify(
           esAsesor
-            ? { codigo_asesor: codigoAsesor }
+            ? { email: emailAsesor, codigo_asesor: codigoAsesor }
             : esAdministrador
-              ? { codigo_administrador: codigoAdministrador }
+              ? {
+                  documento: documentoAdministrador,
+                  codigo_administrador: codigoAdministrador,
+                }
             : { documento, password, rol }
         ),
       });
@@ -99,6 +115,11 @@ function Login({ isModal = false }) {
       const data = await res.json();
 
       if (!res.ok) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("usuario_id");
+        localStorage.removeItem("documento");
+        localStorage.removeItem("rol");
+
         const nuevosIntentos = intentos + 1;
         setIntentos(nuevosIntentos);
 
@@ -115,8 +136,13 @@ function Login({ isModal = false }) {
             setMensaje("");
           }, 30000);
         } else {
+          const mensajeError =
+            esAsesor && res.status === 401
+              ? "❌ El asesor está inactivo o el código no es válido. Solo los asesores activos pueden ingresar."
+              : data.detail || "Documento o contraseña incorrectos";
+
           setMensaje(
-            `❌ ${data.detail || "Documento o contraseña incorrectos"} (Intento ${nuevosIntentos} de 3)`
+            `${mensajeError} (Intento ${nuevosIntentos} de 3)`
           );
         }
 
@@ -125,19 +151,28 @@ function Login({ isModal = false }) {
 
       // Login exitoso
       setIntentos(0);
-      setLoginExitoso(!esAsesor && !esAdministrador);
+      setCodigoVerificacionEsperado(data.codigo_verificacion || "");
+      setCodigoVerificacionInput("");
+      setLoginExitoso(Boolean(data.codigo_verificacion));
       setMensaje(
         esAdministrador
-          ? "✅ Acceso exitoso. Redirigiendo al panel de administradores..."
+          ? data.codigo_verificacion
+            ? "✅ Acceso exitoso. Se envió un código de verificación a tu correo."
+            : "❌ El servidor no devolvió el código de verificación. Reinicia el backend e inténtalo nuevamente."
           : esAsesor
-          ? "✅ Acceso exitoso. Redirigiendo al asesor bancario..."
+          ? data.codigo_verificacion
+            ? "✅ Acceso exitoso. Se envió un código de verificación a tu correo."
+            : "❌ El servidor no devolvió el código de verificación. Reinicia el backend e inténtalo nuevamente."
           : data.codigo_verificacion
             ? "✅ Login exitoso. Se envió un código de verificación a tu correo."
             : "✅ Login exitoso"
       );
 
       localStorage.setItem("token", data.token);
-      localStorage.setItem("documento", data.usuario.documento || documento);
+      localStorage.setItem(
+        "documento",
+        data.usuario.documento || documento || documentoAdministrador
+      );
       localStorage.setItem("usuario_id", data.usuario.id);
       localStorage.setItem("nombre_usuario", data.usuario.nombre);
       localStorage.setItem("rol", data.usuario.rol || "usuario");
@@ -146,16 +181,6 @@ function Login({ isModal = false }) {
       }
       if (data.codigo_verificacion) {
         localStorage.setItem("codigo_verificacion", data.codigo_verificacion);
-      }
-
-      if (esAsesor && data.usuario.rol === "asesor") {
-        navigate("/asesor-bancario");
-        return;
-      }
-
-      if (esAdministrador && data.usuario.rol === "administrador") {
-        navigate("/administradores");
-        return;
       }
 
       // Mostramos las opciones al usuario normal.
@@ -179,6 +204,16 @@ function Login({ isModal = false }) {
           <>
             {rol === "asesor" ? (
               <>
+                <label htmlFor="email-asesor">Correo electrónico del asesor</label>
+                <input
+                  id="email-asesor"
+                  type="email"
+                  value={emailAsesor}
+                  onChange={(e) => setEmailAsesor(e.target.value)}
+                  disabled={bloqueado}
+                  placeholder="Ingresa tu correo electrónico"
+                  autoComplete="email"
+                />
                 <label htmlFor="codigo-asesor">Código de asesor</label>
                 <input
                   id="codigo-asesor"
@@ -192,6 +227,16 @@ function Login({ isModal = false }) {
               </>
             ) : rol === "administrador" ? (
               <>
+                <label htmlFor="documento-administrador">Número de documento</label>
+                <input
+                  id="documento-administrador"
+                  type="text"
+                  value={documentoAdministrador}
+                  onChange={(e) => setDocumentoAdministrador(e.target.value)}
+                  disabled={bloqueado}
+                  placeholder="Ingresa tu número de documento"
+                  autoComplete="username"
+                />
                 <label htmlFor="codigo-administrador">Código de administrador</label>
                 <input
                   id="codigo-administrador"
@@ -307,14 +352,15 @@ function Login({ isModal = false }) {
 
               <p>
                 Has iniciado sesión como{" "}
-                {localStorage.getItem("rol") === "asesor"
+                  {localStorage.getItem("rol") === "asesor"
                   ? "asesor bancario"
-                  : "usuario"}.
+                  : localStorage.getItem("rol") === "administrador"
+                    ? "administrador"
+                    : "usuario"}.
               </p>
 
               <p>
-                Ingresa el código de 4 dígitos enviado a tu correo para
-                continuar a tu cuenta.
+                Ingresa el código de 4 dígitos enviado a tu correo para continuar.
               </p>
 
               <label>Código de verificación</label>
@@ -353,14 +399,16 @@ function Login({ isModal = false }) {
                 {verificandoCodigo ? "Validando..." : "🏦 Entrar a mi cuenta"}
               </button>
 
-              <button
-                type="button"
-                className="btn"
-                onClick={solicitarVerificacion}
-                style={{ marginTop: "10px" }}
-              >
-                🪪 Solicitar verificación de identidad
-              </button>
+              {localStorage.getItem("rol") !== "asesor" && (
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={solicitarVerificacion}
+                  style={{ marginTop: "10px" }}
+                >
+                  🪪 Solicitar verificación de identidad
+                </button>
+              )}
             </div>
           </>
         )}
