@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import Registro from "./registro";
 import "../styles/asesorBancario.css";
 
 const API_URL = "http://127.0.0.1:8000";
 
 export default function AsesorBancario() {
-  const [codigoRegistro, setCodigoRegistro] = useState("");
-  const [usuarioConsultado, setUsuarioConsultado] = useState(null);
+  const navigate = useNavigate();
+  const rolActual = (localStorage.getItem("rol") || "").trim().toLowerCase();
   const [consultasRealizadas, setConsultasRealizadas] = useState([]);
-  const [cargando, setCargando] = useState(false);
+  const [busquedaUsuario, setBusquedaUsuario] = useState("");
   const [cargandoLista, setCargandoLista] = useState(true);
   const [mensaje, setMensaje] = useState("");
   const [mensajeExito, setMensajeExito] = useState("");
@@ -17,34 +18,68 @@ export default function AsesorBancario() {
   const [imagenMensaje, setImagenMensaje] = useState(null);
   const [previewImagenMensaje, setPreviewImagenMensaje] = useState("");
   const [mostrarMensajeAdmin, setMostrarMensajeAdmin] = useState(false);
+  const [mostrarRegistro, setMostrarRegistro] = useState(false);
+  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
+  const [cargandoDetalleUsuario, setCargandoDetalleUsuario] = useState(false);
+  const [errorDetalleUsuario, setErrorDetalleUsuario] = useState("");
+  const [menuAbierto, setMenuAbierto] = useState(true);
 
   useEffect(() => {
+    const actualizarEstadoMenu = () => {
+      setMenuAbierto(window.innerWidth > 650);
+    };
+
+    actualizarEstadoMenu();
+    window.addEventListener("resize", actualizarEstadoMenu);
+
+    return () => window.removeEventListener("resize", actualizarEstadoMenu);
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (!token || rolActual !== "asesor") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("usuario_id");
+      localStorage.removeItem("documento");
+      localStorage.removeItem("rol");
+      localStorage.removeItem("nombre_asesor");
+      localStorage.removeItem("codigo_verificacion");
+      navigate("/login", { replace: true });
+      return;
+    }
+
     const cargarUsuariosRegistrados = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const respuesta = await axios.get(
-          `${API_URL}/asesor-bancario/usuarios`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const respuesta = await axios.get(`${API_URL}/usuarios`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         setConsultasRealizadas(
           respuesta.data.map((usuario) => ({
             id: usuario.id_usuario,
             nombre: usuario.nombre,
+            correo: usuario.correo || usuario.email,
+            telefono: usuario.telefono,
+            direccion: usuario.direccion,
             codigoRegistro: usuario.codigo_registro,
-            fechaHora: usuario.fecha_creacion
-              ? new Date(usuario.fecha_creacion).toLocaleString("es-CO", {
-                  dateStyle: "short",
-                  timeStyle: "short",
-                })
-              : "No disponible",
+            estado: usuario.estado || "activo",
           }))
         );
       } catch (error) {
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("usuario_id");
+          localStorage.removeItem("documento");
+          localStorage.removeItem("rol");
+          localStorage.removeItem("nombre_asesor");
+          localStorage.removeItem("codigo_verificacion");
+          navigate("/login", { replace: true });
+          return;
+        }
+
         setMensaje(
           error.response?.data?.detail ||
             "No fue posible cargar los usuarios registrados."
@@ -55,48 +90,15 @@ export default function AsesorBancario() {
     };
 
     cargarUsuariosRegistrados();
-  }, []);
-
-  const consultarCodigoRegistro = async (evento) => {
-    evento.preventDefault();
-
-    if (!/^\d{6}$/.test(codigoRegistro.trim())) {
-      setMensaje("El código de registro debe tener seis dígitos.");
-      setUsuarioConsultado(null);
-      return;
-    }
-
-    setCargando(true);
-    setMensaje("");
-    setUsuarioConsultado(null);
-
-    try {
-      const token = localStorage.getItem("token");
-      const respuesta = await axios.get(
-        `${API_URL}/asesor-bancario/codigo/${codigoRegistro.trim()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const usuario = respuesta.data.usuario;
-      setUsuarioConsultado(usuario);
-    } catch (error) {
-      setMensaje(
-        error.response?.data?.detail ||
-          "No fue posible consultar el código de registro."
-      );
-    } finally {
-      setCargando(false);
-    }
-  };
+  }, [navigate, rolActual]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("usuario_id");
     localStorage.removeItem("documento");
+    localStorage.removeItem("rol");
+    localStorage.removeItem("nombre_asesor");
+    localStorage.removeItem("codigo_verificacion");
 
     window.location.href = "/login";
   };
@@ -179,25 +181,86 @@ export default function AsesorBancario() {
     setMensajeExito("Mensaje enviado");
   };
 
+  const verUsuario = async (usuario) => {
+    const token = localStorage.getItem("token");
+
+    setUsuarioSeleccionado({ ...usuario, cuentas: [] });
+    setCargandoDetalleUsuario(true);
+    setErrorDetalleUsuario("");
+
+    try {
+      const respuesta = await axios.get(
+        `${API_URL}/usuarios/${usuario.id}/cuentas`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setUsuarioSeleccionado((usuarioActual) => ({
+        ...usuarioActual,
+        cuentas: respuesta.data?.cuentas || [],
+      }));
+    } catch (error) {
+      setErrorDetalleUsuario(
+        error.response?.data?.detail ||
+          "No se pudieron cargar las cuentas del usuario."
+      );
+    } finally {
+      setCargandoDetalleUsuario(false);
+    }
+  };
+
+  const usuariosFiltrados = consultasRealizadas.filter((usuario) => {
+    const texto = busquedaUsuario.trim().toLowerCase();
+
+    if (!texto) {
+      return true;
+    }
+
+    return [
+      usuario.nombre,
+      usuario.correo,
+      usuario.telefono,
+      usuario.direccion,
+      usuario.codigoRegistro,
+      usuario.estado,
+    ].some((valor) => String(valor || "").toLowerCase().includes(texto));
+  });
+
   return (
     <div className="asesor-container">
-      <aside className="asesor-navbar">
+      <button
+        type="button"
+        className={`asesor-menu-movil ${menuAbierto ? "menu-abierto" : ""}`}
+        onClick={() => setMenuAbierto((actual) => !actual)}
+        aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+        aria-expanded={menuAbierto}
+      >
+        ☰
+      </button>
+
+      {menuAbierto && (
+        <button
+          type="button"
+          className="fondo-menu-asesor"
+          aria-label="Cerrar menú móvil"
+          onClick={() => setMenuAbierto(false)}
+        />
+      )}
+
+      <aside className={`asesor-navbar ${menuAbierto ? "" : "menu-asesor-cerrado"}`}>
         <div className="sidebar">
           <ul>
             <li>
-              <Link to="/AsesorBancario">
-                📜 Principal
+              <Link to="/asesor-bancario" onClick={() => setMenuAbierto(false)}>
+                📜 asesor
               </Link>
             </li>
 
             <li>
-              <Link to="/lista-usuarios">
-                👤 Usuarios
-              </Link>
-            </li>
-
-            <li>
-              <Link to="/lista-cuentas">
+              <Link to="/lista-cuentas" onClick={() => setMenuAbierto(false)}>
                 🌐 Cuentas
               </Link>
             </li>
@@ -206,7 +269,10 @@ export default function AsesorBancario() {
               <button
                 type="button"
                 className="enlace-mensaje-admin"
-                onClick={() => setMostrarMensajeAdmin(true)}
+                onClick={() => {
+                  setMenuAbierto(false);
+                  setMostrarMensajeAdmin(true);
+                }}
               >
                 ✉️ Mensaje
               </button>
@@ -319,13 +385,84 @@ export default function AsesorBancario() {
         </div>
       )}
 
+      {mostrarRegistro && (
+        <div
+          className="registro-asesor-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setMostrarRegistro(false)}
+        >
+          <div onClick={(evento) => evento.stopPropagation()}>
+            <Registro isModal />
+          </div>
+        </div>
+      )}
+
+      {usuarioSeleccionado && (
+        <div
+          className="detalle-usuario-asesor-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="titulo-detalle-usuario-asesor"
+          onClick={() => setUsuarioSeleccionado(null)}
+        >
+          <section
+            className="detalle-usuario-asesor-modal"
+            onClick={(evento) => evento.stopPropagation()}
+          >
+            <div className="detalle-usuario-asesor-header">
+              <h2 id="titulo-detalle-usuario-asesor">Información del usuario</h2>
+              <button
+                type="button"
+                className="cerrar-detalle-usuario-asesor"
+                onClick={() => setUsuarioSeleccionado(null)}
+                aria-label="Cerrar información del usuario"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="detalle-usuario-asesor-datos">
+              <p><strong>Nombre:</strong> {usuarioSeleccionado.nombre || "No registrado"}</p>
+              <p><strong>Correo:</strong> {usuarioSeleccionado.correo || "No registrado"}</p>
+              <p><strong>Teléfono:</strong> {usuarioSeleccionado.telefono || "No registrado"}</p>
+              <p><strong>Dirección:</strong> {usuarioSeleccionado.direccion || "No registrada"}</p>
+              <p><strong>Código de registro:</strong> {usuarioSeleccionado.codigoRegistro || "No disponible"}</p>
+              <p><strong>Contraseña:</strong> Protegida</p>
+              <p><strong>Estado:</strong> {usuarioSeleccionado.estado || "Activo"}</p>
+            </div>
+
+            <h3 className="detalle-usuario-asesor-subtitulo">Cuentas del usuario</h3>
+
+            {cargandoDetalleUsuario ? (
+              <p className="detalle-usuario-asesor-mensaje">Cargando cuentas...</p>
+            ) : errorDetalleUsuario ? (
+              <p className="mensaje-error">{errorDetalleUsuario}</p>
+            ) : usuarioSeleccionado.cuentas.length === 0 ? (
+              <p className="detalle-usuario-asesor-mensaje">
+                Este usuario no tiene cuentas registradas.
+              </p>
+            ) : (
+              <div className="cuentas-detalle-asesor">
+                {usuarioSeleccionado.cuentas.map((cuenta) => (
+                  <div className="cuenta-detalle-asesor" key={cuenta.id_cuenta}>
+                    <p><strong>Número:</strong> {cuenta.numero_cuenta || "No disponible"}</p>
+                    <p><strong>Tipo:</strong> {cuenta.tipo_cuenta || "No disponible"}</p>
+                    <p><strong>Operación:</strong> {cuenta.tipo_operacion || "debito"}</p>
+                    <p><strong>Saldo:</strong> ${Number(cuenta.saldo || 0).toLocaleString("es-CO")}</p>
+                    <p><strong>Estado:</strong> {cuenta.estado || "activa"}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
       <main className="asesor-panel">
         <section className="asesor-hero">
           <div className="asesor-hero-text">
-            <h1 className="asesor-title">
-              Asesor Bancario
-            </h1>
-
+            <h1 className="asesor-title">Asesor Bancario</h1>
             <p className="asesor-description">
               Administre la información bancaria desde este panel.
             </p>
@@ -333,103 +470,88 @@ export default function AsesorBancario() {
         </section>
 
         <section className="contenido-asesores">
-          <div className="contenido-lista-asesores">
-            <aside className="lista-consultas-asesor">
-              <h2>Usuarios registrados</h2>
+          <div className="buscador-usuarios-asesor">
+            <span className="icono-buscador-usuarios-asesor" aria-hidden="true">
+              &#128269;
+            </span>
+            <input
+              type="search"
+              value={busquedaUsuario}
+              onChange={(evento) => setBusquedaUsuario(evento.target.value)}
+              placeholder="Buscar usuario por nombre, correo, documento, teléfono..."
+              aria-label="Buscar usuario"
+            />
+          </div>
 
+          <div className="contenido-lista-asesores">
+            <div className="tabla-usuarios-asesor-contenedor">
               {cargandoLista ? (
                 <p>Cargando usuarios registrados...</p>
-              ) : consultasRealizadas.length === 0 ? (
+              ) : usuariosFiltrados.length === 0 ? (
                 <p>Aún no hay usuarios registrados.</p>
               ) : (
-                <div className="tabla-consultas-contenedor">
-                  <table className="tabla-consultas">
+                <table className="tabla-usuarios-asesor">
                     <thead>
                       <tr>
                         <th>Nombre</th>
-                        <th>Código</th>
-                        <th>Fecha y hora</th>
+                        <th>Correo</th>
+                        <th>Teléfono</th>
+                        <th>Dirección</th>
+                        <th>Código de registro</th>
+                        <th>Contraseña</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {consultasRealizadas.map((consulta) => (
-                        <tr key={consulta.id}>
-                          <td>{consulta.nombre}</td>
-                          <td>{consulta.codigoRegistro}</td>
-                          <td>{consulta.fechaHora}</td>
+                      {usuariosFiltrados.map((usuario) => (
+                        <tr key={usuario.id}>
+                          <td>{usuario.nombre || "No registrado"}</td>
+                          <td>{usuario.correo || "No registrado"}</td>
+                          <td>{usuario.telefono || "No registrado"}</td>
+                          <td>{usuario.direccion || "No registrada"}</td>
+                          <td>{usuario.codigoRegistro || "No disponible"}</td>
+                          <td><span className="contrasena-protegida">Protegida</span></td>
+                          <td>
+                            <span className={`estado-badge ${usuario.estado}`}>
+                              {usuario.estado}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="boton-ver-asesor"
+                              onClick={() => verUsuario(usuario)}
+                            >
+                              Ver
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
-                  </table>
-                </div>
-              )}
-            </aside>
-
-            <div className="panel-lista-asesores">
-              <form
-                className="formulario-asesor"
-                onSubmit={consultarCodigoRegistro}
-              >
-                <h2>Buscar usuario</h2>
-
-                <div className="campos-asesor">
-                  <label htmlFor="codigo-registro">
-                    Código de registro
-                    <input
-                      id="codigo-registro"
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={6}
-                      placeholder="Ej. 123456"
-                      value={codigoRegistro}
-                      onChange={(evento) =>
-                        setCodigoRegistro(evento.target.value.replace(/\D/g, ""))
-                      }
-                    />
-                  </label>
-
-                  <button type="submit" disabled={cargando}>
-                    {cargando ? "Consultando..." : "Consultar"}
-                  </button>
-                </div>
-              </form>
-
-              {mensaje && <p className="mensaje-error">{mensaje}</p>}
-
-              {mensajeExito && (
-                <p
-                  style={{
-                    marginTop: "12px",
-                    color: "#82d6a5",
-                    fontWeight: 600,
-                  }}
-                >
-                  {mensajeExito}
-                </p>
-              )}
-
-              {usuarioConsultado && (
-                <article className="tarjeta-asesor">
-                  <h2>Usuario encontrado</h2>
-                  <p>
-                    <strong>Código de registro:</strong>{" "}
-                    {usuarioConsultado.codigo_registro}
-                  </p>
-                  <p>
-                    <strong>Nombre:</strong>{" "}
-                    {usuarioConsultado.nombre}
-                  </p>
-                  <p>
-                    <strong>Documento:</strong>{" "}
-                    {usuarioConsultado.documento}
-                  </p>
-                  <p>
-                    <strong>Correo:</strong>{" "}
-                    {usuarioConsultado.email || "No registrado"}
-                  </p>
-                </article>
+                </table>
               )}
             </div>
+
+            {mensaje && <p className="mensaje-error">{mensaje}</p>}
+            {mensajeExito && <p className="mensaje-exito">{mensajeExito}</p>}
+          </div>
+
+          <div className="acciones-usuarios-asesor">
+            <button
+              type="button"
+              className="boton-registrar-asesor"
+              onClick={() => setMostrarRegistro(true)}
+            >
+              Registrar nuevo usuario
+            </button>
+            <button
+              type="button"
+              className="boton-actualizar-asesor"
+              onClick={() => window.location.reload()}
+            >
+              Actualizar
+            </button>
           </div>
         </section>
       </main>

@@ -7,7 +7,6 @@ import Registro from "./pages/registro";
 import Recuperacion from "./pages/recuperacion";
 import VerificacionIdentidad from "./pages/VerificacionIdentidad";
 import Administradores from "./pages/Administradores";
-import Listaasesores from "./pages/Listaasesores";
 import ListaUsuarios from "./pages/Listausuarios";
 import ListaCuentas from "./pages/ListaCuentas";
 import Cuenta from "./pages/cuenta";
@@ -23,7 +22,6 @@ function App() {
       <Route path="/recuperacion" element={<Recuperacion />} />
       <Route path="/verificacion-identidad" element={<VerificacionIdentidad />} />
       <Route path="/Administradores" element={<Administradores />} />
-      <Route path="/lista-asesores" element={<Listaasesores />} />
       <Route path="/lista-usuarios" element={<ListaUsuarios />} />
       <Route path="/lista-cuentas" element={<ListaCuentas />} />
       <Route path="/cuenta" element={<Cuenta />} />

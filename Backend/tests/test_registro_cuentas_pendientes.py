@@ -30,7 +30,8 @@ def test_registrar_usuario_crea_cuentas_pendientes_de_aprobacion(monkeypatch):
 
     cuentas = db.query(Cuenta).filter(Cuenta.id_usuario == resultado["usuario"]["id"]).all()
 
-    assert len(cuentas) == 2
+    assert len(cuentas) == 1
+    assert cuentas[0].tipo_cuenta == "corriente"
     assert {cuenta.estado for cuenta in cuentas} == {"inactiva"}
 
     db.close()
