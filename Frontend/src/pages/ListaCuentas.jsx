@@ -608,31 +608,11 @@ export default function ListaCuentas() {
                   </Link>
                 </li>
 
-                <li>
-                  <Link
-                    to="/asesor-bancario"
-                    onClick={() =>
-                      setMenuAbierto(false)
-                    }
-                  >
-                    📜 Asesor bancario
-                  </Link>
-                </li>
               </>
             )}
 
             {esAsesor && (
               <>
-                <li>
-                  <Link
-                    to="/asesor-bancario"
-                    onClick={() =>
-                      setMenuAbierto(false)
-                    }
-                  >
-                    📜 Asesor bancario
-                  </Link>
-                </li>
 
                 <li>
                   <button
