@@ -1,6 +1,5 @@
-﻿# Dependencias de Node.js del Frontend
-/node_modules/
-/Frontend/node_modules/
+﻿# Dependencias de Node.js en cualquier nivel del proyecto
+node_modules/
 
 
 # Archivos generados

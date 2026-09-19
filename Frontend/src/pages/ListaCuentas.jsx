@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/ListaCuentas.css";
+import logoProyecto from "../assets/images/logo.jpeg";
 
 const API_URL = "http://localhost:8000";
 
@@ -53,6 +54,9 @@ export default function ListaCuentas() {
   const [nuevoSaldoCuenta, setNuevoSaldoCuenta] = useState("0");
   const [guardandoCuenta, setGuardandoCuenta] = useState(false);
   const [mostrarMensajeAdmin, setMostrarMensajeAdmin] = useState(false);
+  const [mensajeAdmin, setMensajeAdmin] = useState("");
+  const [imagenMensaje, setImagenMensaje] = useState(null);
+  const [previewImagenMensaje, setPreviewImagenMensaje] = useState("");
 
   const [menuAbierto, setMenuAbierto] = useState(true);
 
@@ -560,6 +564,81 @@ export default function ListaCuentas() {
     }
   };
 
+  const convertirArchivoADataUrl = (archivo) =>
+    new Promise((resolver, rechazar) => {
+      const lector = new FileReader();
+      lector.onload = () => resolver(lector.result);
+      lector.onerror = () => rechazar(new Error("No se pudo leer la imagen"));
+      lector.readAsDataURL(archivo);
+    });
+
+  const handleImagenChange = async (evento) => {
+    const archivo = evento.target.files?.[0];
+
+    if (!archivo) {
+      return;
+    }
+
+    if (!archivo.type.startsWith("image/")) {
+      setError("El archivo adjunto debe ser una imagen.");
+      return;
+    }
+
+    try {
+      const imagenBase64 = await convertirArchivoADataUrl(archivo);
+      setImagenMensaje({
+        nombre: archivo.name,
+        dataUrl: imagenBase64,
+      });
+      setPreviewImagenMensaje(imagenBase64);
+      setError("");
+    } catch (error) {
+      setError("No se pudo cargar la imagen.");
+    }
+  };
+
+  const enviarMensajeAdmin = () => {
+    const texto = mensajeAdmin.trim();
+
+    if (!texto && !imagenMensaje) {
+      return;
+    }
+
+    const nuevoMensaje = {
+      id: Date.now(),
+      id_notificacion: Date.now(),
+      nombre_asesor:
+        localStorage.getItem("nombre_asesor") ||
+        localStorage.getItem("nombre_usuario") ||
+        "Sin nombre",
+      texto: texto || "Imagen adjunta",
+      mensaje: texto || "Imagen adjunta",
+      descripcion: texto || "Imagen adjunta",
+      titulo: "Mensaje para el administrador",
+      tipo: "mensaje",
+      imagen: imagenMensaje?.dataUrl || null,
+      imagen_data_url: imagenMensaje?.dataUrl || null,
+      fecha: new Date().toLocaleString("es-CO"),
+      fecha_creacion: new Date().toISOString(),
+      leida: false,
+    };
+
+    const mensajesGuardados = JSON.parse(
+      localStorage.getItem("mensajes_admin") || "[]"
+    );
+
+    localStorage.setItem(
+      "mensajes_admin",
+      JSON.stringify([nuevoMensaje, ...mensajesGuardados])
+    );
+
+    setMensajeAdmin("");
+    setImagenMensaje(null);
+    setPreviewImagenMensaje("");
+    setMostrarMensajeAdmin(false);
+    setMensaje("Mensaje enviado");
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("usuario_id");
@@ -610,29 +689,19 @@ export default function ListaCuentas() {
 
               </>
             )}
-
+            
             {esAsesor && (
-              <>
-
-                <li>
-                  <button
-                    type="button"
-                    className="enlace-mensaje-admin"
-                    onClick={() => setMostrarMensajeAdmin(true)}
-                  >
-                    ✉️ Mensaje
-                  </button>
-                </li>
-              </>
+              <li>
+                <Link to="/asesor-bancario" onClick={() => setMenuAbierto(false)}>
+                  📜 Asesor
+                </Link>
+              </li>
             )}
-
             {!esAsesor && (
               <li>
                 <Link
                   to="/lista-usuarios"
-                  onClick={() =>
-                    setMenuAbierto(false)
-                  }
+                  onClick={() => setMenuAbierto(false)}
                 >
                   👤 Usuarios
                 </Link>
@@ -649,6 +718,21 @@ export default function ListaCuentas() {
                 🌐 Cuentas
               </Link>
             </li>
+
+            {esAsesor && (
+              <>
+
+                <li>
+                  <button
+                    type="button"
+                    className="enlace-mensaje-admin"
+                    onClick={() => setMostrarMensajeAdmin(true)}
+                  >
+                    ✉️ Mensaje
+                  </button>
+                </li>
+              </>
+            )}
 
             {!esAsesor && (
               <li>
@@ -673,8 +757,114 @@ export default function ListaCuentas() {
           </button>
         </aside>
 
+        {mostrarMensajeAdmin && (
+          <div
+            className="modal-mensaje-admin-overlay"
+            role="presentation"
+            onClick={() => setMostrarMensajeAdmin(false)}
+          >
+            <section
+              className="modal-mensaje-admin"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="titulo-mensaje-admin"
+              onClick={(evento) => evento.stopPropagation()}
+            >
+              <div className="modal-mensaje-admin-header">
+                <h2 id="titulo-mensaje-admin">Mensaje para el administrador</h2>
+                <button
+                  type="button"
+                  className="cerrar-mensaje-admin"
+                  aria-label="Cerrar mensaje para el administrador"
+                  onClick={() => setMostrarMensajeAdmin(false)}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="modal-mensaje-admin-body">
+                <label htmlFor="mensaje-admin-input" className="modal-mensaje-admin-label">
+                  Código de mensaje:
+                </label>
+
+                <input
+                  id="mensaje-admin-input"
+                  type="text"
+                  className="codigo-mensaje-admin-input"
+                  value={mensajeAdmin}
+                  onChange={(evento) => setMensajeAdmin(evento.target.value)}
+                  placeholder="Escribe un mensaje"
+                  autoComplete="off"
+                  style={{
+                    color: "#ffffff",
+                    backgroundColor: "#0b0f16",
+                    WebkitTextFillColor: "#ffffff",
+                    fontSize: "18px",
+                    fontWeight: 600,
+                    border: "1px solid rgba(242, 201, 76, 0.8)",
+                    borderRadius: "8px",
+                    padding: "12px 14px",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+
+                <label htmlFor="imagen-admin-input" className="modal-mensaje-admin-label">
+                  Imagen adjunta:
+                </label>
+
+                <input
+                  id="imagen-admin-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImagenChange}
+                  style={{
+                    width: "100%",
+                    marginTop: "8px",
+                    marginBottom: "12px",
+                    color: "#ffffff",
+                  }}
+                />
+
+                {previewImagenMensaje && (
+                  <img
+                    src={previewImagenMensaje}
+                    alt="Vista previa del mensaje"
+                    style={{
+                      width: "100%",
+                      maxHeight: "180px",
+                      objectFit: "cover",
+                      borderRadius: "10px",
+                      marginBottom: "12px",
+                      border: "1px solid rgba(242, 201, 76, 0.8)",
+                    }}
+                  />
+                )}
+
+                <button
+                  type="button"
+                  className="boton-enviar-mensaje-admin"
+                  onClick={enviarMensajeAdmin}
+                  disabled={!mensajeAdmin.trim() && !imagenMensaje}
+                >
+                  Enviar
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
+
         <main className="contenido-cuentas">
           <div className="encabezado-cuentas">
+            <div className="marca-financiera">
+              <img
+                className="logo-administracion-asesores"
+                src={logoProyecto}
+                alt="Logo del proyecto"
+              />
+              <span>Financiero</span>
+            </div>
+
             <h1>Lista de Cuentas</h1>
 
             <button
@@ -866,17 +1056,6 @@ export default function ListaCuentas() {
               </div>
             )}
 
-          {esAsesor && (
-            <button
-              type="button"
-              className="boton-volver-asesor"
-              onClick={() =>
-                navigate("/asesor-bancario")
-              }
-            >
-              Volver al inicio del asesor
-            </button>
-          )}
         </main>
 
         {usuarioNuevaCuenta && (

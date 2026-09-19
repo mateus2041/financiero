@@ -1629,8 +1629,7 @@ def listar_cuentas_usuario(
         )
 
     cuentas = db.query(Cuenta).filter(
-        Cuenta.id_usuario == id_usuario,
-        Cuenta.tipo_cuenta == "corriente"
+        Cuenta.id_usuario == id_usuario
     ).order_by(Cuenta.id_cuenta).all()
 
     return {
