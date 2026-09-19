@@ -3,6 +3,7 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import Registro from "./registro";
 import "../styles/Administradores.css";
+import logoProyecto from "../assets/images/logo.jpeg";
 
 const API_URL = "http://localhost:8000";
 
@@ -313,15 +314,17 @@ export default function ListaUsuarios() {
               </li>
             )}
 
-            <li>
-              <button
-                type="button"
-                className="enlace-mensaje-admin"
-                onClick={() => setMostrarMensajeAdmin(true)}
-              >
-                ✉️ Mensaje
-              </button>
-            </li>
+            {esAsesor && (
+              <li>
+                <button
+                  type="button"
+                  className="enlace-mensaje-admin"
+                  onClick={() => setMostrarMensajeAdmin(true)}
+                >
+                  ✉️ Mensaje
+                </button>
+              </li>
+            )}
           </ul>
 
           <button
@@ -335,7 +338,17 @@ export default function ListaUsuarios() {
 
         <main className="contenido-asesores">
 
-          <h1>Lista de Usuarios</h1>
+          <div className="encabezado-administracion-asesores">
+            <div className="marca-financiera">
+              <img
+                className="logo-administracion-asesores"
+                src={logoProyecto}
+                alt="Logo del proyecto"
+              />
+              <span>Financiero</span>
+            </div>
+            <h1>Lista de Usuarios</h1>
+          </div>
 
           <p className="subtitulo-asesores">
             Usuarios registrados en el sistema financiero

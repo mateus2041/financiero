@@ -152,11 +152,34 @@ body {
 }
 
 .encabezado-cuentas {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 18px;
   flex-wrap: wrap;
+}
+
+.encabezado-cuentas .marca-financiera {
+  position: absolute;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--texto-principal);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.encabezado-cuentas .logo-administracion-asesores {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  border: 2px solid var(--dorado);
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .encabezado-cuentas h1 {
@@ -1133,6 +1156,7 @@ button:hover {
   border-radius: 7px;
   background: #0b0f16;
   color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
   font: inherit;
 }
 
@@ -1227,6 +1251,26 @@ button:hover {
 
   .encabezado-cuentas {
     padding-right: 42px;
+    justify-content: flex-end;
+    min-height: 72px;
+    padding-left: 132px;
+  }
+
+  .encabezado-cuentas .marca-financiera {
+    gap: 8px;
+    font-size: 15px;
+  }
+
+  .encabezado-cuentas .logo-administracion-asesores {
+    width: 46px;
+    height: 46px;
+    flex-basis: 46px;
+  }
+
+  .encabezado-cuentas h1 {
+    padding: 0;
+    font-size: 22px;
+    text-align: right;
   }
 
   .detalles-cuenta {

@@ -378,12 +378,15 @@ export default function Administradores() {
         <main className="contenido-asesores">
 
           <div className="encabezado-administracion-asesores">
-            <img
-              className="logo-administracion-asesores"
-              src={logoProyecto}
-              alt="Logo del proyecto"
-            />
-            <h1>binvenido Administración </h1>
+            <div className="marca-financiera">
+              <img
+                className="logo-administracion-asesores"
+                src={logoProyecto}
+                alt="Logo del proyecto"
+              />
+              <span>Financiero</span>
+            </div>
+            <h1>Bienvenido Administración</h1>
           </div>
 
           <p className="subtitulo-asesores">

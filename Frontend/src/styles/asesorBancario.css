@@ -578,14 +578,14 @@ body {
   width: 100%;
   margin-bottom: 20px;
   padding: 14px 22px;
-  border: 1px solid #2e6fff;
+  border: 1px solid #9ea1a7;
   border-radius: 15px;
-  background: #142d5c;
+  background: #9ea1a7;
   box-sizing: border-box;
 }
 
 .icono-buscador-usuarios-asesor {
-  color: #6fc7ff;
+  color: #ffffff;
   font-size: 24px;
   line-height: 1;
 }
@@ -601,7 +601,7 @@ body {
 }
 
 .buscador-usuarios-asesor input::placeholder {
-  color: #050505;
+  color: #ffffff;
   opacity: 1;
 }
 

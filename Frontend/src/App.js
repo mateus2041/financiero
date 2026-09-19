@@ -100,6 +100,16 @@ function App() {
       />
 
       <Route
+        path="/administrador"
+        element={<Navigate to="/administradores" replace />}
+      />
+
+      <Route
+        path="/Administradores"
+        element={<Navigate to="/administradores" replace />}
+      />
+
+      <Route
         path="/lista-cuentas"
         element={<ListaCuentas />}
       />
