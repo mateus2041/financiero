@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/notificaiones.css";
+import logoProyecto from "../assets/images/logo.jpeg";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -355,6 +356,15 @@ export default function Notificaciones() {
         <main className="contenido-asesores">
 
           <div className="encabezado-cuentas">
+            <div className="marca-financiera">
+              <img
+                className="logo-administracion-asesores"
+                src={logoProyecto}
+                alt="Logo del proyecto"
+              />
+              <span>Financiero</span>
+            </div>
+
             <h1>Notificaciones</h1>
           </div>
 
