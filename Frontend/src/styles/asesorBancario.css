@@ -42,6 +42,10 @@ body {
   color: var(--texto-principal);
 }
 
+.asesor-container * {
+  box-sizing: border-box;
+}
+
 .asesor-navbar {
   width: 250px;
   min-width: 250px;
@@ -67,7 +71,40 @@ body {
   text-align: center;
 }
 
+.asesor-brand {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  min-width: 0;
+}
+
+.asesor-brand-left {
+  display: flex;
+  grid-column: 1;
+  align-items: center;
+  justify-self: start;
+  gap: 24px;
+  min-width: 0;
+}
+
+.asesor-logo {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  border: 2px solid var(--dorado);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.asesor-brand-name {
+  color: var(--texto-principal);
+  font-size: 1.15rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .asesor-title {
+  grid-column: 2;
   margin: 0;
   text-align: center;
   color: var(--dorado);
@@ -591,6 +628,7 @@ body {
 }
 
 .buscador-usuarios-asesor input {
+  min-width: 0;
   width: 100%;
   border: 0;
   outline: 0;
@@ -1513,10 +1551,10 @@ button:hover {
   }
 
   .asesor-menu-movil {
-    display: flex;
+    display: flex !important;
     position: fixed;
-    top: 16px;
-    right: 14px;
+    top: 12px;
+    right: 12px;
     z-index: 40;
     align-items: center;
     justify-content: center;
@@ -1529,6 +1567,8 @@ button:hover {
     cursor: pointer;
     font-size: 24px;
     line-height: 1;
+    visibility: visible;
+    opacity: 1;
   }
 
   .asesor-menu-movil:hover,
@@ -1569,6 +1609,38 @@ button:hover {
 
   .asesor-panel {
     width: 100%;
+  }
+
+  .asesor-hero {
+    padding: 68px 16px 12px;
+  }
+
+  .asesor-title {
+    align-self: center;
+    font-size: 1.8rem;
+    overflow-wrap: anywhere;
+  }
+
+  .asesor-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .asesor-brand-left {
+    gap: 14px;
+  }
+
+  .asesor-logo {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+  }
+
+  .asesor-description {
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
 
   .panel-financiero {
@@ -1617,14 +1689,66 @@ button:hover {
     overflow-x: hidden;
   }
 
+  .buscador-usuarios-asesor {
+    width: 100%;
+    max-width: 100%;
+    padding: 12px 14px;
+  }
+
+  .buscador-usuarios-asesor input {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .tabla-usuarios-asesor-contenedor {
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-x;
+    overflow-x: auto;
+  }
+
+  .tabla-usuarios-asesor {
+    width: max-content;
+    min-width: 1050px;
+    border-collapse: collapse;
+  }
+
+  .tabla-usuarios-asesor thead {
+    display: table-header-group;
+  }
+
+  .tabla-usuarios-asesor tbody tr {
+    display: table-row;
+  }
+
+  .tabla-usuarios-asesor th,
+  .tabla-usuarios-asesor td {
+    display: table-cell;
+    width: auto;
+    padding: 15px 14px;
+    border-bottom: 1px solid #34415b;
+    text-align: center;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .tabla-usuarios-asesor tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .tabla-usuarios-asesor .boton-ver-asesor {
+    padding: 7px 18px;
   }
 
   .acciones-usuarios-asesor {
-    justify-content: flex-start;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .boton-registrar-asesor,
+  .boton-actualizar-asesor {
+    width: 100%;
   }
 
   .formulario-asesor {

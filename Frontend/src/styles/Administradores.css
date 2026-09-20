@@ -88,6 +88,29 @@ body {
   transition: left 0.25s ease, background 0.2s ease, color 0.2s ease;
 }
 
+@media (min-width: 651px) {
+  .boton-menu-administradores {
+    display: none !important;
+  }
+
+  .sidebar {
+    position: static !important;
+    transform: none !important;
+    width: 250px !important;
+    min-width: 250px !important;
+    padding: 20px !important;
+    overflow: visible !important;
+  }
+
+  .sidebar-cerrado {
+    width: 250px !important;
+    min-width: 250px !important;
+    padding: 20px !important;
+    transform: none !important;
+    overflow: visible !important;
+  }
+}
+
 .boton-menu-administradores:hover,
 .boton-menu-administradores:focus-visible {
   background: var(--dorado);
@@ -1645,12 +1668,20 @@ button:hover {
   }
 
   .encabezado-administracion-asesores {
-    justify-content: flex-end;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     min-height: 72px;
-    padding-left: 132px;
+    padding: 0;
+    gap: 8px;
   }
 
   .marca-financiera {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     gap: 8px;
     font-size: 15px;
   }
@@ -1664,7 +1695,7 @@ button:hover {
   .contenido-asesores h1 {
     padding: 0;
     font-size: 22px;
-    text-align: right;
+    text-align: center;
   }
 
   .contenido-lista-asesores {

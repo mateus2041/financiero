@@ -4,6 +4,7 @@ import secrets
 import os
 import re
 import hmac
+from datetime import datetime
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import json
@@ -1306,6 +1307,7 @@ def login(
     )
 
     codigo_verificacion = generar_codigo_verificacion()
+    fecha_hora_ingreso = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
     asunto = "Inicio de sesión - Código de verificación - Financiero"
     mensaje = crear_plantilla_email(
@@ -1328,13 +1330,32 @@ def login(
         """
     )
 
+    asunto_notificacion_ingreso = "Notificación de ingreso a tu cuenta - Fecha y hora - Financiero"
+    mensaje_notificacion_ingreso = crear_plantilla_email(
+        f"""
+        <p style="margin: 0 0 14px; font-size: 15px; color: #1f1f1f;">
+            Hola <strong>{usuario.nombre}</strong>,
+        </p>
+        <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+            Se registró un ingreso a tu cuenta en Financiero.
+        </p>
+        <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+            <strong>Fecha y hora:</strong> {fecha_hora_ingreso}
+        </p>
+        <p style="margin: 0; font-size: 14px; color: #1f1f1f;">
+            Si no reconoces esta actividad, te recomendamos cambiar tu contraseña de inmediato.
+        </p>
+        """
+    )
+
     if usuario.email:
         enviar_correo(usuario.email, asunto, mensaje)
+        enviar_correo(usuario.email, asunto_notificacion_ingreso, mensaje_notificacion_ingreso)
 
     db.add(
         Notificacion(
             id_usuario=usuario.id_usuario,
-            mensaje="Se inició sesión correctamente en tu cuenta.",
+            mensaje=f"Se inició sesión correctamente en tu cuenta el {fecha_hora_ingreso}.",
             leido=False,
         )
     )
