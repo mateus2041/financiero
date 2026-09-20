@@ -59,6 +59,7 @@ export default function ListaCuentas() {
   const [previewImagenMensaje, setPreviewImagenMensaje] = useState("");
 
   const [menuAbierto, setMenuAbierto] = useState(true);
+  const [esMovil, setEsMovil] = useState(() => window.innerWidth <= 650);
 
   useEffect(() => {
     cargarCuentas();
@@ -66,7 +67,9 @@ export default function ListaCuentas() {
 
   useEffect(() => {
     const actualizarEstadoMenu = () => {
-      setMenuAbierto(window.innerWidth > 650);
+      const movil = window.innerWidth <= 650;
+      setEsMovil(movil);
+      setMenuAbierto(!movil);
     };
 
     actualizarEstadoMenu();
@@ -649,9 +652,8 @@ export default function ListaCuentas() {
   };
 
   return (
-    <div className="lista-cuentas-container">
-      <div className="panel-financiero">
-
+    <div className="contenedor-lista-cuentas">
+      {esMovil && (
         <button
           type="button"
           className={`boton-menu-cuentas ${
@@ -667,12 +669,13 @@ export default function ListaCuentas() {
         >
           ☰
         </button>
+      )}
 
-        <aside
-          className={`sidebar ${
-            menuAbierto ? "" : "sidebar-cerrado"
-          }`}
-        >
+      <aside
+        className={`sidebar ${
+          menuAbierto ? "" : "sidebar-cerrado"
+        }`}
+      >
           <ul>
             {!esAsesor && (
               <>
@@ -866,17 +869,6 @@ export default function ListaCuentas() {
             </div>
 
             <h1>Lista de Cuentas</h1>
-
-            <button
-              type="button"
-              className="boton-actualizar-lista"
-              onClick={cargarCuentas}
-              disabled={cargando}
-            >
-              {cargando
-                ? "Actualizando..."
-                : "Actualizar lista"}
-            </button>
           </div>
 
           <p className="subtitulo-cuentas">
@@ -1055,6 +1047,19 @@ export default function ListaCuentas() {
                 </table>
               </div>
             )}
+
+          <div className="acciones-lista-cuentas">
+            <button
+              type="button"
+              className="boton-actualizar-lista"
+              onClick={cargarCuentas}
+              disabled={cargando}
+            >
+              {cargando
+                ? "Actualizando..."
+                : "Actualizar lista"}
+            </button>
+          </div>
 
         </main>
 
@@ -1553,6 +1558,5 @@ export default function ListaCuentas() {
           </div>
         )}
       </div>
-    </div>
   );
 }

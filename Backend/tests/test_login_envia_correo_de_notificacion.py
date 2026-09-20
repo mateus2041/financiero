@@ -76,12 +76,14 @@ def test_login_envia_correo_de_notificacion(monkeypatch):
     )
     db.commit()
 
-    llamadas = {}
+    llamadas = []
 
     def fake_enviar_correo(destinatario, asunto, mensaje_html):
-        llamadas["destinatario"] = destinatario
-        llamadas["asunto"] = asunto
-        llamadas["mensaje_html"] = mensaje_html
+        llamadas.append({
+            "destinatario": destinatario,
+            "asunto": asunto,
+            "mensaje_html": mensaje_html,
+        })
         return True
 
     monkeypatch.setattr("Backend.main.enviar_correo", fake_enviar_correo)
@@ -91,10 +93,15 @@ def test_login_envia_correo_de_notificacion(monkeypatch):
     assert resultado["message"] == "Login exitoso"
     assert resultado["codigo_verificacion"].isdigit()
     assert len(resultado["codigo_verificacion"]) == 4
-    assert llamadas["destinatario"] == "ana@test.com"
-    assert "Inicio de sesión" in llamadas["asunto"]
-    assert "Ana Gómez" in llamadas["mensaje_html"]
-    assert "Estimado cliente" in llamadas["mensaje_html"]
-    assert resultado["codigo_verificacion"] in llamadas["mensaje_html"]
+    assert len(llamadas) == 2
+    assert llamadas[0]["destinatario"] == "ana@test.com"
+    assert "Inicio de sesión" in llamadas[0]["asunto"]
+    assert "Ana Gómez" in llamadas[0]["mensaje_html"]
+    assert "Estimado cliente" in llamadas[0]["mensaje_html"]
+    assert resultado["codigo_verificacion"] in llamadas[0]["mensaje_html"]
+    assert "fecha y hora" in llamadas[1]["asunto"].lower()
+    assert "inicio de sesión" in llamadas[1]["mensaje_html"].lower()
+    assert "fecha" in llamadas[1]["mensaje_html"].lower()
+    assert "hora" in llamadas[1]["mensaje_html"].lower()
 
     db.close()

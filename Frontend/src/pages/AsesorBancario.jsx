@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import Registro from "./registro";
+import logo from "../assets/images/logo.jpeg";
 import "../styles/asesorBancario.css";
 
 const API_URL = "http://127.0.0.1:8000";
@@ -22,7 +23,7 @@ export default function AsesorBancario() {
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
   const [cargandoDetalleUsuario, setCargandoDetalleUsuario] = useState(false);
   const [errorDetalleUsuario, setErrorDetalleUsuario] = useState("");
-  const [menuAbierto, setMenuAbierto] = useState(true);
+  const [menuAbierto, setMenuAbierto] = useState(false);
 
   useEffect(() => {
     const actualizarEstadoMenu = () => {
@@ -462,7 +463,13 @@ export default function AsesorBancario() {
       <main className="asesor-panel">
         <section className="asesor-hero">
           <div className="asesor-hero-text">
-            <h1 className="asesor-title">Asesor Bancario</h1>
+            <div className="asesor-brand">
+              <div className="asesor-brand-left">
+                <img className="asesor-logo" src={logo} alt="Logo Financiero" />
+                <span className="asesor-brand-name">Financiero</span>
+              </div>
+              <h1 className="asesor-title">Asesor Bancario</h1>
+            </div>
             <p className="asesor-description">
               Administre la información bancaria desde este panel.
             </p>

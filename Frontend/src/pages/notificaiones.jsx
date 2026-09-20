@@ -15,6 +15,8 @@ export default function Notificaciones() {
   const [error, setError] = useState("");
   const [notificacionSeleccionada, setNotificacionSeleccionada] =
     useState(null);
+  const [menuAbierto, setMenuAbierto] = useState(true);
+  const [esMovil, setEsMovil] = useState(() => window.innerWidth <= 650);
 
   const token = localStorage.getItem("token");
 
@@ -36,6 +38,22 @@ export default function Notificaciones() {
 
     cargarNotificaciones();
   }, [navigate, token]);
+
+  useEffect(() => {
+    const actualizarEstadoMenu = () => {
+      const movil = window.innerWidth <= 650;
+
+      setEsMovil(movil);
+      setMenuAbierto(!movil);
+    };
+
+    actualizarEstadoMenu();
+    window.addEventListener("resize", actualizarEstadoMenu);
+
+    return () => {
+      window.removeEventListener("resize", actualizarEstadoMenu);
+    };
+  }, []);
 
   const leerNotificacionesLocales = () => {
     try {
@@ -317,29 +335,60 @@ export default function Notificaciones() {
   return (
     <div className="asesor-container">
       <div className="panel-financiero">
+        {esMovil && (
+          <button
+            type="button"
+            className={`boton-menu-notificaciones ${
+              menuAbierto ? "" : "menu-cerrado"
+            }`}
+            onClick={() => setMenuAbierto((actual) => !actual)}
+            aria-label={
+              menuAbierto ? "Cerrar menú" : "Abrir menú"
+            }
+            aria-expanded={menuAbierto}
+          >
+            ☰
+          </button>
+        )}
 
-        <aside className="sidebar">
+        <aside
+          className={`sidebar ${
+            menuAbierto ? "" : "sidebar-cerrado"
+          }`}
+        >
           <ul>
             <li>
-              <Link to="/Administradores">
+              <Link
+                to="/Administradores"
+                onClick={() => setMenuAbierto(false)}
+              >
                 📜 Principal
               </Link>
             </li>
 
             <li>
-              <Link to="/lista-usuarios">
+              <Link
+                to="/lista-usuarios"
+                onClick={() => setMenuAbierto(false)}
+              >
                 👤 Usuarios
               </Link>
             </li>
 
             <li>
-              <Link to="/lista-cuentas">
+              <Link
+                to="/lista-cuentas"
+                onClick={() => setMenuAbierto(false)}
+              >
                 🌐 Cuentas
               </Link>
             </li>
 
             <li>
-              <Link to="/notificaciones">
+              <Link
+                to="/notificaciones"
+                onClick={() => setMenuAbierto(false)}
+              >
                 🔔 Notificaciones
               </Link>
             </li>
