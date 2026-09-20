@@ -15,6 +15,7 @@ export default function Administradores() {
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [menuAbierto, setMenuAbierto] = useState(true);
+  const [esMovil, setEsMovil] = useState(() => window.innerWidth <= 650);
   const [asesorEditando, setAsesorEditando] = useState(null);
   const [registroModalAbierto, setRegistroModalAbierto] = useState(false);
   const [formularioRegistro, setFormularioRegistro] = useState({
@@ -34,7 +35,9 @@ export default function Administradores() {
 
   useEffect(() => {
     const actualizarEstadoMenu = () => {
-      setMenuAbierto(window.innerWidth > 650);
+      const movil = window.innerWidth <= 650;
+      setEsMovil(movil);
+      setMenuAbierto(!movil);
     };
 
     actualizarEstadoMenu();
@@ -330,15 +333,17 @@ export default function Administradores() {
   return (
     <div className="asesor-container">
       <div className="panel-financiero">
-        <button
-          type="button"
-          className={`boton-menu-administradores ${menuAbierto ? "" : "menu-cerrado"}`}
-          onClick={() => setMenuAbierto((actual) => !actual)}
-          aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
-          aria-expanded={menuAbierto}
-        >
-          ☰
-        </button>
+        {esMovil && (
+          <button
+            type="button"
+            className={`boton-menu-administradores ${menuAbierto ? "" : "menu-cerrado"}`}
+            onClick={() => setMenuAbierto((actual) => !actual)}
+            aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+            aria-expanded={menuAbierto}
+          >
+            ☰
+          </button>
+        )}
 
         <aside className={`sidebar ${menuAbierto ? "" : "sidebar-cerrado"}`}>
           <ul>
