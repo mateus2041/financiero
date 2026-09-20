@@ -69,6 +69,32 @@ body {
   box-sizing: border-box;
 }
 
+.boton-menu-notificaciones {
+  display: none;
+  position: fixed;
+  top: 16px;
+  right: 14px;
+  z-index: 40;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(242, 201, 76, 0.45);
+  border-radius: 8px;
+  background: #121829;
+  color: var(--dorado);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.boton-menu-notificaciones:hover,
+.boton-menu-notificaciones:focus-visible {
+  background: var(--dorado);
+  color: #0b0f16;
+  outline: 2px solid var(--dorado);
+  outline-offset: 1px;
+}
+
 .sidebar ul {
   list-style: none;
   margin: 0;
@@ -1052,20 +1078,40 @@ button:hover {
 
 @media (max-width: 650px) {
   .panel-financiero {
-    flex-direction: column;
+    position: relative;
+    flex-direction: row;
+  }
+
+  .boton-menu-notificaciones {
+    display: flex;
   }
 
   .sidebar {
-    width: 100%;
-    min-width: 100%;
-    min-height: auto;
-    padding: 15px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 30;
+    width: min(78vw, 260px);
+    min-width: 0;
+    min-height: 100vh;
+    padding: 18px 15px 15px;
+    box-shadow: 8px 0 24px rgba(0, 0, 0, 0.35);
+    transform: translateX(0);
+    transition: transform 0.25s ease;
+  }
+
+  .sidebar-cerrado {
+    width: min(78vw, 260px);
+    min-width: 0;
+    min-height: 100vh;
+    padding: 18px 15px 15px;
+    transform: translateX(-105%);
   }
 
   .sidebar ul {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-direction: column;
+    gap: 6px;
   }
 
   .sidebar ul li {
@@ -1081,8 +1127,9 @@ button:hover {
   }
 
   .contenido-asesores {
-    min-height: auto;
-    padding: 20px;
+    width: 100%;
+    min-height: 100vh;
+    padding: 72px 16px 24px;
   }
 
   .contenido-asesores h1 {
@@ -1090,12 +1137,15 @@ button:hover {
   }
 
   .encabezado-cuentas {
-    justify-content: flex-end;
+    justify-content: center;
     min-height: 72px;
-    padding-left: 132px;
+    padding: 0;
   }
 
   .encabezado-cuentas .marca-financiera {
+    position: static;
+    flex-direction: column;
+    align-items: center;
     gap: 8px;
     font-size: 15px;
   }
@@ -1109,7 +1159,7 @@ button:hover {
   .encabezado-cuentas h1 {
     margin: 0;
     font-size: 22px;
-    text-align: right;
+    text-align: center;
   }
 
   .contenido-lista-asesores {
@@ -1130,6 +1180,22 @@ button:hover {
 
   .lista-asesores {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 651px) {
+  .boton-menu-notificaciones {
+    display: none !important;
+  }
+
+  .sidebar,
+  .sidebar-cerrado {
+    position: static !important;
+    transform: none !important;
+    width: 250px !important;
+    min-width: 250px !important;
+    min-height: 100vh !important;
+    padding: 20px !important;
   }
 }
 
