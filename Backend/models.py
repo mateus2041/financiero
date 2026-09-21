@@ -81,6 +81,10 @@ class Usuario(Base):
         String(200)
     )
 
+    codigo_postal = Column(
+        String(6)
+    )
+
     documento = Column(
         String(50),
         unique=True

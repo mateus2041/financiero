@@ -325,6 +325,7 @@ export default function ListaUsuarios() {
                 </button>
               </li>
             )}
+
           </ul>
 
           <button
@@ -411,13 +412,9 @@ export default function ListaUsuarios() {
                   <thead>
                     <tr>
                       <th>Nombre</th>
-                      <th>Correo</th>
-                      <th>Teléfono</th>
+                      <th>Número de documento</th>
                       <th>Dirección</th>
-                      <th>Código de registro</th>
-                      <th>Contraseña</th>
-                      <th>Estado</th>
-                      <th>Acciones</th>
+                      <th>Código postal</th>
                     </tr>
                   </thead>
 
@@ -430,13 +427,7 @@ export default function ListaUsuarios() {
                         </td>
 
                         <td>
-                          {usuario.correo ||
-                            usuario.email ||
-                            "No registrado"}
-                        </td>
-
-                        <td>
-                          {usuario.telefono || "No registrado"}
+                          {usuario.documento || "No registrado"}
                         </td>
 
                         <td>
@@ -444,55 +435,7 @@ export default function ListaUsuarios() {
                         </td>
 
                         <td>
-                          {usuario.codigo_registro ||
-                            "No disponible"}
-                        </td>
-
-                        <td>
-                          <span className="contrasena-protegida">
-                            Protegida
-                          </span>
-                        </td>
-
-                        <td>
-                          <span
-                            className={`estado-badge ${
-                              usuario.estado === "activo"
-                                ? "activo"
-                                : "inactivo"
-                            }`}
-                          >
-                            {usuario.estado || "Activo"}
-                          </span>
-                        </td>
-
-                        <td className="acciones-usuarios">
-                          <button
-                            type="button"
-                            className="boton-ver"
-                            onClick={() => verUsuario(usuario)}
-                          >
-                            Ver
-                          </button>
-
-                          {esAdministrador && (
-                            <button
-                              type="button"
-                              className="boton-inhabilitar"
-                              onClick={() =>
-                                inhabilitarUsuario(
-                                  usuario.id_usuario
-                                )
-                              }
-                              disabled={
-                                usuario.estado === "inactivo"
-                              }
-                            >
-                              {usuario.estado === "inactivo"
-                                ? "Inhabilitado"
-                                : "Inhabilitar"}
-                            </button>
-                          )}
+                          {usuario.codigo_postal || "No registrado"}
                         </td>
 
                       </tr>
