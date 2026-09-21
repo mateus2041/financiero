@@ -49,6 +49,29 @@ body {
   height: 100vh;
   background: var(--fondo-secundario);
   color: var(--dorado);
+  position: relative;
+}
+
+.menu-hamburguesa {
+  display: none;
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 40;
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(242, 201, 76, 0.45);
+  border-radius: 12px;
+  background: #121829;
+  color: var(--dorado);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
+}
+
+.menu-hamburguesa.activo {
+  left: 18px;
 }
 
 /* ========== SIDEBAR ========== */
@@ -84,6 +107,14 @@ body {
 .sidebar ul li a.active {
   background: rgba(242, 201, 76, 0.1);
   color: var(--dorado);
+}
+
+.sidebar-abierto {
+  display: flex;
+}
+
+.sidebar-cerrado {
+  display: none;
 }
 
 .sidebar-link {
@@ -343,5 +374,15 @@ button:hover {
 
   .chart-card {
     height: 300px;
+  }
+}
+
+@media (max-width: 768px) {
+  .main {
+    padding: 78px 16px 24px;
+  }
+
+  .main-header {
+    min-height: 48px;
   }
 }

@@ -415,6 +415,16 @@ class Tarjeta(Base):
         unique=True
     )
 
+    fecha_expiracion = Column(
+        CHAR(5),
+        nullable=True
+    )
+
+    codigo_seguridad = Column(
+        CHAR(3),
+        nullable=True
+    )
+
     estado = Column(
         Enum(
             "activa",

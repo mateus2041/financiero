@@ -74,6 +74,22 @@
     letter-spacing: 2px;
 }
 
+.tarjeta-clickable {
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.tarjeta-clickable:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.03);
+}
+
+.tarjeta-clickable:focus {
+    outline: 2px solid rgba(245, 197, 66, 0.7);
+    outline-offset: 3px;
+}
+
 .tarjeta-tipo {
     position: absolute;
     bottom: 25px;
@@ -81,6 +97,106 @@
     color: #f5c542;
     font-size: 11px;
     font-weight: bold;
+}
+
+.tarjeta-trasera {
+    background: linear-gradient(135deg, #1a4d7a 0%, #1f5f8d 28%, #0b2a4a 100%);
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 0;
+}
+
+.tarjeta-trasera-header {
+    width: 100%;
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    padding-left: 18px;
+    box-sizing: border-box;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    opacity: 0.95;
+    margin-bottom: 8px;
+}
+
+.tarjeta-trasera-licencia {
+    width: 100%;
+    margin-top: 0;
+    background: rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    box-sizing: border-box;
+}
+
+.tarjeta-trasera-firma-box {
+    flex: 1;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 8px 0 0 8px;
+    box-sizing: border-box;
+    min-width: 0;
+}
+
+.tarjeta-trasera-codigo-box {
+    min-width: 90px;
+    height: 52px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    color: #111827;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 30px;
+    letter-spacing: 2px;
+    padding: 0 14px;
+    box-sizing: border-box;
+}
+
+.tarjeta-trasera-mensaje {
+    width: 100%;
+    margin-top: 18px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 11px;
+    line-height: 1.45;
+    text-align: center;
+    letter-spacing: 0.2px;
+}
+
+.tarjeta-trasera-footer {
+    width: 100%;
+    margin-top: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 16px;
+}
+
+.tarjeta-trasera-campo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 11px;
+    letter-spacing: 1px;
+    min-width: 0;
+}
+
+.tarjeta-trasera-campo strong {
+    color: #ffffff;
+    font-size: 18px;
+    letter-spacing: 1px;
+    line-height: 1;
 }
 
 /* ESTADO */

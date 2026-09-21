@@ -14,10 +14,22 @@ function Historial() {
 
     const [usuario, setUsuario] = useState("");
     const [openTransfer, setOpenTransfer] = useState(false);
+    const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
 
     useEffect(() => {
         cargarTransacciones();
         cargarUsuario();
+    }, []);
+
+    useEffect(() => {
+        const actualizarEstadoMenu = () => {
+            setMenuAbierto(window.innerWidth > 768);
+        };
+
+        actualizarEstadoMenu();
+        window.addEventListener("resize", actualizarEstadoMenu);
+
+        return () => window.removeEventListener("resize", actualizarEstadoMenu);
     }, []);
 
     const cargarUsuario = async () => {
@@ -252,7 +264,17 @@ function Historial() {
     return (
         <div className="panel-financiero">
 
-            <aside className="sidebar">
+            <button
+                type="button"
+                className={`menu-hamburguesa ${menuAbierto ? "activo" : ""}`}
+                onClick={() => setMenuAbierto((actual) => !actual)}
+                aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+                aria-expanded={menuAbierto}
+            >
+                ☰
+            </button>
+
+            <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
                 <ul>
 
                     <li>
