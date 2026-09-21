@@ -57,6 +57,7 @@ function DesbloquearTarjeta() {
 
             setTarjeta(datos);
             setDatosSeguridad({
+                numeroTarjeta: datos.numero_tarjeta,
                 ultimosTres: datos.ultimos_tres,
                 vencimiento: datos.fecha_expiracion,
                 codigoSeguridad: datos.codigo_seguridad
@@ -386,11 +387,9 @@ function DesbloquearTarjeta() {
                                     <div className="tarjeta-chip">▦</div>
 
                                     <div className="tarjeta-numero">
-                                        **** **** ****{" "}
-                                        {datosSeguridad.ultimosTres ||
-                                            tarjeta.ultimos_digitos ||
-                                            tarjeta.ultimo_digito ||
-                                            "000"}
+                                        {(datosSeguridad.numeroTarjeta || "0000000000000000")
+                                            .replace(/(.{4})/g, "$1 ")
+                                            .trim()}
                                     </div>
 
                                     <div className="tarjeta-tipo">
