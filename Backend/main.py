@@ -78,6 +78,13 @@ class VerificarTarjetaRecuperacion(BaseModel):
     codigo_seguridad: str
 
 
+class NuevaTarjeta(BaseModel):
+    fecha_vencimiento: str | None = None
+    cvv: str | None = None
+    primeros_digitos: str | None = None
+    ultimos_digitos: str | None = None
+
+
 from Backend.ai.router import router as ia_router
 from Backend.models import (
     Usuario,
@@ -191,6 +198,11 @@ def startup():
                 "ADD COLUMN id_usuario INT NULL UNIQUE, "
                 "ADD CONSTRAINT fk_administradores_usuario "
                 "FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)"
+            ))
+
+        if "codigo_postal" not in columnas_usuario:
+            conexion.execute(text(
+                "ALTER TABLE usuario ADD COLUMN codigo_postal VARCHAR(6) NULL"
             ))
 
         if "nombre" not in columnas_asesores:
@@ -756,6 +768,8 @@ def registrar_usuario(
         telefono=data.get("telefono"),
 
         direccion=data.get("direccion"),
+
+        codigo_postal=codigo_correspondencia,
 
         rol=rol,
 
@@ -1633,6 +1647,7 @@ def listar_usuarios(
             "correo": usuario.email,
             "telefono": usuario.telefono,
             "direccion": usuario.direccion,
+            "codigo_postal": usuario.codigo_postal,
             "codigo_registro": usuario.codigo_registro,
             "estado": getattr(usuario, "estado", "activo")
         }
@@ -2087,6 +2102,119 @@ def cuenta_existe(
 # MIS CUENTAS
 # ==========================================================
 
+@app.get("/usuarios/{id_usuario}/tarjetas")
+def listar_tarjetas_usuario(
+    id_usuario: int,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    if current_user != id_usuario:
+        raise HTTPException(status_code=403, detail="No puedes consultar estas tarjetas")
+
+    tarjetas = db.query(Tarjeta).join(Cuenta).filter(
+        Cuenta.id_usuario == id_usuario
+    ).all()
+
+    return [
+        {
+            "id_tarjeta": tarjeta.id_tarjeta,
+            "numero_tarjeta": f"**** **** **** {str(tarjeta.numero_tarjeta)[-4:]}",
+            "fecha_vencimiento": tarjeta.fecha_expiracion,
+            "tipo_tarjeta": "debito",
+            "estado": tarjeta.estado
+        }
+        for tarjeta in tarjetas
+    ]
+
+
+@app.post("/usuarios/{id_usuario}/tarjetas")
+def agregar_tarjeta_usuario(
+    id_usuario: int,
+    datos: NuevaTarjeta,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    if current_user != id_usuario:
+        administrador_o_asesor_requerido(
+            current_user=current_user,
+            db=db
+        )
+
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_usuario == id_usuario,
+        Cuenta.tipo_cuenta == "corriente",
+        Cuenta.estado == "activa"
+    ).order_by(Cuenta.id_cuenta).first()
+
+    if not cuenta:
+        raise HTTPException(status_code=404, detail="No tienes una cuenta activa asociada")
+
+    fecha_expiracion = datos.fecha_vencimiento
+    if fecha_expiracion:
+        if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", fecha_expiracion):
+            raise HTTPException(status_code=422, detail="La fecha de vencimiento no es válida")
+        fecha_expiracion = f"{fecha_expiracion[5:]}/{fecha_expiracion[2:4]}"
+    else:
+        fecha_expiracion = (
+            f"{secrets.randbelow(12) + 1:02d}/"
+            f"{str(datetime.utcnow().year + 5)[-2:]}"
+        )
+
+    codigo_seguridad = datos.cvv or f"{secrets.randbelow(1000):03d}"
+    if not re.fullmatch(r"\d{3,4}", codigo_seguridad):
+        raise HTTPException(status_code=422, detail="El CVV no es válido")
+
+    primeros_digitos = datos.primeros_digitos or f"{secrets.randbelow(10**13):013d}"
+    if not re.fullmatch(r"\d{13}", primeros_digitos):
+        raise HTTPException(status_code=422, detail="Los primeros dígitos no son válidos")
+
+    ultimos_digitos = datos.ultimos_digitos or f"{secrets.randbelow(1000):03d}"
+    if not re.fullmatch(r"\d{3}", ultimos_digitos):
+        raise HTTPException(status_code=422, detail="Los últimos 3 dígitos no son válidos")
+
+    numero_tarjeta = f"{primeros_digitos}{ultimos_digitos}"
+    while db.query(Tarjeta).filter(Tarjeta.numero_tarjeta == numero_tarjeta).first():
+        primeros_digitos = f"{secrets.randbelow(10**13):013d}"
+        numero_tarjeta = f"{primeros_digitos}{ultimos_digitos}"
+
+    tarjeta = Tarjeta(
+        id_cuenta=cuenta.id_cuenta,
+        numero_tarjeta=numero_tarjeta,
+        fecha_expiracion=fecha_expiracion,
+        codigo_seguridad=codigo_seguridad,
+        estado="activa"
+    )
+    db.add(tarjeta)
+    db.commit()
+    db.refresh(tarjeta)
+
+    return {
+        "id_tarjeta": tarjeta.id_tarjeta,
+        "numero_tarjeta": f"**** **** **** {numero_tarjeta[-4:]}",
+        "fecha_vencimiento": tarjeta.fecha_expiracion,
+        "tipo_tarjeta": "debito",
+        "estado": tarjeta.estado
+    }
+
+
+@app.delete("/tarjetas/{id_tarjeta}")
+def eliminar_tarjeta_usuario(
+    id_tarjeta: int,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    tarjeta = db.query(Tarjeta).join(Cuenta).filter(
+        Tarjeta.id_tarjeta == id_tarjeta,
+        Cuenta.id_usuario == current_user
+    ).first()
+
+    if not tarjeta:
+        raise HTTPException(status_code=404, detail="Tarjeta no encontrada")
+
+    db.delete(tarjeta)
+    db.commit()
+    return {"mensaje": "Tarjeta eliminada correctamente"}
+
 @app.get("/tarjeta")
 def consultar_tarjeta(
     current_user: int = Depends(token_required),
@@ -2144,6 +2272,7 @@ def consultar_tarjeta(
 
     return {
         "id_tarjeta": tarjeta.id_tarjeta,
+        "numero_tarjeta": str(tarjeta.numero_tarjeta),
         "ultimos_digitos": str(tarjeta.numero_tarjeta)[-6:],
         "ultimos_tres": str(tarjeta.numero_tarjeta)[-3:],
         "fecha_expiracion": tarjeta.fecha_expiracion,
