@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import "../styles/reporta.css";
@@ -10,6 +10,18 @@ function Reporte() {
 
   const [openTransfer, setOpenTransfer] = useState(false);
   const [openCertificado, setOpenCertificado] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
+
+  useEffect(() => {
+    const actualizarEstadoMenu = () => {
+      setMenuAbierto(window.innerWidth > 768);
+    };
+
+    actualizarEstadoMenu();
+    window.addEventListener("resize", actualizarEstadoMenu);
+
+    return () => window.removeEventListener("resize", actualizarEstadoMenu);
+  }, []);
 
   const generarReporte = async () => {
     try {
@@ -178,10 +190,18 @@ function Reporte() {
   
   
       <div className="panel-financiero">
+
+        <button
+          type="button"
+          className={`menu-hamburguesa ${menuAbierto ? "activo" : ""}`}
+          onClick={() => setMenuAbierto((actual) => !actual)}
+          aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+          aria-expanded={menuAbierto}
+        >
+          ☰
+        </button>
   
-  
-        <aside className="sidebar">
-  
+        <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
   
           <ul>
   
@@ -291,13 +311,12 @@ function Reporte() {
   
             <li>
   
-              <button
-                type="button"
+              <Link
                 className="sidebar-link"
-                onClick={() => setOpenCertificado(true)}
+                to="/certificado"
               >
                 📄 Certificado Bancario
-              </button>
+              </Link>
   
             </li>
   
@@ -482,38 +501,51 @@ function Reporte() {
       </main>
 
       {openCertificado && (
-        <div className="modal-certificado">
-
-          <div className="modal-contenido">
-
-            <h2>Certificado Bancario</h2>
-
-            <p>
-              Puedes consultar tu certificado bancario
-              desde la sección correspondiente.
-            </p>
-
-            <Link
-              to="/certificado"
-              className="btn-reporte"
-              onClick={() =>
-                setOpenCertificado(false)
-              }
-            >
-              Ver certificado
-            </Link>
-
+        <div
+          className="modal-certificado-overlay"
+          role="presentation"
+          onClick={() => setOpenCertificado(false)}
+        >
+          <section
+            className="modal-contenido"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reporte-certificado-titulo"
+            onClick={(evento) => evento.stopPropagation()}
+          >
             <button
               type="button"
-              onClick={() =>
-                setOpenCertificado(false)
-              }
+              className="modal-certificado-cerrar"
+              aria-label="Cerrar modal de certificado"
+              onClick={() => setOpenCertificado(false)}
             >
-              Cerrar
+              ×
             </button>
 
-          </div>
+            <h2 id="reporte-certificado-titulo">Certificado Bancario</h2>
 
+            <p>
+              Puedes consultar tu certificado bancario desde la sección correspondiente.
+            </p>
+
+            <div className="modal-certificado-acciones">
+              <button
+                type="button"
+                className="modal-certificado-secundario"
+                onClick={() => setOpenCertificado(false)}
+              >
+                Cancelar
+              </button>
+
+              <Link
+                to="/certificado"
+                className="modal-certificado-principal"
+                onClick={() => setOpenCertificado(false)}
+              >
+                Ver certificado
+              </Link>
+            </div>
+          </section>
         </div>
       )}
 

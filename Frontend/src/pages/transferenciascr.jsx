@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "../styles/transferencias.css";
 
 const API_URL = "http://127.0.0.1:8000";
 
 export default function RegistrarLlaveBreB() {
+    const navigate = useNavigate();
     const [llave, setLlave] = useState("");
     const [cuentas, setCuentas] = useState([]);
     const [cuentaSeleccionada, setCuentaSeleccionada] = useState("");
@@ -16,6 +17,18 @@ export default function RegistrarLlaveBreB() {
 
     const [openTransfer, setOpenTransfer] = useState(false);
     const [openCertificado, setOpenCertificado] = useState(false);
+    const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
+
+    useEffect(() => {
+        const actualizarEstadoMenu = () => {
+            setMenuAbierto(window.innerWidth > 768);
+        };
+
+        actualizarEstadoMenu();
+        window.addEventListener("resize", actualizarEstadoMenu);
+
+        return () => window.removeEventListener("resize", actualizarEstadoMenu);
+    }, []);
 
     const chatbotActivo = true;
 
@@ -126,7 +139,17 @@ export default function RegistrarLlaveBreB() {
     return (
         <div className="panel-financiero">
 
-            <aside className="sidebar">
+            <button
+                type="button"
+                className={`menu-hamburguesa ${menuAbierto ? "activo" : ""}`}
+                onClick={() => setMenuAbierto((actual) => !actual)}
+                aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+                aria-expanded={menuAbierto}
+            >
+                ☰
+            </button>
+
+            <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
 
                 <ul>
 
@@ -188,15 +211,12 @@ export default function RegistrarLlaveBreB() {
                     </li>
 
                     <li>
-                        <button
-                            type="button"
+                        <Link
                             className="sidebar-link"
-                            onClick={() =>
-                                setOpenCertificado(true)
-                            }
+                            to="/certificado"
                         >
                             📄 Certificado Bancario
-                        </button>
+                        </Link>
                     </li>
 
                     <li>
@@ -302,6 +322,58 @@ export default function RegistrarLlaveBreB() {
                 </section>
 
             </main>
+
+            {openCertificado && (
+                <div
+                    className="modal-certificado-overlay"
+                    role="presentation"
+                    onClick={() => setOpenCertificado(false)}
+                >
+                    <section
+                        className="modal-certificado"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="certificado-modal-title"
+                        onClick={(evento) => evento.stopPropagation()}
+                    >
+                        <button
+                            type="button"
+                            className="modal-certificado-cerrar"
+                            aria-label="Cerrar modal de certificado"
+                            onClick={() => setOpenCertificado(false)}
+                        >
+                            ×
+                        </button>
+
+                        <h2 id="certificado-modal-title">
+                            Certificado bancario
+                        </h2>
+                        <p>
+                            Consulta y descarga tu certificado bancario.
+                        </p>
+
+                        <div className="modal-certificado-acciones">
+                            <button
+                                type="button"
+                                className="modal-certificado-secundario"
+                                onClick={() => setOpenCertificado(false)}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                className="modal-certificado-principal"
+                                onClick={() => {
+                                    setOpenCertificado(false);
+                                    navigate("/certificado");
+                                }}
+                            >
+                                Ver certificado
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            )}
 
         </div>
     );

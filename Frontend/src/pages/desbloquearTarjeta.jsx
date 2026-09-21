@@ -12,9 +12,23 @@ function DesbloquearTarjeta() {
     const [passwordBloqueo, setPasswordBloqueo] = useState("");
     const [mensaje, setMensaje] = useState("");
     const [error, setError] = useState("");
+    const [vistaTarjeta, setVistaTarjeta] = useState("frontal");
+    const [datosSeguridad, setDatosSeguridad] = useState({});
 
     const [openTransfer, setOpenTransfer] = useState(false);
     const [openCertificado, setOpenCertificado] = useState(false);
+    const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
+
+    useEffect(() => {
+        const actualizarEstadoMenu = () => {
+            setMenuAbierto(window.innerWidth > 768);
+        };
+
+        actualizarEstadoMenu();
+        window.addEventListener("resize", actualizarEstadoMenu);
+
+        return () => window.removeEventListener("resize", actualizarEstadoMenu);
+    }, []);
 
     useEffect(() => {
         cargarTarjeta();
@@ -42,6 +56,11 @@ function DesbloquearTarjeta() {
             const datos = await respuesta.json();
 
             setTarjeta(datos);
+            setDatosSeguridad({
+                ultimosTres: datos.ultimos_tres,
+                vencimiento: datos.fecha_expiracion,
+                codigoSeguridad: datos.codigo_seguridad
+            });
 
         } catch (error) {
             console.error(error);
@@ -191,7 +210,17 @@ function DesbloquearTarjeta() {
     return (
         <div className="panel-financiero">
 
-            <aside className="sidebar">
+            <button
+                type="button"
+                className={`menu-hamburguesa ${menuAbierto ? "activo" : ""}`}
+                onClick={() => setMenuAbierto((actual) => !actual)}
+                aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+                aria-expanded={menuAbierto}
+            >
+                ☰
+            </button>
+
+            <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
 
                 <ul>
 
@@ -257,15 +286,12 @@ function DesbloquearTarjeta() {
 
                     <li>
 
-                        <button
-                            type="button"
+                        <Link
                             className="sidebar-link"
-                            onClick={() =>
-                                setOpenCertificado(true)
-                            }
+                            to="/certificado"
                         >
                             📄 Certificado Bancario
-                        </button>
+                        </Link>
 
                     </li>
 
@@ -341,29 +367,75 @@ function DesbloquearTarjeta() {
                     {tarjeta && (
                         <>
 
-                            <div className="tarjeta-visual">
+                            {vistaTarjeta === "frontal" ? (
+                                <div
+                                    className="tarjeta-visual tarjeta-clickable"
+                                    onClick={() => setVistaTarjeta("trasera")}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(evento) => {
+                                        if (evento.key === "Enter" || evento.key === " ") {
+                                            evento.preventDefault();
+                                            setVistaTarjeta("trasera");
+                                        }
+                                    }}
+                                >
 
-                                <div className="tarjeta-marca">BILLETERA</div>
+                                    <div className="tarjeta-marca">BILLETERA</div>
 
-                                <div className="tarjeta-chip">▦</div>
+                                    <div className="tarjeta-chip">▦</div>
 
-                                <div className="tarjeta-numero">
-                                    **** **** ****{" "}
-                                    {tarjeta.ultimos_digitos ||
-                                        tarjeta.ultimo_digito ||
-                                        "0000"}
+                                    <div className="tarjeta-numero">
+                                        **** **** ****{" "}
+                                        {datosSeguridad.ultimosTres ||
+                                            tarjeta.ultimos_digitos ||
+                                            tarjeta.ultimo_digito ||
+                                            "000"}
+                                    </div>
+
+                                    <div className="tarjeta-tipo">
+                                        BILLETERA DIGITAL
+                                    </div>
+
                                 </div>
+                            ) : (
+                                <div
+                                    className="tarjeta-visual tarjeta-trasera tarjeta-clickable"
+                                    onClick={() => setVistaTarjeta("frontal")}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(evento) => {
+                                        if (evento.key === "Enter" || evento.key === " ") {
+                                            evento.preventDefault();
+                                            setVistaTarjeta("frontal");
+                                        }
+                                    }}
+                                >
+                                    <div className="tarjeta-trasera-header">
+                                        FIRMA AUTORIZADA
+                                    </div>
 
-                                <div className="tarjeta-cuenta">
-                                    <span>CUENTA CORRIENTE</span>
-                                    <strong>{tarjeta.numero_cuenta || "No disponible"}</strong>
+                                    <div className="tarjeta-trasera-licencia">
+                                        <div className="tarjeta-trasera-firma-box" />
+                                        <div className="tarjeta-trasera-codigo-box">
+                                            {datosSeguridad.codigoSeguridad || "---"}
+                                        </div>
+                                    </div>
+
+                                    <div className="tarjeta-trasera-mensaje">
+                                        Las operaciones de uso de esta tarjeta y la responsabilidad en su manejo son responsabilidad del cliente.
+                                    </div>
+
+                                    <div className="tarjeta-trasera-footer">
+                                        <div className="tarjeta-trasera-campo">
+                                            <strong>{datosSeguridad.ultimosTres || "---"}</strong>
+                                        </div>
+                                        <div className="tarjeta-trasera-campo">
+                                            <strong>{datosSeguridad.vencimiento || "--/--"}</strong>
+                                        </div>
+                                    </div>
                                 </div>
-
-                                <div className="tarjeta-tipo">
-                                    BILLETERA DIGITAL
-                                </div>
-
-                            </div>
+                            )}
 
                             <div className="tarjeta-estado">
 

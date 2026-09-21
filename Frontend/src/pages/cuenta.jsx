@@ -33,13 +33,13 @@ const Cuenta = () => {
     () => localStorage.getItem("cuenta_corriente_tipo") || "debito"
   );
   const [openTransfer, setOpenTransfer] = useState(false);
-  const [openCertificado, setOpenCertificado] = useState(false);
   const [id, setId] = useState("");
   const [actualizando, setActualizando] = useState(false);
   const [actualizacion, setActualizacion] = useState(0);
   const [fotoPerfil, setFotoPerfil] = useState(
     () => localStorage.getItem("fotoPerfil") || ""
   );
+  const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
 
   const mostrarCuentaCorriente = estadoCuentaCorriente === "activa";
   const mostrarCuentaAhorro = estadoCuentaAhorro === "activa";
@@ -90,6 +90,17 @@ const Cuenta = () => {
       window.removeEventListener("cuenta-tipo-actualizado", actualizarTipoCuentaCorriente);
       window.removeEventListener("storage", actualizarTipoCuentaCorriente);
     };
+  }, []);
+
+  useEffect(() => {
+    const actualizarEstadoMenu = () => {
+      setMenuAbierto(window.innerWidth > 768);
+    };
+
+    actualizarEstadoMenu();
+    window.addEventListener("resize", actualizarEstadoMenu);
+
+    return () => window.removeEventListener("resize", actualizarEstadoMenu);
   }, []);
 
   useEffect(() => {
@@ -330,8 +341,6 @@ const Cuenta = () => {
     setActualizacion((valor) => valor + 1);
   };
 
-
-
   const handleLogout = () => {
 
 
@@ -358,9 +367,17 @@ const Cuenta = () => {
 
     <div className="panel-financiero">
 
+      <button
+        type="button"
+        className={`menu-hamburguesa ${menuAbierto ? "activo" : ""}`}
+        onClick={() => setMenuAbierto((actual) => !actual)}
+        aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+        aria-expanded={menuAbierto}
+      >
+        ☰
+      </button>
 
-      <aside className="sidebar">
-
+      <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
 
         <ul>
 
@@ -482,13 +499,12 @@ const Cuenta = () => {
 
           <li>
 
-            <button
-              type="button"
+            <Link
               className="sidebar-link"
-              onClick={() => setOpenCertificado(true)}
+              to="/certificado"
             >
               📄 Certificado Bancario
-            </button>
+            </Link>
 
           </li>
 
@@ -709,54 +725,6 @@ const Cuenta = () => {
 
 
       </main>
-
-      {openCertificado && (
-        <div
-          className="certificado-modal-overlay"
-          role="presentation"
-          onClick={() => setOpenCertificado(false)}
-        >
-          <section
-            className="certificado-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="certificado-modal-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="certificado-modal-close"
-              aria-label="Cerrar modal"
-              onClick={() => setOpenCertificado(false)}
-            >
-              ×
-            </button>
-            <h2 id="certificado-modal-title">Certificado bancario</h2>
-            <p>
-              Puedes consultar tus datos y descargar el certificado bancario
-              en formato PDF.
-            </p>
-            <div className="certificado-modal-actions">
-              <button
-                type="button"
-                className="modal-secondary-button"
-                onClick={() => setOpenCertificado(false)}
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                className="modal-primary-button"
-                onClick={() => navigate("/certificado")}
-              >
-                Ver certificado
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
-
-
 
     </div>
 

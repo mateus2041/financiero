@@ -1,3 +1,45 @@
+.panel-financiero {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.menu-hamburguesa {
+  display: none;
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 40;
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(242, 201, 76, 0.45);
+  border-radius: 12px;
+  background: #121829;
+  color: #f2c94c;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.sidebar {
+  width: 250px;
+  min-width: 250px;
+  background: linear-gradient(180deg, #121829, #0b0f16);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.sidebar-abierto {
+  display: flex;
+}
+
+.sidebar-cerrado {
+  display: none;
+}
+
 .transfer-container {
   flex: 1;
   box-sizing: border-box;
@@ -117,7 +159,7 @@
 
 @media (max-width: 600px) {
   .transfer-container {
-    padding: 20px;
+    padding: 78px 20px 20px;
   }
 
   .transfer-container .transfer-card {

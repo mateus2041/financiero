@@ -313,3 +313,70 @@ INSERT INTO usuario (
     0,
     0
 );
+-- SQLBook: Code
+SELECT *
+FROM tarjetas;
+-- SQLBook: Code
+SELECT RIGHT(numero_tarjeta, 4) AS ultimos_digitos
+FROM tarjetas;
+-- SQLBook: Code
+SELECT 
+    u.id_usuario,
+    c.id_cuenta,
+    t.numero_tarjeta,
+    RIGHT(t.numero_tarjeta, 4) AS ultimos_digitos
+FROM usuario u
+LEFT JOIN cuentas c ON c.id_usuario = u.id_usuario
+LEFT JOIN tarjetas t ON t.id_cuenta = c.id_cuenta;
+-- SQLBook: Code
+SELECT 
+    u.id_usuario,
+    c.id_cuenta,
+    t.numero_tarjeta,
+    RIGHT(t.numero_tarjeta, 4) AS ultimos_digitos
+FROM usuario u
+JOIN cuentas c ON c.id_usuario = u.id_usuario
+JOIN tarjetas t ON t.id_cuenta = c.id_cuenta
+WHERE u.id_usuario = 14;
+-- SQLBook: Code
+SELECT
+    u.id_usuario,
+    u.nombre,
+    c.id_cuenta,
+    t.id_tarjeta,
+    RIGHT(t.numero_tarjeta, 6) AS ultimos_digitos,
+    t.estado
+FROM usuario AS u
+JOIN cuentas AS c ON c.id_usuario = u.id_usuario
+JOIN tarjetas AS t ON t.id_cuenta = c.id_cuenta
+WHERE u.id_usuario = 14;
+-- SQLBook: Code
+SELECT
+    id_tarjeta,
+    id_cuenta,
+    RIGHT(numero_tarjeta, 6) AS ultimos_digitos,
+    estado
+FROM tarjetas;
+-- SQLBook: Code
+SHOW COLUMNS FROM tarjetas;
+-- SQLBook: Code
+SELECT
+    u.id_usuario,
+    u.nombre,
+    RIGHT(t.numero_tarjeta, 6) AS ultimos_digitos,
+    t.fecha_expiracion,
+    t.codigo_seguridad,
+    t.estado
+FROM usuario u
+JOIN cuentas c ON c.id_usuario = u.id_usuario
+JOIN tarjetas t ON t.id_cuenta = c.id_cuenta
+WHERE u.id_usuario = 14;
+-- SQLBook: Code
+SELECT
+    RIGHT(t.numero_tarjeta, 6) AS ultimos_digitos,
+    t.fecha_expiracion,
+    t.codigo_seguridad,
+    t.estado
+FROM cuentas c
+JOIN tarjetas t ON t.id_cuenta = c.id_cuenta
+WHERE c.id_usuario = 14;
