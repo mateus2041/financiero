@@ -278,6 +278,13 @@ export default function AsesorBancario() {
                 ✉️ Mensaje
               </button>
             </li>
+
+            <li>
+              <Link to="/trageta" onClick={() => setMenuAbierto(false)}>
+                💳 Tarjetas
+              </Link>
+            </li>
+
           </ul>
 
           <button

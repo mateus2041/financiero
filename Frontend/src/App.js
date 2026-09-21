@@ -22,6 +22,7 @@ import TransferenciasScr from "./pages/transferenciascr";
 import Notificaciones from "./pages/notificaiones";
 import Mensajes from "./pages/mensaje-Admin";
 import DesbloquearTarjeta from "./pages/desbloquearTarjeta";
+import TarjetasUsuario from "./pages/trageta";
 
 function App() {
   return (
@@ -152,6 +153,11 @@ function App() {
       <Route
         path="/desbloquear-cuenta"
         element={<DesbloquearTarjeta />}
+      />
+
+      <Route
+        path="/trageta"
+        element={<TarjetasUsuario />}
       />
     </Routes>
   );
