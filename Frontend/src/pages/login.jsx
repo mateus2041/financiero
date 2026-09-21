@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Recuperacion from "./recuperacion";
 import "../styles/login.css";
 
 function Login({ isModal = false }) {
@@ -14,6 +15,8 @@ function Login({ isModal = false }) {
   const [rol, setRol] = useState("usuario");
   const [mostrarPass, setMostrarPass] = useState(false);
   const [mensaje, setMensaje] = useState("");
+  const [mostrarEnlaceRecuperacion, setMostrarEnlaceRecuperacion] = useState(false);
+  const [mostrarRecuperacion, setMostrarRecuperacion] = useState(false);
 
   const [intentos, setIntentos] = useState(0);
   const [bloqueado, setBloqueado] = useState(false);
@@ -29,7 +32,7 @@ function Login({ isModal = false }) {
   };
 
   const irRecuperar = () => {
-    navigate("/recuperacion");
+    setMostrarRecuperacion(true);
   };
 
   const solicitarVerificacion = () => {
@@ -125,6 +128,7 @@ function Login({ isModal = false }) {
 
         if (nuevosIntentos >= 3) {
           setBloqueado(true);
+          setMostrarEnlaceRecuperacion(true);
 
           setMensaje(
             "❌ Has agotado los 3 intentos. Intenta nuevamente en 30 segundos."
@@ -134,8 +138,10 @@ function Login({ isModal = false }) {
             setBloqueado(false);
             setIntentos(0);
             setMensaje("");
+            setMostrarEnlaceRecuperacion(false);
           }, 30000);
         } else {
+          setMostrarEnlaceRecuperacion(false);
           const mensajeError =
             esAsesor && res.status === 401
               ? "❌ El asesor está inactivo o el código no es válido. Solo los asesores activos pueden ingresar."
@@ -311,6 +317,21 @@ function Login({ isModal = false }) {
               </p>
             )}
 
+            {mostrarEnlaceRecuperacion && (
+              <p className="login" style={{ marginTop: "10px" }}>
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    irRecuperar();
+                  }}
+                  style={{ color: "#0d6efd", fontWeight: "bold" }}
+                >
+                  Recupera tu contraseña aquí
+                </a>
+              </p>
+            )}
+
             <button
               type="submit"
               className="btn"
@@ -420,6 +441,38 @@ function Login({ isModal = false }) {
           </p>
         </div>
       </form>
+
+      {mostrarRecuperacion && (
+        <div
+          className="recovery-modal-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setMostrarRecuperacion(false);
+            }
+          }}
+        >
+          <div
+            className="recovery-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="recovery-modal-title"
+          >
+            <button
+              type="button"
+              className="recovery-modal-close"
+              aria-label="Cerrar recuperación de contraseña"
+              onClick={() => setMostrarRecuperacion(false)}
+            >
+              ×
+            </button>
+            <Recuperacion
+              isModal
+              onClose={() => setMostrarRecuperacion(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

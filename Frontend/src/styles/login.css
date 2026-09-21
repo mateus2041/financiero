@@ -135,3 +135,14 @@ input::placeholder {
 .login a:hover {
   text-decoration: underline;
 }
+
+.recovery-modal .recovery-form-box input {
+  background-color: #1e2a4a;
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
+}
+
+.recovery-modal .recovery-form-box input::placeholder {
+  color: #bdbdbd;
+  opacity: 1;
+}
