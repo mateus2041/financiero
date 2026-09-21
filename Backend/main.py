@@ -56,6 +56,28 @@ class ConfirmarContrasena(BaseModel):
     password: str
 
 
+class SolicitudRecuperacion(BaseModel):
+    documento: str
+    email: str
+
+
+class VerificarRecuperacion(BaseModel):
+    documento: str
+    codigo: str
+
+
+class RestablecerContrasena(BaseModel):
+    token: str
+    nueva_password: str
+
+
+class VerificarTarjetaRecuperacion(BaseModel):
+    token: str
+    ultimos_digitos: str
+    fecha_expiracion: str
+    codigo_seguridad: str
+
+
 from Backend.ai.router import router as ia_router
 from Backend.models import (
     Usuario,
@@ -85,6 +107,8 @@ app = FastAPI(
     title="Financiero API",
     version="1.0"
 )
+
+codigos_recuperacion = {}
 
 
 # ==========================================================
@@ -540,6 +564,142 @@ def register_asesor(
         )
 
     return registrar_usuario(data, db, "asesor")
+
+
+@app.post("/recuperar-password")
+def solicitar_recuperacion(
+    datos: SolicitudRecuperacion,
+    db: Session = Depends(get_db)
+):
+    usuario = db.query(Usuario).filter(
+        Usuario.documento == datos.documento,
+        Usuario.email == datos.email
+    ).first()
+
+    if not usuario:
+        raise HTTPException(
+            status_code=400,
+            detail="El documento y el correo no coinciden con una cuenta registrada"
+        )
+
+    codigo = f"{secrets.randbelow(1000000):06d}"
+    codigos_recuperacion[datos.documento] = {
+        "codigo": codigo,
+        "expira": datetime.utcnow().timestamp() + 600,
+        "intentos": 0
+    }
+    mensaje = crear_plantilla_email(
+        f"""
+        <p>Hola <strong>{usuario.nombre}</strong>,</p>
+        <p>Tu código temporal para recuperar el acceso es:</p>
+        <p style=\"color: #0d6efd; font-size: 22px; letter-spacing: 4px;\"><strong>{codigo}</strong></p>
+        <p>Este código vence en 10 minutos. Si no solicitaste este cambio, ignora este mensaje.</p>
+        """
+    )
+    correo_enviado = enviar_correo(
+        usuario.email,
+        "Código para recuperar tu contraseña",
+        mensaje
+    )
+    if not correo_enviado:
+        codigos_recuperacion.pop(datos.documento, None)
+        raise HTTPException(
+            status_code=503,
+            detail="No fue posible enviar el código al correo registrado"
+        )
+
+    return {
+        "message": "Si los datos coinciden, recibirás un código en tu correo."
+    }
+
+
+@app.post("/verificar-codigo-recuperacion")
+def verificar_codigo_recuperacion(
+    datos: VerificarRecuperacion,
+    db: Session = Depends(get_db)
+):
+    registro = codigos_recuperacion.get(datos.documento)
+    if not registro or registro["expira"] < datetime.utcnow().timestamp():
+        raise HTTPException(status_code=400, detail="El código es inválido o expiró")
+
+    registro["intentos"] += 1
+    if registro["intentos"] > 5 or not hmac.compare_digest(registro["codigo"], datos.codigo):
+        raise HTTPException(status_code=400, detail="El código es inválido o expiró")
+
+    usuario = db.query(Usuario).filter(Usuario.documento == datos.documento).first()
+    token = secrets.token_urlsafe(32)
+    codigos_recuperacion[datos.documento] = {
+        "token": token,
+        "usuario_id": usuario.id_usuario,
+        "tarjeta_verificada": False,
+        "expira": datetime.utcnow().timestamp() + 600
+    }
+    return {"token": token}
+
+
+@app.post("/verificar-tarjeta-recuperacion")
+def verificar_tarjeta_recuperacion(
+    datos: VerificarTarjetaRecuperacion,
+    db: Session = Depends(get_db)
+):
+    documento = next(
+        (clave for clave, valor in codigos_recuperacion.items()
+         if valor.get("token") == datos.token),
+        None
+    )
+    registro = codigos_recuperacion.get(documento) if documento else None
+    if not registro or registro["expira"] < datetime.utcnow().timestamp():
+        raise HTTPException(status_code=400, detail="La sesión de recuperación expiró")
+
+    ultimos_digitos = datos.ultimos_digitos.strip()
+    if not re.fullmatch(r"\d{6}", ultimos_digitos):
+        raise HTTPException(status_code=400, detail="Ingresa exactamente los últimos 6 dígitos")
+
+    if not re.fullmatch(r"(0[1-9]|1[0-2])/\d{2}", datos.fecha_expiracion.strip()):
+        raise HTTPException(status_code=400, detail="Ingresa la fecha de expiración en formato MM/AA")
+
+    if not re.fullmatch(r"\d{3}", datos.codigo_seguridad.strip()):
+        raise HTTPException(status_code=400, detail="Ingresa un código de seguridad de 3 dígitos")
+
+    tarjeta = db.query(Tarjeta).join(Cuenta).filter(
+        Cuenta.id_usuario == registro["usuario_id"],
+        Tarjeta.numero_tarjeta.isnot(None),
+        Tarjeta.numero_tarjeta.endswith(ultimos_digitos)
+    ).first()
+    if (
+        not tarjeta
+        or tarjeta.fecha_expiracion != datos.fecha_expiracion.strip()
+        or tarjeta.codigo_seguridad != datos.codigo_seguridad.strip()
+    ):
+        raise HTTPException(status_code=400, detail="Los últimos 6 dígitos no coinciden")
+
+    registro["tarjeta_verificada"] = True
+    return {"message": "Identidad verificada correctamente"}
+
+
+@app.post("/restablecer-password")
+def restablecer_password(
+    datos: RestablecerContrasena,
+    db: Session = Depends(get_db)
+):
+    documento = next(
+        (clave for clave, valor in codigos_recuperacion.items()
+         if valor.get("token") == datos.token),
+        None
+    )
+    registro = codigos_recuperacion.get(documento) if documento else None
+    if not registro or registro["expira"] < datetime.utcnow().timestamp():
+        raise HTTPException(status_code=400, detail="La sesión de recuperación expiró")
+    if not registro.get("tarjeta_verificada"):
+        raise HTTPException(status_code=403, detail="Verifica los últimos 6 dígitos de tu tarjeta")
+    if len(datos.nueva_password) < 8:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres")
+
+    usuario = db.query(Usuario).filter(Usuario.id_usuario == registro["usuario_id"]).first()
+    usuario.password = hash_password(datos.nueva_password)
+    db.commit()
+    del codigos_recuperacion[documento]
+    return {"message": "Contraseña actualizada correctamente"}
 
 
 def registrar_usuario(
@@ -1954,12 +2114,29 @@ def consultar_tarjeta(
         ).first():
             numero_tarjeta = f"{secrets.randbelow(10**16):016d}"
 
+        fecha_expiracion = (
+            f"{secrets.randbelow(12) + 1:02d}/"
+            f"{str(datetime.utcnow().year + 5)[-2:]}"
+        )
+        codigo_seguridad = f"{secrets.randbelow(1000):03d}"
+
         tarjeta = Tarjeta(
             id_cuenta=cuenta.id_cuenta,
             numero_tarjeta=numero_tarjeta,
+            fecha_expiracion=fecha_expiracion,
+            codigo_seguridad=codigo_seguridad,
             estado="bloqueada" if cuenta.estado == "bloqueada" else "activa"
         )
         db.add(tarjeta)
+        db.commit()
+        db.refresh(tarjeta)
+
+    if not tarjeta.fecha_expiracion or not tarjeta.codigo_seguridad:
+        tarjeta.fecha_expiracion = tarjeta.fecha_expiracion or (
+            f"{secrets.randbelow(12) + 1:02d}/"
+            f"{str(datetime.utcnow().year + 5)[-2:]}"
+        )
+        tarjeta.codigo_seguridad = tarjeta.codigo_seguridad or f"{secrets.randbelow(1000):03d}"
         db.commit()
         db.refresh(tarjeta)
 
@@ -1967,7 +2144,10 @@ def consultar_tarjeta(
 
     return {
         "id_tarjeta": tarjeta.id_tarjeta,
-        "ultimos_digitos": str(tarjeta.numero_tarjeta)[-4:],
+        "ultimos_digitos": str(tarjeta.numero_tarjeta)[-6:],
+        "ultimos_tres": str(tarjeta.numero_tarjeta)[-3:],
+        "fecha_expiracion": tarjeta.fecha_expiracion,
+        "codigo_seguridad": tarjeta.codigo_seguridad,
         "numero_cuenta": cuenta.numero_cuenta,
         "tipo_cuenta": cuenta.tipo_cuenta,
         "estado": estado

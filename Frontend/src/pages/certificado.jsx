@@ -15,6 +15,7 @@ const CertificadoBancario = () => {
 
   // Estado para abrir/cerrar el menú Otros
   const [openTransfer, setOpenTransfer] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
 
   const [usuario, setUsuario] = useState({
     nombre: "",
@@ -23,6 +24,17 @@ const CertificadoBancario = () => {
     tipoCuenta: "Ahorros",
     saldo: "0",
   });
+
+  useEffect(() => {
+    const actualizarEstadoMenu = () => {
+      setMenuAbierto(window.innerWidth > 768);
+    };
+
+    actualizarEstadoMenu();
+    window.addEventListener("resize", actualizarEstadoMenu);
+
+    return () => window.removeEventListener("resize", actualizarEstadoMenu);
+  }, []);
 
   // 🔥 Obtener datos desde la base de datos
   useEffect(() => {
@@ -133,8 +145,18 @@ const CertificadoBancario = () => {
   return (
     <div className="panel-financiero">
 
+      <button
+        type="button"
+        className={`menu-hamburguesa ${menuAbierto ? "activo" : ""}`}
+        onClick={() => setMenuAbierto((actual) => !actual)}
+        aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+        aria-expanded={menuAbierto}
+      >
+        ☰
+      </button>
+
       {/* SIDEBAR */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
 
         <ul>
 

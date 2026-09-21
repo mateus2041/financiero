@@ -1,3 +1,45 @@
+.panel-financiero {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.menu-hamburguesa {
+  display: none;
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 40;
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(242, 201, 76, 0.45);
+  border-radius: 12px;
+  background: #121829;
+  color: #f2c94c;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.sidebar {
+  width: 250px;
+  min-width: 250px;
+  background: linear-gradient(180deg, #121829, #0b0f16);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.sidebar-abierto {
+  display: flex;
+}
+
+.sidebar-cerrado {
+  display: none;
+}
+
 .reporte-container {
   flex: 1;
   min-height: 100vh;
@@ -22,6 +64,84 @@
   background: var(--fondo-tarjeta, #1a2238);
   border: 1px solid rgba(242, 201, 76, 0.08);
   border-radius: 12px;
+}
+
+.modal-certificado-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(5, 8, 14, 0.78);
+}
+
+.modal-contenido {
+  position: relative;
+  width: min(100%, 440px);
+  padding: 28px;
+  border: 1px solid rgba(242, 201, 76, 0.35);
+  border-radius: 12px;
+  background: #1a2238;
+  color: #f4f6fb;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.modal-contenido h2 {
+  margin: 0 36px 10px 0;
+  color: #f2c94c;
+}
+
+.modal-contenido p {
+  margin: 0 0 24px;
+  color: #c1c9dc;
+}
+
+.modal-certificado-cerrar {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  padding: 4px 9px;
+  border: 0;
+  background: transparent;
+  color: #c1c9dc;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.modal-certificado-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.modal-certificado-secundario,
+.modal-certificado-principal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.modal-certificado-secundario {
+  border: 1px solid #52617f;
+  background: transparent;
+  color: #c1c9dc;
+}
+
+.modal-certificado-principal {
+  background: #f2c94c;
+  color: #131a2c;
+}
+
+@media (max-width: 768px) {
+  .reporte-container {
+    padding: 78px 16px 24px;
+  }
 }
 
 .reporte-card h2 {

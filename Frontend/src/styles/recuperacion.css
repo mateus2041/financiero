@@ -5,14 +5,14 @@ body {
   background: linear-gradient(to right, #0a0f2c, #0d1b3d);
 }
 
-.container {
+.recovery-container {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
 }
 
-.form-box {
+.recovery-form-box {
   width: 350px;
   background-color: rgba(15, 26, 53, 0.95);
   padding: 30px;
@@ -21,27 +21,27 @@ body {
   color: white;
 }
 
-h1 {
+.recovery-form-box h1 {
   text-align: center;
   color: #f5c542;
   margin-bottom: 15px;
 }
 
-p {
+.recovery-form-box p {
   text-align: center;
   color: #d1d5db;
   font-size: 14px;
   margin-bottom: 20px;
 }
 
-label {
+.recovery-form-box label {
   display: block;
   margin-top: 10px;
   margin-bottom: 5px;
   font-size: 14px;
 }
 
-input {
+.recovery-form-box input {
   width: 100%;
   padding: 10px;
   border-radius: 10px;
@@ -52,11 +52,11 @@ input {
   box-sizing: border-box;
 }
 
-input::placeholder {
+.recovery-form-box input::placeholder {
   color: #bdbdbd;
 }
 
-.btn {
+.recovery-form-box .btn {
   width: 100%;
   margin-top: 20px;
   padding: 12px;
@@ -69,7 +69,7 @@ input::placeholder {
   transition: background-color 0.3s;
 }
 
-.btn:hover {
+.recovery-form-box .btn:hover {
   background-color: #1f2937;
 }
 
@@ -88,6 +88,14 @@ input::placeholder {
   text-decoration: underline;
 }
 
+.back-login button {
+  border: 0;
+  background: transparent;
+  color: #3b82f6;
+  cursor: pointer;
+  font-size: 14px;
+}
+
 .message {
   margin-top: 15px;
   text-align: center;
@@ -100,4 +108,44 @@ input::placeholder {
   text-align: center;
   color: #ef4444;
   font-size: 14px;
+}
+
+.recovery-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(3, 8, 24, 0.78);
+  overflow-y: auto;
+}
+
+.recovery-modal {
+  position: relative;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  border-radius: 15px;
+}
+
+.recovery-modal-content .recovery-container {
+  height: auto;
+}
+
+.recovery-modal-content .recovery-form-box {
+  width: min(350px, calc(100vw - 40px));
+}
+
+.recovery-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 1;
+  border: 0;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  font-size: 28px;
+  line-height: 1;
 }
