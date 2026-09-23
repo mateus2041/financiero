@@ -46,10 +46,20 @@ body {
   padding: 10px;
   border-radius: 10px;
   border: 1px solid #555;
-  background-color: #1e2a4a;
-  color: white;
+  background-color: #f4f7ff;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  caret-color: #111827;
   outline: none;
   box-sizing: border-box;
+}
+
+.recovery-form-box input:-webkit-autofill,
+.recovery-form-box input:-webkit-autofill:hover,
+.recovery-form-box input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 30px #f4f7ff inset !important;
+  -webkit-text-fill-color: #111827 !important;
+  caret-color: #111827;
 }
 
 .recovery-form-box input::placeholder {

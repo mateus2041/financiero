@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Recuperacion from "./recuperacion";
 import "../styles/login.css";
+
+const Registro = React.lazy(() => import("./registro"));
 
 function Login({ isModal = false }) {
   const navigate = useNavigate();
@@ -17,6 +19,7 @@ function Login({ isModal = false }) {
   const [mensaje, setMensaje] = useState("");
   const [mostrarEnlaceRecuperacion, setMostrarEnlaceRecuperacion] = useState(false);
   const [mostrarRecuperacion, setMostrarRecuperacion] = useState(false);
+  const [mostrarRegistro, setMostrarRegistro] = useState(false);
 
   const [intentos, setIntentos] = useState(0);
   const [bloqueado, setBloqueado] = useState(false);
@@ -28,7 +31,7 @@ function Login({ isModal = false }) {
   const [verificandoCodigo, setVerificandoCodigo] = useState(false);
 
   const irRegistro = () => {
-    navigate("/registro");
+    setMostrarRegistro(true);
   };
 
   const irRecuperar = () => {
@@ -470,6 +473,40 @@ function Login({ isModal = false }) {
               isModal
               onClose={() => setMostrarRecuperacion(false)}
             />
+          </div>
+        </div>
+      )}
+
+      {mostrarRegistro && (
+        <div
+          className="registro-login-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setMostrarRegistro(false);
+            }
+          }}
+        >
+          <div
+            className="registro-login-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Registro"
+          >
+            <button
+              type="button"
+              className="registro-login-close"
+              aria-label="Cerrar registro"
+              onClick={() => setMostrarRegistro(false)}
+            >
+              ×
+            </button>
+            <Suspense fallback={<p className="registro-login-loading">Cargando registro...</p>}>
+              <Registro
+                isModal
+                onClose={() => setMostrarRegistro(false)}
+              />
+            </Suspense>
           </div>
         </div>
       )}
