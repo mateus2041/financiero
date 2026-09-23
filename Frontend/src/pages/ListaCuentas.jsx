@@ -653,22 +653,29 @@ export default function ListaCuentas() {
 
   return (
     <div className="contenedor-lista-cuentas">
-      {esMovil && (
+      <button
+        type="button"
+        className={`boton-menu-cuentas ${
+          menuAbierto ? "" : "menu-cerrado"
+        }`}
+        onClick={() =>
+          setMenuAbierto((actual) => !actual)
+        }
+        aria-label={
+          menuAbierto ? "Cerrar menú" : "Abrir menú"
+        }
+        aria-expanded={menuAbierto}
+      >
+        ☰
+      </button>
+
+      {menuAbierto && (
         <button
           type="button"
-          className={`boton-menu-cuentas ${
-            menuAbierto ? "" : "menu-cerrado"
-          }`}
-          onClick={() =>
-            setMenuAbierto((actual) => !actual)
-          }
-          aria-label={
-            menuAbierto ? "Cerrar menú" : "Abrir menú"
-          }
-          aria-expanded={menuAbierto}
-        >
-          ☰
-        </button>
+          className="fondo-menu-cuentas"
+          aria-label="Cerrar menú móvil"
+          onClick={() => setMenuAbierto(false)}
+        />
       )}
 
       <aside

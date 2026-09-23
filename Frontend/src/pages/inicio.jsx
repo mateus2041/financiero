@@ -11,7 +11,7 @@ function Home() {
   useEffect(() => {
     const cerrarConEscape = (event) => {
       if (event.key === "Escape") {
-        setLoginModalOpen(false);
+        setModalActivo(null);
       }
     };
 
