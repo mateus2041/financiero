@@ -326,6 +326,17 @@ export default function ListaUsuarios() {
               </li>
             )}
 
+            {esAsesor && (
+              <li>
+                <Link
+                  to="/trageta"
+                    onClick={() => setMenuAbierto(false)}
+                    >
+                     💳 Tarjetas
+                </Link>
+              </li>
+            )}
+
           </ul>
 
           <button

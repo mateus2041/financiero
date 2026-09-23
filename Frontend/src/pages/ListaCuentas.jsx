@@ -700,6 +700,7 @@ export default function ListaCuentas() {
                 </Link>
               </li>
             )}
+
             {!esAsesor && (
               <li>
                 <Link
@@ -735,6 +736,17 @@ export default function ListaCuentas() {
                   </button>
                 </li>
               </>
+            )}
+
+            {esAsesor && (
+              <li>
+                <Link
+                  to="/trageta"
+                    onClick={() => setMenuAbierto(false)}
+                    >
+                    💳 Tarjetas
+                </Link>
+              </li>
             )}
 
             {!esAsesor && (

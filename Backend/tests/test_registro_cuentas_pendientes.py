@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 
 from Backend.database.database import Base
 from Backend.main import registrar_usuario
-from Backend.models import Cuenta
+from Backend.models import Cuenta, Usuario
 
 
 def test_registrar_usuario_crea_cuentas_pendientes_de_aprobacion(monkeypatch):
@@ -20,8 +20,10 @@ def test_registrar_usuario_crea_cuentas_pendientes_de_aprobacion(monkeypatch):
         "documento": "1000000000",
         "telefono": "3001234567",
         "password": "Segura123",
+        "tipo_documento": "cc",
+        "ciudad": "Bogotá",
         "direccion": "Calle 12 # 34-56",
-        "localidad": "Bogotá",
+        "localidad": "La Candelaria",
         "barrio": "La Candelaria",
         "codigo_correspondencia": "110111",
     }
@@ -33,5 +35,14 @@ def test_registrar_usuario_crea_cuentas_pendientes_de_aprobacion(monkeypatch):
     assert len(cuentas) == 1
     assert cuentas[0].tipo_cuenta == "corriente"
     assert {cuenta.estado for cuenta in cuentas} == {"inactiva"}
+
+    usuario = db.query(Usuario).filter(
+        Usuario.id_usuario == resultado["usuario"]["id"]
+    ).one()
+    assert usuario.ciudad == "Bogotá"
+    assert usuario.localidad == "La Candelaria"
+    assert usuario.barrio == "La Candelaria"
+    assert usuario.codigo_postal == "110111"
+    assert usuario.id_tipo_doc is not None
 
     db.close()

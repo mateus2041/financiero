@@ -298,7 +298,7 @@ export default function TarjetasUsuario({
             </li>
           )}
 
-          {!esAsesor && (
+          {esAdministrador && (
             <li>
               <Link
                 to="/lista-usuarios"
@@ -343,10 +343,10 @@ export default function TarjetasUsuario({
               </Link>
             </li>
           )}
-
+          
           <li>
             <Link
-              to="/tarjeta"
+              to="/targeta"
               onClick={() => setMenuAbierto(false)}
             >
               💳 Tarjetas
