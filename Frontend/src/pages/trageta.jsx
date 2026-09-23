@@ -32,6 +32,7 @@ export default function TarjetasUsuario({
   const [tarjetas, setTarjetas] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
+  const [tarjetaEditando, setTarjetaEditando] = useState(null);
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [mostrarMensajeAdmin, setMostrarMensajeAdmin] = useState(false);
   const [esMovil, setEsMovil] = useState(false);
@@ -112,6 +113,31 @@ export default function TarjetasUsuario({
     }
   };
 
+  const obtenerTarjetasDeUsuario = async (usuario) => {
+    try {
+      const token = localStorage.getItem("token");
+      const respuesta = await axios.get(
+        `${API_URL}/usuarios/${usuario.id_usuario}/tarjetas`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const datos = respuesta.data?.tarjetas ?? respuesta.data;
+
+      return Array.isArray(datos) ? datos : [];
+    } catch (error) {
+      console.error("Error al obtener las tarjetas del usuario:", error);
+      setMensaje(
+        error.response?.data?.detail ||
+          "No se pudieron obtener las tarjetas del usuario"
+      );
+      return null;
+    }
+  };
+
   const manejarCambio = (e) => {
     setFormulario({
       ...formulario,
@@ -132,13 +158,43 @@ export default function TarjetasUsuario({
       return;
     }
 
-    if (!formulario.cvv) {
+    if (!tarjetaEditando && !formulario.cvv) {
       setMensaje("El CVV es obligatorio");
       return;
     }
 
-    if (!/^\d{3,4}$/.test(formulario.cvv)) {
+    if (formulario.cvv && !/^\d{3,4}$/.test(formulario.cvv)) {
       setMensaje("El CVV debe tener entre 3 y 4 dígitos");
+      return;
+    }
+
+    if (tarjetaEditando) {
+      try {
+        const token = localStorage.getItem("token");
+
+        await axios.patch(
+          `${API_URL}/tarjetas/${tarjetaEditando.id_tarjeta}`,
+          {
+            fecha_vencimiento: formulario.fecha_vencimiento,
+            cvv: formulario.cvv,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        setMensaje("Tarjeta actualizada correctamente");
+        cerrarModalTarjeta();
+        obtenerTarjetasDeUsuario(usuarioSeleccionado);
+      } catch (error) {
+        console.error("Error al actualizar tarjeta:", error);
+        setMensaje(
+          error.response?.data?.detail ||
+            "No se pudo actualizar la tarjeta"
+        );
+      }
       return;
     }
 
@@ -194,6 +250,7 @@ export default function TarjetasUsuario({
   };
 
   const abrirModalTarjeta = (usuario) => {
+    setTarjetaEditando(null);
     setUsuarioSeleccionado(usuario);
 
     setFormulario({
@@ -207,8 +264,38 @@ export default function TarjetasUsuario({
     setMensaje("");
   };
 
+  const editarTarjetaDeUsuario = async (usuario) => {
+    const tarjetasUsuario = await obtenerTarjetasDeUsuario(usuario);
+
+    if (tarjetasUsuario === null) {
+      return;
+    }
+
+    if (tarjetasUsuario.length === 0) {
+      setMensaje("Este usuario no tiene tarjetas para editar");
+      return;
+    }
+
+    const tarjeta = tarjetasUsuario[0];
+    const [mes, anio] = (tarjeta.fecha_vencimiento || "").split("/");
+
+    setTarjetaEditando(tarjeta);
+    setUsuarioSeleccionado(usuario);
+    setFormulario({
+      tipo_tarjeta: tarjeta.tipo_tarjeta || "debito",
+      fecha_vencimiento: mes && anio
+        ? `20${anio}-${mes}`
+        : generarFechaVencimiento(),
+      cvv: "",
+      primeros_digitos: "",
+      ultimos_digitos: "",
+    });
+    setMensaje("");
+  };
+
   const cerrarModalTarjeta = () => {
     setUsuarioSeleccionado(null);
+    setTarjetaEditando(null);
 
     setFormulario({
       tipo_tarjeta: "debito",
@@ -242,6 +329,32 @@ export default function TarjetasUsuario({
     }
   };
 
+  const activarTarjeta = async (id_tarjeta) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.patch(
+        `${API_URL}/tarjetas/${id_tarjeta}/activar`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setMensaje("Tarjeta activada correctamente");
+      obtenerTarjetas();
+    } catch (error) {
+      console.error("Error al activar tarjeta:", error);
+
+      setMensaje(
+        error.response?.data?.detail ||
+          "No se pudo activar la tarjeta"
+      );
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("rol");
@@ -251,7 +364,7 @@ export default function TarjetasUsuario({
     localStorage.removeItem("nombre_usuario");
     localStorage.removeItem("nombre_asesor");
 
-    window.location.href = "/login";
+    window.location.href = "/";
   };
 
   return (
@@ -427,6 +540,13 @@ export default function TarjetasUsuario({
                     >
                       Añadir tarjeta
                     </button>
+                    <button
+                      type="button"
+                      className="boton-anadir-tarjeta"
+                      onClick={() => editarTarjetaDeUsuario(usuario)}
+                    >
+                      Editar tarjeta
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -457,7 +577,7 @@ export default function TarjetasUsuario({
               </button>
 
               <h2 id="titulo-modal-tarjeta">
-                Añadir tarjeta
+                {tarjetaEditando ? "Editar tarjeta" : "Añadir tarjeta"}
               </h2>
 
               <p className="cliente-modal-tarjeta">
@@ -472,31 +592,43 @@ export default function TarjetasUsuario({
                   Número de tarjeta (16 dígitos)
                 </label>
 
-                <div className="numero-tarjeta-modal">
+                {tarjetaEditando ? (
                   <input
                     id="numero-tarjeta-modal"
                     type="text"
-                    value={formulario.primeros_digitos}
+                    value={tarjetaEditando.numero_tarjeta || "No disponible"}
                     readOnly
-                    aria-label="Primeros 13 dígitos generados"
+                    aria-label="Número de tarjeta existente"
                   />
+                ) : (
+                  <>
+                    <div className="numero-tarjeta-modal">
+                      <input
+                        id="numero-tarjeta-modal"
+                        type="text"
+                        value={formulario.primeros_digitos}
+                        readOnly
+                        aria-label="Primeros 13 dígitos generados"
+                      />
 
-                  <input
-                    type="text"
-                    name="ultimos_digitos"
-                    value={formulario.ultimos_digitos}
-                    onChange={manejarCambio}
-                    inputMode="numeric"
-                    maxLength={3}
-                    pattern="[0-9]{3}"
-                    aria-label="Últimos 3 dígitos editables"
-                  />
-                </div>
+                      <input
+                        type="text"
+                        name="ultimos_digitos"
+                        value={formulario.ultimos_digitos}
+                        onChange={manejarCambio}
+                        inputMode="numeric"
+                        maxLength={3}
+                        pattern="[0-9]{3}"
+                        aria-label="Últimos 3 dígitos editables"
+                      />
+                    </div>
 
-                <small className="ayuda-numero-tarjeta">
-                  Los primeros 13 se generan automáticamente;
-                  puedes editar los últimos 3.
-                </small>
+                    <small className="ayuda-numero-tarjeta">
+                      Los primeros 13 se generan automáticamente;
+                      puedes editar los últimos 3.
+                    </small>
+                  </>
+                )}
               </div>
 
               <div>
@@ -525,8 +657,8 @@ export default function TarjetasUsuario({
                   type="month"
                   name="fecha_vencimiento"
                   value={formulario.fecha_vencimiento}
-                  readOnly
-                  aria-label="Fecha de vencimiento fija a cinco años"
+                  onChange={manejarCambio}
+                  aria-label="Fecha de vencimiento"
                 />
               </div>
 
@@ -546,7 +678,7 @@ export default function TarjetasUsuario({
               </div>
 
               <button type="submit">
-                Guardar tarjeta
+                {tarjetaEditando ? "Guardar cambios" : "Guardar tarjeta"}
               </button>
             </form>
           </div>
@@ -572,6 +704,20 @@ export default function TarjetasUsuario({
                 <strong>Vencimiento:</strong>{" "}
                 {tarjeta.fecha_vencimiento}
               </p>
+
+              <p>
+                <strong>Estado:</strong>{" "}
+                {tarjeta.estado || "No disponible"}
+              </p>
+
+              {tarjeta.estado !== "activa" && (
+                <button
+                  type="button"
+                  onClick={() => activarTarjeta(tarjeta.id_tarjeta)}
+                >
+                  Activar tarjeta
+                </button>
+              )}
 
               <button
                 type="button"

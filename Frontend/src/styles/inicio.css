@@ -109,13 +109,17 @@
 }
 
 .home-login-modal .login-modal-container {
-  display: block;
+  display: block !important;
   height: auto !important;
-  min-height: 0;
+  min-height: 0 !important;
+  align-items: initial;
+  justify-content: initial;
+  overflow: visible;
 }
 
 .home-login-modal .form-box {
   width: 100%;
+  margin: 0 auto;
 }
 
 .home-register-modal .registro-modal-container {

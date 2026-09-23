@@ -400,7 +400,10 @@ export default function AsesorBancario() {
           aria-modal="true"
           onClick={() => setMostrarRegistro(false)}
         >
-          <div onClick={(evento) => evento.stopPropagation()}>
+          <div
+            className="registro-asesor-modal"
+            onClick={(evento) => evento.stopPropagation()}
+          >
             <Registro isModal />
           </div>
         </div>
