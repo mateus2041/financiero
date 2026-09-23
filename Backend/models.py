@@ -437,7 +437,7 @@ class Tarjeta(Base):
     )
 
     codigo_seguridad = Column(
-        CHAR(3),
+        CHAR(4),
         nullable=True
     )
 

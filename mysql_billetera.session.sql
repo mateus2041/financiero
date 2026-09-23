@@ -178,7 +178,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS `Usuarios`;
 SET FOREIGN_KEY_CHECKS = 1;
 -- SQLBook: Code
-SET @id_usuario = 2;
+SET @id_usuario = 5;
 
 START TRANSACTION;
 
@@ -235,7 +235,7 @@ WHERE id_usuario = @id_usuario;
 
 COMMIT;
 -- SQLBook: Code
-SET @id_usuario = 20;
+SET @id_usuario = 2  ;
 
 START TRANSACTION;
 
@@ -380,3 +380,14 @@ SELECT
 FROM cuentas c
 JOIN tarjetas t ON t.id_cuenta = c.id_cuenta
 WHERE c.id_usuario = 14;
+-- SQLBook: Code
+START TRANSACTION;
+
+SELECT *
+FROM tarjetas
+WHERE id_tarjeta = 5;
+
+DELETE FROM tarjetas
+WHERE id_tarjeta = 5;
+
+COMMIT;

@@ -165,6 +165,11 @@ def startup():
         for columna in inspect(engine).get_columns("administradores")
     }
 
+    columnas_tarjetas = {
+        columna["name"]
+        for columna in inspect(engine).get_columns("tarjetas")
+    }
+
     with engine.begin() as conexion:
         conexion.execute(text(
             """
@@ -199,6 +204,23 @@ def startup():
                 "ADD COLUMN id_usuario INT NULL UNIQUE, "
                 "ADD CONSTRAINT fk_administradores_usuario "
                 "FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)"
+            ))
+
+        if "fecha_expiracion" not in columnas_tarjetas:
+            conexion.execute(text(
+                "ALTER TABLE tarjetas "
+                "ADD COLUMN fecha_expiracion CHAR(5) NULL"
+            ))
+
+        if "codigo_seguridad" not in columnas_tarjetas:
+            conexion.execute(text(
+                "ALTER TABLE tarjetas "
+                "ADD COLUMN codigo_seguridad CHAR(4) NULL"
+            ))
+        else:
+            conexion.execute(text(
+                "ALTER TABLE tarjetas "
+                "MODIFY COLUMN codigo_seguridad CHAR(4) NULL"
             ))
 
         if "codigo_postal" not in columnas_usuario:
@@ -2155,7 +2177,10 @@ def listar_tarjetas_usuario(
     db: Session = Depends(get_db)
 ):
     if current_user != id_usuario:
-        raise HTTPException(status_code=403, detail="No puedes consultar estas tarjetas")
+        administrador_o_asesor_requerido(
+            current_user=current_user,
+            db=db
+        )
 
     tarjetas = db.query(Tarjeta).join(Cuenta).filter(
         Cuenta.id_usuario == id_usuario
@@ -2260,6 +2285,79 @@ def eliminar_tarjeta_usuario(
     db.delete(tarjeta)
     db.commit()
     return {"mensaje": "Tarjeta eliminada correctamente"}
+
+
+@app.patch("/tarjetas/{id_tarjeta}/activar")
+def activar_tarjeta_usuario(
+    id_tarjeta: int,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    tarjeta = db.query(Tarjeta).join(Cuenta).filter(
+        Tarjeta.id_tarjeta == id_tarjeta
+    ).first()
+
+    if not tarjeta:
+        raise HTTPException(status_code=404, detail="Tarjeta no encontrada")
+
+    if current_user != tarjeta.cuenta.id_usuario:
+        administrador_o_asesor_requerido(
+            current_user=current_user,
+            db=db
+        )
+
+    tarjeta.estado = "activa"
+    db.commit()
+    db.refresh(tarjeta)
+
+    return {
+        "mensaje": "Tarjeta activada correctamente",
+        "id_tarjeta": tarjeta.id_tarjeta,
+        "estado": tarjeta.estado
+    }
+
+
+@app.patch("/tarjetas/{id_tarjeta}")
+def editar_tarjeta_usuario(
+    id_tarjeta: int,
+    datos: NuevaTarjeta,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    tarjeta = db.query(Tarjeta).join(Cuenta).filter(
+        Tarjeta.id_tarjeta == id_tarjeta
+    ).first()
+
+    if not tarjeta:
+        raise HTTPException(status_code=404, detail="Tarjeta no encontrada")
+
+    if current_user != tarjeta.cuenta.id_usuario:
+        administrador_o_asesor_requerido(
+            current_user=current_user,
+            db=db
+        )
+
+    if datos.fecha_vencimiento:
+        if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", datos.fecha_vencimiento):
+            raise HTTPException(status_code=422, detail="La fecha de vencimiento no es válida")
+        tarjeta.fecha_expiracion = (
+            f"{datos.fecha_vencimiento[5:]}/{datos.fecha_vencimiento[2:4]}"
+        )
+
+    if datos.cvv:
+        if not re.fullmatch(r"\d{3,4}", datos.cvv):
+            raise HTTPException(status_code=422, detail="El CVV no es válido")
+        tarjeta.codigo_seguridad = datos.cvv
+
+    db.commit()
+    db.refresh(tarjeta)
+
+    return {
+        "mensaje": "Tarjeta actualizada correctamente",
+        "id_tarjeta": tarjeta.id_tarjeta,
+        "fecha_vencimiento": tarjeta.fecha_expiracion,
+        "estado": tarjeta.estado
+    }
 
 @app.get("/tarjeta")
 def consultar_tarjeta(

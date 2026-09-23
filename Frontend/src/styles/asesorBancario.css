@@ -1539,7 +1539,7 @@ button:hover {
     width: min(78vw, 260px);
     min-width: 0;
     min-height: 100vh;
-    padding: 18px 15px 15px;
+    padding: 76px 15px 15px !important;
     box-sizing: border-box;
     box-shadow: 8px 0 24px rgba(0, 0, 0, 0.35);
     transform: translateX(0);
@@ -1593,10 +1593,16 @@ button:hover {
     cursor: pointer;
   }
 
+  .asesor-menu-movil,
+  .asesor-navbar .sidebar {
+    isolation: isolate;
+  }
+
   .asesor-navbar .sidebar ul {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    margin-top: 0;
   }
 
   .asesor-navbar .sidebar ul li {
