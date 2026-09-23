@@ -73,64 +73,11 @@ function DesbloquearTarjeta() {
         }
     };
 
-    const desbloquearTarjeta = async () => {
-
-        const confirmar = window.confirm(
-            "¿Estás seguro de que deseas desbloquear tu tarjeta?"
+    const desbloquearTarjeta = () => {
+        setError("");
+        setMensaje(
+            "Para desbloquear tu tarjeta, comunícate o acude a un punto bancario autorizado."
         );
-
-        if (!confirmar) {
-            return;
-        }
-
-        try {
-
-            setDesbloqueando(true);
-            setMensaje("");
-            setError("");
-
-            const token = localStorage.getItem("token");
-
-            const respuesta = await fetch(
-                "http://127.0.0.1:8000/tarjeta/desbloquear",
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`
-                    }
-                }
-            );
-
-            const datos = await respuesta.json();
-
-            if (!respuesta.ok) {
-                throw new Error(
-                    datos.detail ||
-                    "No fue posible desbloquear la tarjeta"
-                );
-            }
-
-            setMensaje(
-                datos.mensaje ||
-                "Tu tarjeta fue desbloqueada correctamente."
-            );
-
-            setTarjeta((tarjetaAnterior) => ({
-                ...tarjetaAnterior,
-                estado: "activa"
-            }));
-
-        } catch (error) {
-
-            console.error(error);
-            setError(error.message);
-
-        } finally {
-
-            setDesbloqueando(false);
-
-        }
     };
 
     const bloquearTarjeta = async () => {
@@ -469,36 +416,6 @@ function DesbloquearTarjeta() {
                                         : "🔓 Desbloquear tarjeta"}
                                 </button>
 
-                                ) : solicitandoPassword ? (
-                                    <form
-                                        className="formulario-bloqueo"
-                                        onSubmit={confirmarBloqueo}
-                                    >
-                                        <label htmlFor="password-bloqueo">
-                                            Confirma tu contraseña para bloquear
-                                        </label>
-                                        <input
-                                            id="password-bloqueo"
-                                            type="password"
-                                            value={passwordBloqueo}
-                                            onChange={(evento) =>
-                                                setPasswordBloqueo(evento.target.value)
-                                            }
-                                            placeholder="Contraseña de usuario"
-                                            autoComplete="current-password"
-                                            autoFocus
-                                            disabled={bloqueando}
-                                        />
-                                        <button
-                                            type="submit"
-                                            className="btn-bloquear"
-                                            disabled={bloqueando}
-                                        >
-                                            {bloqueando
-                                                ? "Bloqueando..."
-                                                : "🔒 Confirmar bloqueo"}
-                                        </button>
-                                    </form>
                                 ) : (
                                     <button
                                         className="btn-bloquear"
@@ -519,6 +436,59 @@ function DesbloquearTarjeta() {
                 </div>
 
             </main>
+
+            {solicitandoPassword && (
+                <div
+                    className="modal-bloqueo-fondo"
+                    role="presentation"
+                    onMouseDown={(evento) => {
+                        if (evento.target === evento.currentTarget && !bloqueando) {
+                            setSolicitandoPassword(false);
+                        }
+                    }}
+                >
+                    <div
+                        className="modal-bloqueo"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="titulo-modal-bloqueo"
+                    >
+                        <h2 id="titulo-modal-bloqueo">Bloquear tarjeta</h2>
+                        <p>Confirma tu contraseña para bloquear tu tarjeta por completo.</p>
+
+                        <form className="formulario-bloqueo" onSubmit={confirmarBloqueo}>
+                            <label htmlFor="password-bloqueo">Contraseña de usuario</label>
+                            <input
+                                id="password-bloqueo"
+                                type="password"
+                                value={passwordBloqueo}
+                                onChange={(evento) => setPasswordBloqueo(evento.target.value)}
+                                placeholder="Ingresa tu contraseña"
+                                autoComplete="current-password"
+                                autoFocus
+                                disabled={bloqueando}
+                            />
+                            <div className="modal-bloqueo-acciones">
+                                <button
+                                    type="button"
+                                    className="btn-cancelar-bloqueo"
+                                    onClick={() => setSolicitandoPassword(false)}
+                                    disabled={bloqueando}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="btn-bloquear"
+                                    disabled={bloqueando}
+                                >
+                                    {bloqueando ? "Bloqueando..." : "🔒 Confirmar bloqueo"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {openCertificado && (
 

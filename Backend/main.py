@@ -88,6 +88,7 @@ class NuevaTarjeta(BaseModel):
 from Backend.ai.router import router as ia_router
 from Backend.models import (
     Usuario,
+    TipoDocumento,
     Administrador,
     Cuenta,
     Tarjeta,
@@ -203,6 +204,21 @@ def startup():
         if "codigo_postal" not in columnas_usuario:
             conexion.execute(text(
                 "ALTER TABLE usuario ADD COLUMN codigo_postal VARCHAR(6) NULL"
+            ))
+
+        if "ciudad" not in columnas_usuario:
+            conexion.execute(text(
+                "ALTER TABLE usuario ADD COLUMN ciudad VARCHAR(100) NULL"
+            ))
+
+        if "localidad" not in columnas_usuario:
+            conexion.execute(text(
+                "ALTER TABLE usuario ADD COLUMN localidad VARCHAR(100) NULL"
+            ))
+
+        if "barrio" not in columnas_usuario:
+            conexion.execute(text(
+                "ALTER TABLE usuario ADD COLUMN barrio VARCHAR(100) NULL"
             ))
 
         if "nombre" not in columnas_asesores:
@@ -753,6 +769,28 @@ def registrar_usuario(
 
     codigo_registro = generar_codigo_registro(db)
 
+    tipos_documento = {
+        "cc": "Cédula",
+        "ti": "Tarjeta de Identidad",
+        "ce": "Cédula de Extranjería",
+    }
+    codigo_tipo_documento = str(data.get("tipo_documento", "")).strip().lower()
+    if codigo_tipo_documento not in tipos_documento:
+        raise HTTPException(
+            status_code=400,
+            detail="Seleccione un tipo de documento válido"
+        )
+
+    tipo_documento = db.query(TipoDocumento).filter(
+        TipoDocumento.nombre_doc == tipos_documento[codigo_tipo_documento]
+    ).first()
+    if not tipo_documento:
+        tipo_documento = TipoDocumento(
+            nombre_doc=tipos_documento[codigo_tipo_documento]
+        )
+        db.add(tipo_documento)
+        db.flush()
+
     nuevo_usuario = Usuario(
 
         nombre=data["nombre"],
@@ -770,6 +808,14 @@ def registrar_usuario(
         direccion=data.get("direccion"),
 
         codigo_postal=codigo_correspondencia,
+
+        ciudad=data.get("ciudad"),
+
+        localidad=data.get("localidad"),
+
+        barrio=data.get("barrio"),
+
+        id_tipo_doc=tipo_documento.id_tipo_doc,
 
         rol=rol,
 

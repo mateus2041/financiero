@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Login from "./login";
+import Recuperacion from "./recuperacion";
 import "../styles/registro.css";
 
-function Registro({ isModal = false }) {
+function Registro({ isModal = false, onClose }) {
   const navigate = useNavigate();
 
   const [paso, setPaso] = useState(1);
@@ -21,6 +23,9 @@ function Registro({ isModal = false }) {
   const [barrio, setBarrio] = useState("");
   const [codigoCorrespondencia, setCodigoCorrespondencia] = useState("");
   const [codigoRegistro, setCodigoRegistro] = useState("");
+  const [mostrarOpciones, setMostrarOpciones] = useState(false);
+  const [mostrarLogin, setMostrarLogin] = useState(false);
+  const [mostrarRecuperacion, setMostrarRecuperacion] = useState(false);
 
   const [mensaje, setMensaje] = useState("");
 
@@ -139,6 +144,7 @@ function Registro({ isModal = false }) {
         "Registro enviado ✅. Tu solicitud queda pendiente de aprobación."
       );
       setCodigoRegistro(data.codigo_registro);
+      setMostrarOpciones(true);
     } catch (error) {
       console.error(error);
       setMensaje("Error conectando con el servidor");
@@ -148,6 +154,17 @@ function Registro({ isModal = false }) {
   return (
     <div className={isModal ? "container registro-modal-container" : "container"}>
       <div className="form-box">
+        {isModal && onClose && (
+          <button
+            type="button"
+            className="registro-modal-close"
+            aria-label="Cerrar registro"
+            onClick={onClose}
+          >
+            ×
+          </button>
+        )}
+
         <h1>REGISTRO</h1>
 
         {codigoRegistro && (
@@ -292,6 +309,7 @@ function Registro({ isModal = false }) {
             />
 
             <div
+              className="registro-actions"
               style={{
                 display: "flex",
                 gap: "10px",
@@ -327,6 +345,34 @@ function Registro({ isModal = false }) {
           </p>
         )}
 
+        <div className="registro-enlaces">
+          <p className="login">
+            ¿Ya tienes cuenta?{" "}
+            <a
+              href="#login"
+              onClick={(e) => {
+                e.preventDefault();
+                setMostrarLogin(true);
+              }}
+            >
+              Inicia sesión aquí
+            </a>
+          </p>
+
+          <p className="login">
+            ¿Olvidaste tu contraseña?{" "}
+            <a
+              href="#recuperacion"
+              onClick={(e) => {
+                e.preventDefault();
+                setMostrarRecuperacion(true);
+              }}
+            >
+              Recupérala aquí
+            </a>
+          </p>
+        </div>
+
         <div className="footer">
           <p>
             © {new Date().getFullYear()} Financiero. Todos los
@@ -334,6 +380,109 @@ function Registro({ isModal = false }) {
           </p>
         </div>
       </div>
+
+      {mostrarOpciones && (
+        <div
+          className="registro-opciones-overlay"
+          role="presentation"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setMostrarOpciones(false);
+          }}
+        >
+          <div
+            className="registro-opciones-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="registro-opciones-titulo"
+          >
+            <button
+              type="button"
+              className="registro-opciones-cerrar"
+              aria-label="Cerrar ventana"
+              onClick={() => setMostrarOpciones(false)}
+            >
+              ×
+            </button>
+
+            <h2 id="registro-opciones-titulo">¿Qué deseas hacer?</h2>
+
+            <p className="login">
+              ¿ya tiene cuenta?{" "}
+              <a
+                href="#login"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMostrarLogin(true);
+                }}
+              >
+                Inicia sesión aquí
+              </a>
+            </p>
+
+            <p className="login">
+              ¿Olvidaste tu contraseña?{" "}
+              <a
+                href="#recuperacion"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMostrarRecuperacion(true);
+                }}
+              >
+                Recupérala aquí
+              </a>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {mostrarLogin && (
+        <div
+          className="registro-opciones-overlay"
+          role="presentation"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setMostrarLogin(false);
+          }}
+        >
+          <div
+            className="registro-login-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Inicio de sesión"
+          >
+            <button
+              type="button"
+              className="registro-opciones-cerrar"
+              aria-label="Cerrar inicio de sesión"
+              onClick={() => setMostrarLogin(false)}
+            >
+              ×
+            </button>
+            <Login isModal />
+          </div>
+        </div>
+      )}
+
+      {mostrarRecuperacion && (
+        <div
+          className="registro-opciones-overlay"
+          role="presentation"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setMostrarRecuperacion(false);
+          }}
+        >
+          <div
+            className="registro-recovery-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Recuperar contraseña"
+          >
+            <Recuperacion
+              isModal
+              onClose={() => setMostrarRecuperacion(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

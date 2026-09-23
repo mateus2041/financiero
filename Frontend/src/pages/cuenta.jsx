@@ -353,7 +353,7 @@ const Cuenta = () => {
     localStorage.removeItem("documento");
 
 
-    navigate("/");
+    navigate("/inicio");
 
 
   };

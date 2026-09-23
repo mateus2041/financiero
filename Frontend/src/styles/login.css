@@ -146,3 +146,67 @@ input::placeholder {
   color: #bdbdbd;
   opacity: 1;
 }
+
+.registro-login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(3, 8, 24, 0.78);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.registro-login-modal {
+  position: relative;
+  width: min(100%, 560px);
+  min-width: 0;
+  max-width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: 15px;
+}
+
+.registro-login-modal .registro-modal-container {
+  display: block;
+  height: auto;
+  min-height: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  padding: 0;
+}
+
+.registro-login-modal .registro-modal-container .form-box {
+  width: 100%;
+}
+
+.registro-login-modal .registro-modal-container .registro-modal-close {
+  display: block;
+  visibility: visible;
+  opacity: 1;
+}
+
+.registro-login-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+  border: 0;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.registro-login-loading {
+  padding: 30px;
+  border-radius: 12px;
+  background: #0d1b3d;
+  color: white;
+  text-align: center;
+}
