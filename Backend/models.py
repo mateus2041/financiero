@@ -85,6 +85,18 @@ class Usuario(Base):
         String(6)
     )
 
+    ciudad = Column(
+        String(100)
+    )
+
+    localidad = Column(
+        String(100)
+    )
+
+    barrio = Column(
+        String(100)
+    )
+
     documento = Column(
         String(50),
         unique=True
