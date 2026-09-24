@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/Administradores.css";
-import logoProyecto from "../assets/images/logo.jpeg";
 
 const API_URL = "http://localhost:8000";
 
@@ -10,51 +9,35 @@ export default function Administradores() {
   const navigate = useNavigate();
 
   const [asesores, setAsesores] = useState([]);
-  const [busquedaAsesor, setBusquedaAsesor] = useState("");
+  const [usuarios, setUsuarios] = useState([]);
+  const [cuentas, setCuentas] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
-  const [menuAbierto, setMenuAbierto] = useState(true);
-  const [esMovil, setEsMovil] = useState(() => window.innerWidth <= 650);
-  const [asesorEditando, setAsesorEditando] = useState(null);
-  const [registroModalAbierto, setRegistroModalAbierto] = useState(false);
-  const [formularioRegistro, setFormularioRegistro] = useState({
-    nombre: "",
-    documento: "",
-    email: "",
-    tipo_documento: "",
-  });
-  const [formularioEdicion, setFormularioEdicion] = useState({});
-  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
-  const [guardandoRegistro, setGuardandoRegistro] = useState(false);
-  const [actualizandoEstado, setActualizandoEstado] = useState(null);
+  const [asesorConsultado, setAsesorConsultado] = useState(null);
+  const [nuevoCodigoAsesor, setNuevoCodigoAsesor] = useState("");
+  const [nuevoTipoDocumento, setNuevoTipoDocumento] = useState("");
+  const [nuevoDocumento, setNuevoDocumento] = useState("");
+  const [nuevoEmail, setNuevoEmail] = useState("");
+  const [guardandoCodigo, setGuardandoCodigo] = useState(false);
+  const [editandoCodigo, setEditandoCodigo] = useState(false);
+  const [campoEditando, setCampoEditando] = useState("");
+  const [graficaAbierta, setGraficaAbierta] = useState(false);
+  const [detalleGraficaVisible, setDetalleGraficaVisible] = useState(null);
 
   useEffect(() => {
     cargarDatos();
   }, []);
 
   useEffect(() => {
-    const actualizarEstadoMenu = () => {
-      const movil = window.innerWidth <= 650;
-      setEsMovil(movil);
-      setMenuAbierto(!movil);
-    };
-
-    actualizarEstadoMenu();
-    window.addEventListener("resize", actualizarEstadoMenu);
-
-    return () => window.removeEventListener("resize", actualizarEstadoMenu);
-  }, []);
-
-  useEffect(() => {
-    const cerrarConEscape = (evento) => {
-      if (evento.key === "Escape") {
-        setAsesorEditando(null);
-        setRegistroModalAbierto(false);
+    const cerrarConEscape = (e) => {
+      if (e.key === "Escape") {
+        setEditandoCodigo(false);
+        setCampoEditando("");
       }
     };
 
-    if (asesorEditando || registroModalAbierto) {
+    if (editandoCodigo) {
       document.addEventListener("keydown", cerrarConEscape);
       document.body.style.overflow = "hidden";
     }
@@ -63,7 +46,7 @@ export default function Administradores() {
       document.removeEventListener("keydown", cerrarConEscape);
       document.body.style.overflow = "";
     };
-  }, [asesorEditando, registroModalAbierto]);
+  }, [editandoCodigo]);
 
   const formatearError = (error, mensajeFallback) => {
     const detalle = error?.response?.data?.detail;
@@ -81,45 +64,75 @@ export default function Administradores() {
       return { fecha: "No disponible", hora: "No disponible" };
     }
 
-    const fecha = new Date(fechaIngreso);
+    const valorFecha = /Z$|[+-]\d{2}:?\d{2}$/.test(fechaIngreso)
+      ? fechaIngreso
+      : `${fechaIngreso}Z`;
+
+    const fecha = new Date(valorFecha);
     if (Number.isNaN(fecha.getTime())) {
       return { fecha: "No disponible", hora: "No disponible" };
     }
 
+    const fechaBogota = new Intl.DateTimeFormat("es-CO", {
+      timeZone: "America/Bogota",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(fecha);
+
+    const horaBogota = new Intl.DateTimeFormat("es-CO", {
+      timeZone: "America/Bogota",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }).format(fecha);
+
     return {
-      fecha: fecha.toLocaleDateString("es-CO"),
-      hora: fecha.toLocaleTimeString("es-CO", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      fecha: fechaBogota,
+      hora: horaBogota,
     };
   };
 
-  const normalizarTexto = (valor) =>
-    String(valor || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
-
-  const asesoresFiltrados = asesores.filter((asesor) => {
-    const textoBusqueda = normalizarTexto(busquedaAsesor.trim());
-    if (!textoBusqueda) {
-      return true;
+  const obtenerDetalleGrafica = (tipo) => {
+    if (tipo === "Asesores") {
+      return asesores.map((asesor) => {
+        const { fecha, hora } = formatearFechaHora(asesor.fecha_ingreso);
+        return `${asesor.nombre || "Asesor"}: ${fecha} ${hora}`;
+      });
     }
 
-    return [
-      asesor.nombre,
-      asesor.nombres,
-      asesor.nombre_completo,
-      asesor.documento,
-      asesor.tipo_documento,
-      asesor.cargo,
-      asesor.email,
-      asesor.correo,
-      asesor.codigo_asesor,
-      asesor.codigo,
-    ].some((valor) => normalizarTexto(valor).includes(textoBusqueda));
-  });
+    if (tipo === "Usuarios") {
+      return usuarios.map((usuario) => {
+        const { fecha, hora } = formatearFechaHora(usuario.fecha_creacion);
+        return `${usuario.nombre || "Usuario"}: ${fecha} ${hora}`;
+      });
+    }
+
+    if (tipo === "Activos") {
+      return usuarios
+        .filter(
+          (usuario) =>
+            String(usuario.estado || "activo").toLowerCase() !== "inactivo"
+        )
+        .map((usuario) => {
+          const { fecha, hora } = formatearFechaHora(usuario.fecha_creacion);
+          return `${usuario.nombre || "Usuario"}: ${fecha} ${hora}`;
+        });
+    }
+
+    return cuentas
+      .filter((cuenta) =>
+        ["bloqueada", "bloqueado", "inactivo"].includes(
+          String(cuenta.estado || "").toLowerCase()
+        )
+      )
+      .map(
+        (cuenta) => {
+          const { fecha, hora } = formatearFechaHora(cuenta.fecha_estado);
+          return `${cuenta.nombre || "Cuenta"}: ${fecha} ${hora}`;
+        }
+      );
+  };
 
   const cargarDatos = async () => {
     try {
@@ -134,12 +147,22 @@ export default function Administradores() {
         },
       };
 
-      const respuestaAsesores = await axios.get(
-        `${API_URL}/administradores/asesores`,
-        config
-      );
+      const [respuestaAsesores, respuestaUsuarios, respuestaCuentas] =
+        await Promise.all([
+          axios.get(`${API_URL}/administradores/asesores`, config),
+          axios.get(`${API_URL}/usuarios`, config),
+          axios.get(`${API_URL}/administradores/cuentas`, config),
+        ]);
 
-      setAsesores(respuestaAsesores.data?.asesores || []);
+      const asesoresObtenidos = respuestaAsesores.data?.asesores || [];
+      const usuariosObtenidos = Array.isArray(respuestaUsuarios.data)
+        ? respuestaUsuarios.data
+        : [];
+      const cuentasObtenidas = respuestaCuentas.data?.cuentas || [];
+
+      setAsesores(asesoresObtenidos);
+      setUsuarios(usuariosObtenidos);
+      setCuentas(cuentasObtenidas);
     } catch (error) {
       console.error(error);
       setError(formatearError(error, "No se pudieron cargar los datos."));
@@ -148,103 +171,32 @@ export default function Administradores() {
     }
   };
 
-  const abrirEdicion = (asesor) => {
-    setError("");
-    setMensaje("");
-    setAsesorEditando(asesor);
-    setFormularioEdicion({
-      nombre: asesor.nombre || "",
-      documento: asesor.documento || "",
-      tipo_documento: asesor.tipo_documento || "",
-      cargo: asesor.cargo || "Asesor bancario",
-      email: asesor.email || asesor.correo || "",
-      codigo_asesor: asesor.codigo_asesor || asesor.codigo || "",
-      estado: asesor.estado || "activo",
-    });
-  };
+  const cambiarCodigoAsesor = async (e) => {
+    e.preventDefault();
 
-  const cambiarFormularioEdicion = (evento) => {
-    const { name, value } = evento.target;
-    setFormularioEdicion((actual) => ({ ...actual, [name]: value }));
-  };
-
-  const cambiarFormularioRegistro = (evento) => {
-    const { name, value } = evento.target;
-    setFormularioRegistro((actual) => ({ ...actual, [name]: value }));
-  };
-
-  const registrarAsesor = async (evento) => {
-    evento.preventDefault();
-
-    try {
-      setError("");
-      setMensaje("");
-      setGuardandoRegistro(true);
-
-      const token = localStorage.getItem("token");
-      const respuesta = await axios.post(
-        `${API_URL}/administradores/asesores`,
-        formularioRegistro,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      setFormularioRegistro({
-        nombre: "",
-        documento: "",
-        email: "",
-        tipo_documento: "",
-      });
-      setRegistroModalAbierto(false);
-      setMensaje(
-        `${respuesta.data?.mensaje || "Asesor registrado correctamente."}${
-          respuesta.data?.codigo_asesor
-            ? ` Código: ${respuesta.data.codigo_asesor}`
-            : ""
-        }`
-      );
-      await cargarDatos();
-    } catch (error) {
-      console.error(error);
-      setError(formatearError(error, "No se pudo registrar el asesor."));
-    } finally {
-      setGuardandoRegistro(false);
-    }
-  };
-
-  const guardarEdicion = async (evento) => {
-    evento.preventDefault();
-
-    const datos = {
-      ...formularioEdicion,
-      nombre: formularioEdicion.nombre.trim(),
-      documento: formularioEdicion.documento.trim(),
-      tipo_documento: formularioEdicion.tipo_documento.trim(),
-      cargo: formularioEdicion.cargo.trim(),
-      email: formularioEdicion.email.trim(),
-      codigo_asesor: formularioEdicion.codigo_asesor.trim(),
-    };
-
-    if (!datos.nombre || !datos.documento || !datos.tipo_documento || !datos.cargo || !datos.codigo_asesor) {
-      setError("Complete los campos obligatorios del asesor.");
+    const codigo = nuevoCodigoAsesor.trim();
+    const tipoDocumento = nuevoTipoDocumento.trim();
+    const documento = nuevoDocumento.trim();
+    const email = nuevoEmail.trim();
+    if (!codigo || !tipoDocumento || !documento || !email) {
+      setError("Complete todos los datos del asesor.");
       return;
     }
 
     try {
       setError("");
       setMensaje("");
-      setGuardandoEdicion(true);
+      setGuardandoCodigo(true);
 
       const token = localStorage.getItem("token");
       const respuesta = await axios.put(
-        `${API_URL}/administradores/asesores/${asesorEditando.id_asesor}`,
+        `${API_URL}/administradores/asesores/${asesorConsultado.id_asesor}`,
         {
-          id_asesor: asesorEditando.id_asesor,
-          ...datos,
+          id_asesor: asesorConsultado.id_asesor,
+          codigo_asesor: codigo,
+          tipo_documento: tipoDocumento,
+          documento,
+          email,
         },
         {
           headers: {
@@ -253,60 +205,38 @@ export default function Administradores() {
         }
       );
 
+      const codigoActualizado = respuesta.data?.codigo_asesor || codigo;
+      setAsesorConsultado((actual) => ({
+        ...actual,
+        codigo_asesor: codigoActualizado,
+        tipo_documento: tipoDocumento,
+        documento,
+        email,
+      }));
+      setNuevoCodigoAsesor(codigoActualizado);
+      setNuevoTipoDocumento(tipoDocumento);
+      setNuevoDocumento(documento);
+      setNuevoEmail(email);
+      setEditandoCodigo(false);
       setAsesores((actuales) =>
         actuales.map((asesor) =>
-          asesor.id_asesor === asesorEditando.id_asesor
-            ? { ...asesor, ...datos }
+          asesor.id_asesor === asesorConsultado.id_asesor
+            ? {
+                ...asesor,
+                codigo_asesor: codigoActualizado,
+                tipo_documento: tipoDocumento,
+                documento,
+                email,
+              }
             : asesor
         )
       );
-      setAsesorEditando(null);
-      setMensaje(respuesta.data?.mensaje || "Asesor actualizado correctamente.");
+      setMensaje(respuesta.data?.mensaje || "Código actualizado correctamente.");
     } catch (error) {
       console.error(error);
-      setError(formatearError(error, "No se pudo actualizar el asesor."));
+      setError(formatearError(error, "No se pudo actualizar el código del asesor."));
     } finally {
-      setGuardandoEdicion(false);
-    }
-  };
-
-  const cambiarEstadoAsesor = async (asesor, estado) => {
-    try {
-      setError("");
-      setMensaje("");
-      setActualizandoEstado(asesor.id_asesor);
-
-      const token = localStorage.getItem("token");
-      const respuesta = await axios.put(
-        `${API_URL}/administradores/asesores/${asesor.id_asesor}`,
-        {
-          id_asesor: asesor.id_asesor,
-          codigo_asesor: asesor.codigo_asesor || asesor.codigo,
-          estado,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      setAsesores((actuales) =>
-        actuales.map((asesorActual) =>
-          asesorActual.id_asesor === asesor.id_asesor
-            ? { ...asesorActual, estado }
-            : asesorActual
-        )
-      );
-      setMensaje(
-        respuesta.data?.mensaje ||
-        `Asesor ${estado === "activo" ? "habilitado" : "deshabilitado"} correctamente.`
-      );
-    } catch (error) {
-      console.error(error);
-      setError(formatearError(error, "No se pudo actualizar el estado del asesor."));
-    } finally {
-      setActualizandoEstado(null);
+      setGuardandoCodigo(false);
     }
   };
 
@@ -317,6 +247,25 @@ export default function Administradores() {
 
     navigate("/");
   };
+
+  const totalAsesores = asesores.length;
+  const totalUsuariosRegistrados = usuarios.length;
+  const totalUsuariosActivos = usuarios.filter(
+    (usuario) => String(usuario.estado || "activo").toLowerCase() !== "inactivo"
+  ).length;
+  const totalCuentasBloqueadas = cuentas.filter((cuenta) =>
+    ["bloqueada", "bloqueado", "inactivo"].includes(
+      String(cuenta.estado || "").toLowerCase()
+    )
+  ).length;
+
+  const datosGrafica = [
+    { label: "Asesores", valor: totalAsesores },
+    { label: "Usuarios", valor: totalUsuariosRegistrados },
+    { label: "Activos", valor: totalUsuariosActivos },
+    { label: "Bloqueadas", valor: totalCuentasBloqueadas },
+  ];
+  const maxValorGrafica = Math.max(...datosGrafica.map((item) => item.valor), 1);
 
   if (cargando) {
     return (
@@ -333,43 +282,39 @@ export default function Administradores() {
   return (
     <div className="asesor-container">
       <div className="panel-financiero">
-        {esMovil && (
-          <button
-            type="button"
-            className={`boton-menu-administradores ${menuAbierto ? "" : "menu-cerrado"}`}
-            onClick={() => setMenuAbierto((actual) => !actual)}
-            aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
-            aria-expanded={menuAbierto}
-          >
-            ☰
-          </button>
-        )}
 
-        <aside className={`sidebar ${menuAbierto ? "" : "sidebar-cerrado"}`}>
+        <aside className="sidebar">
           <ul>
             <li>
-              <Link to="/Administradores" onClick={() => setMenuAbierto(false)}>
+              <Link to="/Administradores">
                 📜 Principal
               </Link>
             </li>
 
             <li>
-              <Link to="/lista-usuarios" onClick={() => setMenuAbierto(false)}>
+              <Link to="/lista-asesores">
+                👥 Asesores
+              </Link>
+            </li>
+
+            <li>
+              <Link to="/lista-usuarios">
                 👤 Usuarios
               </Link>
             </li>
 
             <li>
-              <Link to="/lista-cuentas" onClick={() => setMenuAbierto(false)}>
+              <Link to="/lista-cuentas">
                 🌐 Cuentas
               </Link>
             </li>
 
             <li>
-              <Link to="/notoficaciones" onClick={() => setMenuAbierto(false)}>
+              <Link to="/notoficaciones">
                 🔔 notoficaciones
               </Link>
             </li>
+            
           </ul>
 
           <button
@@ -382,17 +327,7 @@ export default function Administradores() {
 
         <main className="contenido-asesores">
 
-          <div className="encabezado-administracion-asesores">
-            <div className="marca-financiera">
-              <img
-                className="logo-administracion-asesores"
-                src={logoProyecto}
-                alt="Logo del proyecto"
-              />
-              <span>Financiero</span>
-            </div>
-            <h1>Bienvenido Administración</h1>
-          </div>
+          <h1>Administración de asesores</h1>
 
           <p className="subtitulo-asesores">
             Gestión de usuarios y asesores bancarios
@@ -410,399 +345,216 @@ export default function Administradores() {
             </p>
           )}
 
-          <div className="admin-grid-asesores">
-            <section className="panel-lista-asesores lista-asesores-panel">
-
-              <div className="encabezado-lista-asesores">
-                <h2>Lista de asesores</h2>
-                <button
-                  type="button"
-                  className="boton-registrar-asesor"
-                  onClick={() => {
-                    setError("");
-                    setMensaje("");
-                    setRegistroModalAbierto(true);
-                  }}
-                >
-                  + Registrar asesor
-                </button>
+          <div className="resumen-panel">
+            <div className="resumen-administrador">
+              <div className="tarjeta-resumen">
+                <span className="tarjeta-label">Asesores</span>
+                <strong className="tarjeta-valor">{totalAsesores}</strong>
               </div>
 
-              <div className="buscador-asesores">
-                <span className="icono-buscador-asesores" aria-hidden="true">
-                  &#128269;
-                </span>
-                <input
-                  type="search"
-                  value={busquedaAsesor}
-                  onChange={(evento) => setBusquedaAsesor(evento.target.value)}
-                  placeholder="Buscar asesor por nombre, documento, tipo de documento, cargo..."
-                  aria-label="Buscar asesor"
-                />
+              <div className="tarjeta-resumen">
+                <span className="tarjeta-label">Usuarios registrados</span>
+                <strong className="tarjeta-valor">{totalUsuariosRegistrados}</strong>
               </div>
 
-              {asesores.length === 0 ? (
-                <p>No hay asesores registrados.</p>
-              ) : asesoresFiltrados.length === 0 ? (
-                <p className="mensaje-busqueda-asesores">
-                  No se encontraron asesores para “{busquedaAsesor}”.
-                </p>
-              ) : (
-                <div className="lista-asesores-compacta">
+              <div className="tarjeta-resumen">
+                <span className="tarjeta-label">Usuarios activos</span>
+                <strong className="tarjeta-valor">{totalUsuariosActivos}</strong>
+              </div>
 
-                  {asesoresFiltrados.map((asesor) => (
+              <div className="tarjeta-resumen">
+                <span className="tarjeta-label">Cuentas bloqueadas</span>
+                <strong className="tarjeta-valor">{totalCuentasBloqueadas}</strong>
+              </div>
+            </div>
 
-                    <div
-                      className="fila-asesor"
-                      key={
-                        asesor.id_asesor ||
-                        asesor.id_usuario
-                      }
-                    >
-
-                      {(() => {
-                        const { fecha, hora } = formatearFechaHora(asesor.fecha_ingreso);
-
-                        return (
-                          <>
-                            <div className="fila-asesor-dato">
-                              <span className="fila-label">
-                                Fecha de ingreso
-                              </span>
-
-                              <strong>{fecha}</strong>
-                            </div>
-
-                            <div className="fila-asesor-dato">
-                              <span className="fila-label">
-                                Hora de ingreso
-                              </span>
-
-                              <strong>{hora}</strong>
-                            </div>
-                          </>
-                        );
-                      })()}
-
-                      <div className="fila-asesor-dato">
-                        <span className="fila-label">
-                          Nombre
-                        </span>
-
-                        <strong>
-                          {asesor.nombre ||
-                            asesor.nombres ||
-                            asesor.nombre_completo ||
-                            "Asesor bancario"}
-                        </strong>
-                      </div>
-
-                      <div className="fila-asesor-dato">
-                        <span className="fila-label">
-                          Correo
-                        </span>
-
-                        <strong>
-                          {asesor.email || asesor.correo || "No registrado"}
-                        </strong>
-                      </div>
-
-                      <div className="fila-asesor-dato">
-                        <span className="fila-label">
-                          Código
-                        </span>
-
-                        <strong>
-                          {asesor.codigo_asesor ||
-                            asesor.codigo ||
-                            "Sin código"}
-                        </strong>
-                      </div>
-
-                      <div className="fila-asesor-dato fila-estado">
-
-                        <span className="fila-label">
-                          Estado
-                        </span>
-
-                        <span
-                          className={
-                            asesor.estado === "inactivo"
-                              ? "estado-badge inactivo"
-                              : "estado-badge activo"
-                          }
-                        >
-                          {asesor.estado || "activo"}
-                        </span>
-
-                      </div>
-
-                      <div className="fila-asesor-dato fila-acciones">
-                        <span className="fila-label">
-                          Acciones
-                        </span>
-
-                        <div className="grupo-acciones-asesor">
-                          <button
-                            type="button"
-                            className="boton-editar-asesor"
-                            onClick={() => abrirEdicion(asesor)}
-                            aria-label={`Editar información de ${asesor.nombre || "asesor"}`}
-                            title="Editar información del asesor"
-                          >
-                            ✎
-                          </button>
-                          <button
-                            type="button"
-                            className="boton-estado-asesor boton-deshabilitar-asesor"
-                            onClick={() => cambiarEstadoAsesor(asesor, "inactivo")}
-                            disabled={asesor.estado === "inactivo" || actualizandoEstado === asesor.id_asesor}
-                            aria-label="Deshabilitar asesor"
-                            title="Deshabilitar asesor"
-                          >
-                            ⛔
-                          </button>
-                          <button
-                            type="button"
-                            className="boton-estado-asesor boton-habilitar-asesor"
-                            onClick={() => cambiarEstadoAsesor(asesor, "activo")}
-                            disabled={asesor.estado !== "inactivo" || actualizandoEstado === asesor.id_asesor}
-                            aria-label="Habilitar asesor"
-                            title="Habilitar asesor"
-                          >
-                            ✓
-                          </button>
-                        </div>
-                      </div>
-
-                    </div>
-
-                  ))}
-
-                </div>
-              )}
-
-            </section>
-
+            <button
+              type="button"
+              className="boton-ver-grafica"
+              onClick={() => setGraficaAbierta(true)}
+            >
+              Ver gráfica
+            </button>
           </div>
 
-          {registroModalAbierto && (
+          <section className="grafica-detallada">
+            <div className="grafica-detallada-header">
+              <h3>Detalle del rendimiento</h3>
+              <span>Comparación general</span>
+            </div>
+
+            <div className="grafica-detallada-body">
+              {datosGrafica.map((item) => {
+                const porcentaje = maxValorGrafica === 0 ? 0 : (item.valor / maxValorGrafica) * 100;
+
+                return (
+                  <div
+                    key={item.label}
+                    className="fila-grafica-detallada"
+                    onMouseEnter={() => setDetalleGraficaVisible(item.label)}
+                    onMouseLeave={() => setDetalleGraficaVisible(null)}
+                    onFocus={() => setDetalleGraficaVisible(item.label)}
+                    onBlur={() => setDetalleGraficaVisible(null)}
+                    tabIndex={0}
+                  >
+                    <div className="fila-grafica-meta">
+                      <span>{item.label}</span>
+                      <strong>{item.valor}</strong>
+                    </div>
+
+                    <div
+                      className="barra-detallada-track"
+                    >
+                      <div
+                        className="barra-detallada-fill"
+                        style={{ width: `${porcentaje}%` }}
+                      />
+                    </div>
+
+                    {detalleGraficaVisible === item.label && (
+                      <div className="tooltip-grafica" role="tooltip">
+                        <strong>
+                          {item.label}: {item.valor}
+                        </strong>
+                        {obtenerDetalleGrafica(item.label).map((detalle) => (
+                          <span key={detalle}>{detalle}</span>
+                        ))}
+                      </div>
+                    )}
+
+                    <span className="porcentaje-grafica">
+                      {Math.round(porcentaje)}%
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {graficaAbierta && (
             <div
-              className="modal-edicion-asesor-overlay"
-              onClick={() => setRegistroModalAbierto(false)}
+              className="modal-grafica-overlay"
+              onClick={() => setGraficaAbierta(false)}
               role="presentation"
             >
-              <section
-                className="modal-edicion-asesor"
-                onClick={(evento) => evento.stopPropagation()}
+              <div
+                className="modal-grafica"
+                onClick={(e) => e.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby="titulo-registro-asesor"
+                aria-labelledby="titulo-modal-grafica"
               >
-                <div className="encabezado-modal-edicion-asesor">
-                  <h2 id="titulo-registro-asesor">Registrar asesor</h2>
+                <div className="encabezado-modal-grafica">
+                  <h2 id="titulo-modal-grafica">Resumen general</h2>
                   <button
                     type="button"
-                    className="boton-cerrar-edicion-asesor"
-                    onClick={() => setRegistroModalAbierto(false)}
-                    aria-label="Cerrar ventana"
+                    className="boton-cerrar-modal"
+                    onClick={() => setGraficaAbierta(false)}
+                    aria-label="Cerrar gráfica"
                     title="Cerrar"
                   >
                     ×
                   </button>
                 </div>
 
-                <form onSubmit={registrarAsesor} className="formulario-edicion-asesor">
-                  <div className="campos-edicion-asesor">
-                    <label>
-                      Nombre
-                      <input
-                        name="nombre"
-                        type="text"
-                        value={formularioRegistro.nombre}
-                        onChange={cambiarFormularioRegistro}
-                        required
-                        autoFocus
-                      />
-                    </label>
-                    <label>
-                      Documento
-                      <input
-                        name="documento"
-                        type="text"
-                        value={formularioRegistro.documento}
-                        onChange={cambiarFormularioRegistro}
-                        required
-                      />
-                    </label>
-                    <label>
-                      Correo
-                      <input
-                        name="email"
-                        type="email"
-                        value={formularioRegistro.email}
-                        onChange={cambiarFormularioRegistro}
-                        required
-                      />
-                    </label>
-                    <label>
-                      Tipo de documento
-                      <select
-                        name="tipo_documento"
-                        value={formularioRegistro.tipo_documento}
-                        onChange={cambiarFormularioRegistro}
-                        required
-                      >
-                        <option value="">Seleccione una opción</option>
-                        <option value="Cedula de ciudadania">Cédula de ciudadanía</option>
-                        <option value="Tarjeta de identidad">Tarjeta de identidad</option>
-                        <option value="Cedula de extranjeria">Cédula de extranjería</option>
-                        <option value="Pasaporte">Pasaporte</option>
-                      </select>
-                    </label>
-                  </div>
-
-                  <button type="submit" disabled={guardandoRegistro}>
-                    {guardandoRegistro ? "Registrando..." : "Registrar asesor"}
-                  </button>
-                </form>
-              </section>
+                <div className="grafica-barras" aria-label="Gráfica de resumen administrativo">
+                  {datosGrafica.map((item) => (
+                    <div key={item.label} className="barra-grupo">
+                      <span className="barra-label">{item.label}</span>
+                      <div className="barra-espacio">
+                        <div
+                          className="barra-fill"
+                          style={{ height: `${(item.valor / maxValorGrafica) * 100}%` }}
+                          title={`${item.label}: ${item.valor}`}
+                        />
+                      </div>
+                      <strong>{item.valor}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
-          {asesorEditando && (
-            <div
-              className="modal-edicion-asesor-overlay"
-              onClick={() => setAsesorEditando(null)}
-              role="presentation"
-            >
-              <section
-                className="modal-edicion-asesor"
-                onClick={(evento) => evento.stopPropagation()}
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="titulo-edicion-asesor"
+          {editandoCodigo && asesorConsultado && (
+              <div
+                className="modal-cambio-codigo-overlay"
+                onClick={() => setEditandoCodigo(false)}
+                role="presentation"
               >
-                <div className="encabezado-modal-edicion-asesor">
-                  <h2 id="titulo-edicion-asesor">Editar información del asesor</h2>
-                  <button
-                    type="button"
-                    className="boton-cerrar-edicion-asesor"
-                    onClick={() => setAsesorEditando(null)}
-                    aria-label="Cerrar ventana"
-                    title="Cerrar"
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <form onSubmit={guardarEdicion} className="formulario-edicion-asesor">
-                  <div className="campos-edicion-asesor">
+                <div
+                  className="modal-cambio-codigo"
+                  onClick={(e) => e.stopPropagation()}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="titulo-modal-cambio-codigo"
+                >
+                  <div className="encabezado-modal-cambio-codigo">
+                    <h2 id="titulo-modal-cambio-codigo">
+                      Editar información del asesor
+                    </h2>
+                    <button
+                      type="button"
+                      className="boton-cerrar-modal"
+                      onClick={() => setEditandoCodigo(false)}
+                      aria-label="Cerrar ventana"
+                      title="Cerrar"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <form onSubmit={cambiarCodigoAsesor} className="formulario-cambio-codigo">
+                    <p className="asesor-modal-nombre">
+                      {asesorConsultado.nombre || "Asesor bancario"}
+                    </p>
                     <label>
-                      Nombre
+                      Tipo de documento
                       <input
-                        name="nombre"
                         type="text"
-                        value={formularioEdicion.nombre || ""}
-                        onChange={cambiarFormularioEdicion}
-                        maxLength={100}
+                        value={nuevoTipoDocumento}
+                        onChange={(e) => setNuevoTipoDocumento(e.target.value)}
+                        maxLength={50}
                         autoFocus
                         required
                       />
                     </label>
                     <label>
-                      Documento
+                      Número de documento
                       <input
-                        name="documento"
                         type="text"
-                        value={formularioEdicion.documento || ""}
-                        onChange={cambiarFormularioEdicion}
+                        value={nuevoDocumento}
+                        onChange={(e) => setNuevoDocumento(e.target.value)}
                         maxLength={50}
                         required
                       />
                     </label>
                     <label>
-                      Tipo de documento
-                      <select
-                        name="tipo_documento"
-                        value={formularioEdicion.tipo_documento || ""}
-                        onChange={cambiarFormularioEdicion}
-                        required
-                      >
-                        <option value="">Seleccione una opción</option>
-                        <option value="Cedula de ciudadania">Cédula de ciudadanía</option>
-                        <option value="Tarjeta de identidad">Tarjeta de identidad</option>
-                        <option value="Cedula de extranjeria">Cédula de extranjería</option>
-                        <option value="Pasaporte">Pasaporte</option>
-                      </select>
-                    </label>
-                    <label>
-                      Cargo
+                      Correo electrónico
                       <input
-                        name="cargo"
-                        type="text"
-                        value={formularioEdicion.cargo || ""}
-                        onChange={cambiarFormularioEdicion}
-                        maxLength={100}
-                        required
-                      />
-                    </label>
-                    <label>
-                      Correo
-                      <input
-                        name="email"
                         type="email"
-                        value={formularioEdicion.email || ""}
-                        onChange={cambiarFormularioEdicion}
+                        value={nuevoEmail}
+                        onChange={(e) => setNuevoEmail(e.target.value)}
                         maxLength={100}
+                        required
                       />
                     </label>
                     <label>
                       Código del asesor
                       <input
-                        name="codigo_asesor"
                         type="text"
-                        value={formularioEdicion.codigo_asesor || ""}
-                        onChange={cambiarFormularioEdicion}
+                        value={nuevoCodigoAsesor}
+                        onChange={(e) => setNuevoCodigoAsesor(e.target.value)}
                         maxLength={30}
                         required
                       />
                     </label>
-                    <label>
-                      Estado
-                      <select
-                        name="estado"
-                        value={formularioEdicion.estado || "activo"}
-                        onChange={cambiarFormularioEdicion}
-                      >
-                        <option value="activo">Activo</option>
-                        <option value="inactivo">Inactivo</option>
-                      </select>
-                    </label>
-                  </div>
-
-                  <div className="datos-sistema-asesor">
-                    <div>
-                      <span>ID del asesor</span>
-                      <strong>{asesorEditando.id_asesor || "No disponible"}</strong>
-                    </div>
-                    <div>
-                      <span>Fecha de ingreso</span>
-                      <strong>{formatearFechaHora(asesorEditando.fecha_ingreso).fecha}</strong>
-                    </div>
-                    <div>
-                      <span>Hora de ingreso</span>
-                      <strong>{formatearFechaHora(asesorEditando.fecha_ingreso).hora}</strong>
-                    </div>
-                  </div>
-
-                  <button type="submit" disabled={guardandoEdicion}>
-                    {guardandoEdicion ? "Guardando..." : "Guardar cambios"}
-                  </button>
-                </form>
-              </section>
-            </div>
-          )}
+                    <button type="submit" disabled={guardandoCodigo}>
+                      {guardandoCodigo ? "Guardando..." : "Guardar información"}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )}
 
         </main>
 

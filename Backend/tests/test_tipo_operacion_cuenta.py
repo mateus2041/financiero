@@ -13,3 +13,12 @@ def test_existe_ruta_asesor_para_actualizar_tipo_operacion():
         if hasattr(ruta, "path")
     }
     assert "/asesor-bancario/cuenta/{id_cuenta}/tipo-operacion" in rutas
+
+
+def test_existe_ruta_asesor_para_actualizar_tipo_cuenta():
+    rutas = {
+        getattr(ruta, "path", None)
+        for ruta in app.router.routes
+        if hasattr(ruta, "path")
+    }
+    assert "/asesor-bancario/cuenta/{id_cuenta}/tipo-cuenta" in rutas

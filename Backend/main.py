@@ -46,6 +46,10 @@ class TipoOperacionCuentaAutorizada(BaseModel):
     tipo_operacion: str
     codigo_autorizacion: str
 
+
+class TipoCuentaCuenta(BaseModel):
+    tipo_cuenta: str
+
 class NuevaCuenta(BaseModel):
     tipo_cuenta: str
     tipo_operacion: str = "debito"
@@ -226,6 +230,15 @@ def startup():
         if "codigo_postal" not in columnas_usuario:
             conexion.execute(text(
                 "ALTER TABLE usuario ADD COLUMN codigo_postal VARCHAR(6) NULL"
+            ))
+
+        if "fecha_estado" not in columnas_cuentas:
+            conexion.execute(text(
+                "ALTER TABLE cuentas ADD COLUMN fecha_estado DATETIME NULL"
+            ))
+            conexion.execute(text(
+                "UPDATE cuentas SET fecha_estado = CURRENT_TIMESTAMP "
+                "WHERE estado = 'bloqueada' AND fecha_estado IS NULL"
             ))
 
         if "ciudad" not in columnas_usuario:
@@ -1716,8 +1729,13 @@ def listar_usuarios(
             "telefono": usuario.telefono,
             "direccion": usuario.direccion,
             "codigo_postal": usuario.codigo_postal,
+            "ciudad": usuario.ciudad,
+            "localidad": usuario.localidad,
+            "barrio": usuario.barrio,
             "codigo_registro": usuario.codigo_registro,
-            "estado": getattr(usuario, "estado", "activo")
+            "estado": getattr(usuario, "estado", "activo"),
+            "fecha_creacion": usuario.fecha_creacion.isoformat()
+            if usuario.fecha_creacion else None
         }
         for usuario in usuarios
     ]
@@ -1762,6 +1780,8 @@ def listar_cuentas_admin(
                 ],
                 "saldo": float(cuenta.saldo or 0),
                 "estado": "activo" if cuenta.estado == "activa" else "inactivo",
+                "fecha_estado": cuenta.fecha_estado.isoformat()
+                if cuenta.fecha_estado else None,
             }
             for cuenta, usuario in cuentas
         ]
@@ -1908,6 +1928,105 @@ def listar_cuentas_usuario(
             }
             for cuenta in cuentas
         ]
+    }
+
+
+@app.put("/usuarios/{id_usuario}/perfil")
+def actualizar_perfil_usuario(
+    id_usuario: int,
+    data: dict,
+    asesor=Depends(asesor_requerido),
+    db: Session = Depends(get_db)
+):
+    usuario = db.query(Usuario).filter(
+        Usuario.id_usuario == id_usuario,
+        Usuario.rol == "usuario",
+        ~Usuario.id_usuario.in_(db.query(Administrador.id_usuario)),
+        text(
+            "NOT EXISTS ("
+            "SELECT 1 FROM asesores_banco asesor "
+            "WHERE asesor.id_usuario = usuario.id_usuario"
+            ")"
+        )
+    ).first()
+
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    campos_editables = (
+        "nombre",
+        "email",
+        "telefono",
+        "direccion",
+        "codigo_postal",
+        "ciudad",
+        "localidad",
+        "barrio",
+    )
+
+    cambios = {}
+    for campo in campos_editables:
+        if campo not in data:
+            continue
+
+        valor = data[campo]
+        if isinstance(valor, str):
+            valor = valor.strip()
+
+        if campo in {"nombre", "email"} and not valor:
+            raise HTTPException(
+                status_code=400,
+                detail=f"El campo {campo} es obligatorio"
+            )
+
+        cambios[campo] = valor or None
+
+    if "email" in cambios:
+        correo_existente = db.query(Usuario).filter(
+            Usuario.email == cambios["email"],
+            Usuario.id_usuario != id_usuario
+        ).first()
+        if correo_existente:
+            raise HTTPException(
+                status_code=409,
+                detail="El correo ya está registrado"
+            )
+
+    if "nombre" in cambios and len(cambios["nombre"]) < 3:
+        raise HTTPException(
+            status_code=400,
+            detail="El nombre debe tener al menos 3 caracteres"
+        )
+
+    if "codigo_postal" in cambios and cambios["codigo_postal"]:
+        if len(cambios["codigo_postal"]) > 6:
+            raise HTTPException(
+                status_code=400,
+                detail="El código postal no puede superar 6 caracteres"
+            )
+
+    for campo, valor in cambios.items():
+        setattr(usuario, campo, valor)
+
+    db.commit()
+    db.refresh(usuario)
+
+    return {
+        "message": "Información del usuario actualizada correctamente",
+        "usuario": {
+            "id_usuario": usuario.id_usuario,
+            "nombre": usuario.nombre,
+            "correo": usuario.email,
+            "documento": usuario.documento,
+            "telefono": usuario.telefono,
+            "direccion": usuario.direccion,
+            "codigo_postal": usuario.codigo_postal,
+            "ciudad": usuario.ciudad,
+            "localidad": usuario.localidad,
+            "barrio": usuario.barrio,
+            "codigo_registro": usuario.codigo_registro,
+            "estado": getattr(usuario, "estado", "activo"),
+        }
     }
 
 
@@ -2198,6 +2317,46 @@ def listar_tarjetas_usuario(
     ]
 
 
+@app.get("/cuentas/{id_cuenta}/tarjetas")
+def listar_tarjetas_cuenta(
+    id_cuenta: int,
+    current_user: int = Depends(administrador_o_asesor_requerido),
+    db: Session = Depends(get_db)
+):
+    cuenta = db.query(Cuenta).join(Usuario).filter(
+        Cuenta.id_cuenta == id_cuenta,
+        Usuario.rol == "usuario",
+        ~Usuario.id_usuario.in_(db.query(Administrador.id_usuario)),
+        text(
+            "NOT EXISTS ("
+            "SELECT 1 FROM asesores_banco asesor "
+            "WHERE asesor.id_usuario = usuario.id_usuario"
+            ")"
+        )
+    ).first()
+
+    if not cuenta:
+        raise HTTPException(status_code=404, detail="Cuenta no encontrada")
+
+    tarjetas = db.query(Tarjeta).filter(
+        Tarjeta.id_cuenta == id_cuenta
+    ).order_by(Tarjeta.id_tarjeta).all()
+
+    return {
+        "tarjetas": [
+            {
+                "id_tarjeta": tarjeta.id_tarjeta,
+                "id_cuenta": tarjeta.id_cuenta,
+                "numero_tarjeta": f"**** **** **** {str(tarjeta.numero_tarjeta)[-4:]}",
+                "fecha_vencimiento": tarjeta.fecha_expiracion,
+                "tipo_tarjeta": "debito",
+                "estado": tarjeta.estado,
+            }
+            for tarjeta in tarjetas
+        ]
+    }
+
+
 @app.post("/usuarios/{id_usuario}/tarjetas")
 def agregar_tarjeta_usuario(
     id_usuario: int,
@@ -2461,6 +2620,7 @@ def bloquear_tarjeta(
     if tarjeta:
         tarjeta.estado = "bloqueada"
     cuenta.estado = "bloqueada"
+    cuenta.fecha_estado = datetime.utcnow()
     db.commit()
 
     return {
@@ -2492,6 +2652,7 @@ def desbloquear_tarjeta(
     if tarjeta:
         tarjeta.estado = "activa"
     cuenta.estado = "activa"
+    cuenta.fecha_estado = datetime.utcnow()
     db.commit()
 
     return {
@@ -2657,6 +2818,43 @@ def asesor_actualizar_tipo_operacion_cuenta(
         "id_cuenta": cuenta.id_cuenta,
         "tipo_operacion": cuenta.tipo_operacion,
         "tipo_cuenta": cuenta.tipo_cuenta,
+        "estado": cuenta.estado
+    }
+
+
+@app.put("/asesor-bancario/cuenta/{id_cuenta}/tipo-cuenta")
+def asesor_actualizar_tipo_cuenta(
+    id_cuenta: int,
+    datos: TipoCuentaCuenta,
+    asesor: Usuario = Depends(asesor_requerido),
+    db: Session = Depends(get_db)
+):
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_cuenta == id_cuenta
+    ).first()
+
+    if not cuenta:
+        raise HTTPException(
+            status_code=404,
+            detail="Cuenta no encontrada."
+        )
+
+    tipo = datos.tipo_cuenta.strip().lower()
+    if tipo not in {"ahorros", "corriente"}:
+        raise HTTPException(
+            status_code=400,
+            detail="El tipo de cuenta debe ser ahorros o corriente."
+        )
+
+    cuenta.tipo_cuenta = tipo
+    db.commit()
+    db.refresh(cuenta)
+
+    return {
+        "mensaje": "Tipo de cuenta actualizado correctamente.",
+        "id_cuenta": cuenta.id_cuenta,
+        "tipo_cuenta": cuenta.tipo_cuenta,
+        "tipo_operacion": cuenta.tipo_operacion,
         "estado": cuenta.estado
     }
 
@@ -3274,8 +3472,8 @@ def asesor_habilitar_cuenta(
 
     id_cuenta: int,
 
-    asesor: Usuario = Depends(
-        asesor_requerido
+    current_user: int = Depends(
+        administrador_o_asesor_requerido
     ),
 
     db: Session = Depends(get_db)
@@ -3347,8 +3545,8 @@ def asesor_deshabilitar_cuenta(
 
     id_cuenta: int,
 
-    asesor: Usuario = Depends(
-        asesor_requerido
+    current_user: int = Depends(
+        administrador_o_asesor_requerido
     ),
 
     db: Session = Depends(get_db)
