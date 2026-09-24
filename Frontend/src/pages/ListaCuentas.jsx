@@ -709,6 +709,13 @@ export default function ListaCuentas() {
             )}
 
             {!esAsesor && (
+            <li>
+              <Link to="/lista-asesores">
+               👥 Asesores
+              </Link>
+            </li>
+            )}
+
               <li>
                 <Link
                   to="/lista-usuarios"
@@ -717,7 +724,6 @@ export default function ListaCuentas() {
                   👤 Usuarios
                 </Link>
               </li>
-            )}
 
             <li>
               <Link
@@ -970,6 +976,10 @@ export default function ListaCuentas() {
                       const estado = String(
                         cuenta.estado || ""
                       ).toLowerCase();
+                      const cuentaActiva = [
+                        "activa",
+                        "activo",
+                      ].includes(estado);
 
                       return (
                         <tr
@@ -1004,48 +1014,24 @@ export default function ListaCuentas() {
 
                           <td className="acciones-cuenta">
                             <button
-                              className="boton-ver"
-                              onClick={() =>
-                                setCuentaSeleccionada(
-                                  cuenta
-                                )
+                              type="button"
+                              className={
+                                cuentaActiva
+                                  ? "boton-inhabilitar"
+                                  : "boton-habilitar"
                               }
-                            >
-                              Ver
-                            </button>
-
-                            <button
-                              className="boton-habilitar"
                               onClick={() => {
-                                setCuentaSeleccionada(
-                                  cuenta
-                                );
-
                                 cambiarEstadoCuenta(
                                   cuenta.id_cuenta,
-                                  "activa"
+                                  cuentaActiva
+                                    ? "inactiva"
+                                    : "activa"
                                 );
                               }}
-                              disabled={
-                                estado === "activa"
-                              }
                             >
-                              Habilitar
-                            </button>
-
-                            <button
-                              className="boton-inhabilitar"
-                              onClick={() =>
-                                cambiarEstadoCuenta(
-                                  cuenta.id_cuenta,
-                                  "inactiva"
-                                )
-                              }
-                              disabled={
-                                estado === "inactiva"
-                              }
-                            >
-                              Inhabilitar
+                              {cuentaActiva
+                                ? "Inhabilitar"
+                                : "Habilitar"}
                             </button>
 
                             <button
@@ -1260,35 +1246,6 @@ export default function ListaCuentas() {
                             valor
                           )}
                         </span>
-
-                        {clave === "saldo" && (
-                          <button
-                            type="button"
-                            className="boton-editar-saldo"
-                            onClick={
-                              abrirEdicionSaldo
-                            }
-                            aria-label="Editar saldo"
-                            title="Editar saldo"
-                          >
-                            ✎
-                          </button>
-                        )}
-
-                        {clave ===
-                          "tipo_operacion" && (
-                          <button
-                            type="button"
-                            className="boton-editar-saldo"
-                            onClick={
-                              abrirEdicionTipoOperacion
-                            }
-                            aria-label="Editar tipo de operación"
-                            title="Editar tipo de operación"
-                          >
-                            ✎
-                          </button>
-                        )}
                       </div>
                     </div>
                   ))}

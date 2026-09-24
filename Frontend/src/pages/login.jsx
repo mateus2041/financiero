@@ -226,7 +226,7 @@ function Login({ isModal = false }) {
                 <label htmlFor="codigo-asesor">Código de asesor</label>
                 <input
                   id="codigo-asesor"
-                  type="text"
+                  type="password"
                   value={codigoAsesor}
                   onChange={(e) => setCodigoAsesor(e.target.value)}
                   disabled={bloqueado}
