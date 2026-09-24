@@ -13,6 +13,7 @@ body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
+  background: #0b0f16;
   font-family: "Poppins", sans-serif;
 }
 
@@ -22,12 +23,12 @@ body {
 
 :root {
   --fondo-principal: #0b0f16;
-  --fondo-secundario: #131a2c;
-  --fondo-tarjeta: #1a2238;
+  --fondo-secundario: #0b0f16;
+  --fondo-tarjeta: #0b0f16;
   --texto-principal: #f5f5f5;
   --texto-secundario: #a8b3cf;
   --dorado: #f2c94c;
-  --azul-acento: #1a2238;
+  --azul-acento: #0b0f16;
 }
 
 /* ==============================
@@ -38,7 +39,7 @@ body {
   display: flex;
   width: 100%;
   min-height: 100vh;
-  background: var(--fondo-secundario);
+  background: #0b0f16;
   color: var(--texto-principal);
 }
 
@@ -147,7 +148,7 @@ body {
   width: 250px;
   min-width: 250px;
   min-height: 100vh;
-  background: linear-gradient(180deg, #121829, #0b0f16);
+  background: #0b0f16;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -486,6 +487,84 @@ body {
   background: rgba(11, 15, 22, 0.65);
 }
 
+.boton-editar-cuenta-asesor,
+.boton-cancelar-edicion-asesor,
+.boton-guardar-edicion-asesor {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.boton-editar-cuenta-asesor {
+  border: 1px solid rgba(242, 201, 76, 0.8);
+  background: transparent;
+  color: var(--dorado);
+}
+
+.boton-editar-cuenta-asesor:hover {
+  background: rgba(242, 201, 76, 0.12);
+}
+
+.formulario-edicion-cuenta-asesor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(168, 179, 207, 0.18);
+}
+
+.formulario-edicion-cuenta-asesor label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--texto-secundario);
+}
+
+.formulario-edicion-cuenta-asesor select,
+.formulario-edicion-cuenta-asesor input {
+  padding: 10px 12px;
+  border: 1px solid rgba(168, 179, 207, 0.3);
+  border-radius: 7px;
+  background: #0b0f16;
+  color: #ffffff;
+  font: inherit;
+}
+
+.formulario-edicion-cuenta-asesor select:focus,
+.formulario-edicion-cuenta-asesor input:focus {
+  outline: 2px solid rgba(242, 201, 76, 0.8);
+  outline-offset: 1px;
+}
+
+.acciones-edicion-cuenta-asesor {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.boton-cancelar-edicion-asesor {
+  border: 1px solid rgba(168, 179, 207, 0.4);
+  background: transparent;
+  color: var(--texto-secundario);
+}
+
+.boton-guardar-edicion-asesor {
+  border: 1px solid rgba(130, 214, 165, 0.8);
+  background: rgba(130, 214, 165, 0.12);
+  color: #82d6a5;
+}
+
+.boton-guardar-edicion-asesor:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 .detalle-usuario-asesor-mensaje {
   color: var(--texto-secundario);
 }
@@ -526,6 +605,8 @@ body {
    ============================== */
 
 .contenido-asesores {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
   min-height: 100vh;
@@ -537,6 +618,56 @@ body {
     #0b0f16 65%
   );
   box-sizing: border-box;
+}
+
+.estadisticas-asesor {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 18px;
+  margin-bottom: 26px;
+}
+
+.estadistica-asesor {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 120px;
+  padding: 18px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(16, 25, 38, 0.9);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.estadistica-asesor strong {
+  color: #ffffff;
+  font-size: clamp(1.8rem, 2vw, 2.5rem);
+  line-height: 1.2;
+}
+
+.estadistica-label {
+  margin-bottom: 12px;
+  color: #c9d0dc;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tarjeta-usuarios {
+  border-color: rgba(196, 164, 86, 0.4);
+}
+
+.tarjeta-cuentas-habilitadas {
+  border-color: rgba(84, 179, 126, 0.5);
+}
+
+.tarjeta-cuentas-deshabilitadas {
+  border-color: rgba(239, 120, 120, 0.5);
+}
+
+.tarjeta-tarjetas-activas {
+  border-color: rgba(90, 165, 255, 0.5);
 }
 
 /* ==============================
@@ -711,22 +842,216 @@ body {
 }
 
 .boton-registrar-asesor,
-.boton-actualizar-asesor {
+.boton-actualizar-asesor,
+.boton-grafica-asesor {
   padding: 10px 18px;
 }
 
 .boton-ver-asesor:hover,
 .boton-registrar-asesor:hover,
-.boton-actualizar-asesor:hover {
+.boton-actualizar-asesor:hover,
+.boton-grafica-asesor:hover {
   background: var(--dorado);
   color: #0b0f16;
+}
+
+.boton-grafica-asesor {
+  border: 1px solid #7ec8ff;
+  border-radius: 8px;
+  background: transparent;
+  color: #7ec8ff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
 }
 
 .acciones-usuarios-asesor {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 12px;
-  margin-top: 18px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.acciones-grafica-asesor {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 18px;
+}
+
+.grafica-resumen-datos-asesor {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.grafica-resumen-datos-asesor div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.grafica-resumen-datos-asesor span {
+  color: #dce7ff;
+  font-size: 0.75rem;
+}
+
+.grafica-resumen-datos-asesor strong {
+  color: #ffffff;
+  font-size: 1.15rem;
+}
+
+.grafica-detallada-asesor {
+  margin-top: 22px;
+  padding: 22px 18px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background: rgba(14, 20, 30, 0.95);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+}
+
+.grafica-detallada-header {
+  margin-bottom: 14px;
+}
+
+.grafica-detallada-header h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.grafica-asesor-barras {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(90px, 1fr));
+  align-items: end;
+  gap: 18px;
+  min-height: 240px;
+  padding: 18px 12px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.grafica-columna-asesor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: end;
+  min-height: 220px;
+  gap: 10px;
+}
+
+.grafica-valor-asesor {
+  color: #f3f6ff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.grafica-eje-asesor {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  width: 100%;
+  height: 140px;
+  padding: 0 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.grafica-barra-asesor {
+  width: 100%;
+  min-height: 18px;
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.grafica-barra-asesor:hover {
+  transform: translateY(-4px);
+  filter: brightness(1.08);
+}
+
+.grafica-usuarios {
+  background: linear-gradient(180deg, #f2c94c 0%, #d9a21f 100%);
+}
+
+.grafica-habilitadas {
+  background: linear-gradient(180deg, #55d38f 0%, #2aa769 100%);
+}
+
+.grafica-deshabilitadas {
+  background: linear-gradient(180deg, #ff7b7b 0%, #d95050 100%);
+}
+
+.grafica-tarjetas {
+  background: linear-gradient(180deg, #67b7ff 0%, #3a8bff 100%);
+}
+
+.grafica-label-asesor {
+  color: #dce7ff;
+  font-size: 0.72rem;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.modal-grafica-asesor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 7, 12, 0.7);
+  padding: 24px;
+}
+
+.modal-grafica-asesor {
+  width: min(820px, 92vw);
+  border: 1px solid rgba(242, 201, 76, 0.35);
+  border-radius: 18px;
+  background: #0d1727;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+  padding: 22px 20px 18px;
+}
+
+.modal-grafica-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.modal-grafica-header h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+}
+
+.cerrar-grafica-asesor {
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-size: 2rem;
+  cursor: pointer;
+}
+
+.modal-version {
+  min-height: 260px;
+}
+
+@media (max-width: 650px) {
+  .grafica-resumen-datos-asesor {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .panel-lista-asesores {
