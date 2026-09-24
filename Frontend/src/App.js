@@ -23,6 +23,7 @@ import Notificaciones from "./pages/notificaiones";
 import Mensajes from "./pages/mensaje-Admin";
 import DesbloquearTarjeta from "./pages/desbloquearTarjeta";
 import TarjetasUsuario from "./pages/trageta";
+import ListaAsesores from "./pages/Listaasesores";
 
 function App() {
   return (
@@ -159,6 +160,11 @@ function App() {
       <Route
         path="/trageta"
         element={<TarjetasUsuario />}
+      />
+
+      <Route
+        path="/lista-asesores"
+        element={<ListaAsesores />}
       />
     </Routes>
   );

@@ -277,6 +277,11 @@ class Cuenta(Base):
         default="activa"
     )
 
+    fecha_estado = Column(
+        DateTime,
+        nullable=True
+    )
+
     usuario = relationship(
         "Usuario",
         back_populates="cuentas"

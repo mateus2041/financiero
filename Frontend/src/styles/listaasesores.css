@@ -1,0 +1,663 @@
+/* ==============================
+   RESET TOTAL
+   ============================== */
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  font-family: "Poppins", sans-serif;
+}
+
+/* ==============================
+   VARIABLES
+   ============================== */
+
+:root {
+  --fondo-principal: #0b0f16;
+  --fondo-secundario: #131a2c;
+  --fondo-tarjeta: #1a2238;
+  --texto-principal: #f5f5f5;
+  --texto-secundario: #a8b3cf;
+  --dorado: #f2c94c;
+  --azul-acento: #1a2238;
+}
+
+/* ==============================
+   CONTENEDOR PRINCIPAL
+   ============================== */
+
+.asesor-container {
+  width: 100%;
+  min-height: 100vh;
+  background: var(--fondo-secundario);
+  color: var(--texto-principal);
+}
+
+/* ==============================
+   PANEL FINANCIERO
+   ============================== */
+
+.panel-financiero {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  background: var(--fondo-secundario);
+  color: var(--dorado);
+}
+
+/* ==============================
+   SIDEBAR
+   ============================== */
+
+.sidebar {
+  width: 250px;
+  min-width: 250px;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #121829, #0b0f16);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.sidebar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar ul li {
+  margin: 18px 0;
+}
+
+.sidebar ul li a {
+  text-decoration: none;
+  color: var(--texto-secundario);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  transition: 0.3s;
+}
+
+.sidebar ul li a:hover,
+.sidebar ul li a.active {
+  background: rgba(242, 201, 76, 0.1);
+  color: var(--dorado);
+}
+
+/* ==============================
+   BOTON CERRAR SESION
+   ============================== */
+
+.logout {
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(242, 201, 76, 0.3);
+  color: var(--texto-secundario);
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.logout:hover {
+  background: rgba(242, 201, 76, 0.1);
+  color: var(--dorado);
+  transform: none;
+}
+
+/* ==============================
+   CONTENIDO PRINCIPAL
+   ============================== */
+
+.contenido-asesores {
+  flex: 1;
+  min-width: 0;
+  min-height: 100vh;
+  padding: 30px;
+  overflow-y: auto;
+  background: radial-gradient(
+    circle at 25% 25%,
+    #0f1524,
+    #0b0f16 65%
+  );
+  box-sizing: border-box;
+}
+
+/* ==============================
+   TITULO
+   ============================== */
+
+.contenido-asesores h1 {
+  margin: 0 0 30px 0;
+  color: var(--dorado);
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.subtitulo-asesores {
+  margin: -20px 0 25px;
+  color: var(--texto-secundario);
+  font-size: 18px;
+  text-align: center;
+}
+
+.contenido-lista-asesores {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.panel-lista-asesores {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.formulario-asesor {
+  flex: 0 0 290px;
+  margin: 0;
+  padding: 22px;
+  background: var(--fondo-tarjeta);
+  border: 1px solid rgba(242, 201, 76, 0.2);
+  border-radius: 12px;
+}
+
+.formulario-asesor h2 {
+  margin: 0 0 18px;
+  color: var(--dorado);
+  font-size: 20px;
+}
+
+.campos-asesor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.campos-asesor label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.campos-asesor input,
+.campos-asesor select {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid rgba(168, 179, 207, 0.3);
+  border-radius: 7px;
+  background: #0b0f16;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
+  font: inherit;
+}
+
+.campos-asesor select {
+  appearance: auto;
+}
+
+.campos-asesor select option {
+  background: #0b0f16;
+  color: #ffffff;
+}
+
+.campos-asesor input::placeholder {
+  color: #ffffff;
+  opacity: 1;
+}
+
+.campos-asesor input:-webkit-autofill,
+.campos-asesor input:-webkit-autofill:hover,
+.campos-asesor input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #ffffff;
+  -webkit-box-shadow: 0 0 0 1000px #0b0f16 inset;
+}
+
+.campos-asesor input:focus,
+.campos-asesor select:focus {
+  outline: 2px solid var(--dorado);
+  outline-offset: 1px;
+}
+
+.campos-asesor input[readonly] {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.campos-asesor button {
+  padding: 11px 16px;
+  border: none;
+  border-radius: 7px;
+  background: var(--dorado);
+  color: #0b0f16;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.campos-asesor button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+/* ==============================
+   MENSAJES
+   ============================== */
+
+.contenido-asesores > p {
+  color: var(--texto-secundario);
+  font-size: 16px;
+}
+
+.mensaje-error {
+  color: #f3a5a5 !important;
+}
+
+.mensaje-exito {
+  color: #82d6a5 !important;
+}
+
+.tabla-asesores-contenedor {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid rgba(242, 201, 76, 0.2);
+  border-radius: 10px;
+  background: var(--fondo-tarjeta);
+}
+
+.tabla-asesores {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+.tabla-asesores th,
+.tabla-asesores td {
+  padding: 15px 16px;
+  border-bottom: 1px solid rgba(168, 179, 207, 0.14);
+  text-align: center;
+}
+
+.tabla-asesores th {
+  color: var(--dorado);
+  font-size: 13px;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.tabla-asesores td {
+  color: #ffffff;
+}
+
+.tabla-asesores tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.estado-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.estado-badge.activo {
+  background: rgba(130, 214, 165, 0.15);
+  color: #82d6a5;
+  border: 1px solid rgba(130, 214, 165, 0.5);
+}
+
+.estado-badge.inactivo {
+  background: rgba(243, 165, 165, 0.12);
+  color: #f3a5a5;
+  border: 1px solid rgba(243, 165, 165, 0.5);
+}
+
+.boton-eliminar {
+  padding: 8px 12px;
+  border: 1px solid #e06b6b;
+  border-radius: 6px;
+  background: transparent;
+  color: #f3a5a5;
+}
+
+.boton-eliminar:hover {
+  background: #e06b6b;
+  color: #ffffff;
+}
+
+/* ==============================
+   LISTA DE ASESORES
+   ============================== */
+
+.lista-asesores {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(280px, 1fr)
+  );
+  gap: 20px;
+  width: 100%;
+}
+
+/* ==============================
+   TARJETA DEL ASESOR
+   ============================== */
+
+.tarjeta-asesor {
+  background: var(--fondo-tarjeta);
+  padding: 25px;
+  border-radius: 15px;
+  border: 1px solid rgba(242, 201, 76, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  transition: 0.3s;
+}
+
+.tarjeta-asesor:hover {
+  transform: translateY(-5px);
+  border-color: rgba(242, 201, 76, 0.25);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
+}
+
+/* ==============================
+   NOMBRE DEL ASESOR
+   ============================== */
+
+.tarjeta-asesor h2 {
+  margin: 0 0 20px 0;
+  color: var(--dorado);
+  font-size: 21px;
+}
+
+/* ==============================
+   INFORMACION
+   ============================== */
+
+.tarjeta-asesor p {
+  margin: 10px 0;
+  color: var(--texto-secundario);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.tarjeta-asesor strong {
+  color: var(--texto-principal);
+}
+
+/* ==============================
+   ROL
+   ============================== */
+
+.tarjeta-asesor p:last-of-type {
+  color: var(--dorado);
+}
+
+/* ==============================
+   BOTON VER ASESOR
+   ============================== */
+
+.tarjeta-asesor button {
+  width: 100%;
+  margin-top: 18px;
+  background: linear-gradient(
+    90deg,
+    var(--azul-acento),
+    var(--dorado)
+  );
+  color: #fff;
+  border: none;
+  padding: 11px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.tarjeta-asesor button:hover {
+  transform: scale(1.03);
+}
+
+/* ==============================
+   CUENTAS
+   ============================== */
+
+.cuenta-activa,
+.cuenta-inactiva {
+  display: block;
+  margin: 6px 0;
+  font-weight: 600;
+}
+
+.cuenta-activa {
+  color: #2eaf72;
+}
+
+.cuenta-inactiva {
+  color: #e06b6b;
+}
+
+/* ==============================
+   BOTONES GENERALES
+   ============================== */
+
+button {
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  transform: scale(1.03);
+}
+
+/* ==============================
+   SIDEBAR LINK
+   ============================== */
+
+.sidebar-link {
+  width: 100%;
+  background: transparent;
+  color: var(--texto-secundario);
+  padding: 10px;
+  text-align: left;
+  font: inherit;
+  border: none;
+}
+
+.sidebar-link:hover {
+  background: rgba(242, 201, 76, 0.1);
+  color: var(--dorado);
+  transform: none;
+}
+
+/* ==============================
+   MODAL CERTIFICADO
+   ============================== */
+
+.certificado-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(5, 8, 14, 0.78);
+}
+
+.certificado-modal {
+  position: relative;
+  width: min(100%, 440px);
+  padding: 30px;
+  border: 1px solid rgba(242, 201, 76, 0.3);
+  border-radius: 16px;
+  background: #1a2238;
+  color: var(--texto-principal);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.certificado-modal h2 {
+  margin: 0 30px 12px 0;
+  color: var(--dorado);
+}
+
+.certificado-modal p {
+  margin: 0 0 24px;
+  color: var(--texto-secundario);
+  line-height: 1.5;
+}
+
+.certificado-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  padding: 4px 9px;
+  background: transparent;
+  color: var(--texto-secundario);
+  font-size: 26px;
+  line-height: 1;
+}
+
+.certificado-modal-close:hover {
+  color: var(--texto-principal);
+  transform: none;
+}
+
+.certificado-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.modal-secondary-button,
+.modal-primary-button {
+  padding: 11px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.modal-secondary-button {
+  background: transparent;
+  border: 1px solid #46516d;
+  color: var(--texto-secundario);
+}
+
+.modal-primary-button {
+  background: var(--dorado);
+  color: #111722;
+}
+
+/* ==============================
+   RESPONSIVE
+   ============================== */
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: 200px;
+    min-width: 200px;
+  }
+
+  .contenido-asesores {
+    padding: 20px;
+  }
+
+  .lista-asesores {
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(240px, 1fr)
+    );
+  }
+}
+
+/* ==============================
+   CELULARES
+   ============================== */
+
+@media (max-width: 650px) {
+  .panel-financiero {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+    min-height: auto;
+    padding: 15px;
+  }
+
+  .sidebar ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .sidebar ul li {
+    margin: 0;
+  }
+
+  .sidebar ul li a {
+    padding: 8px;
+  }
+
+  .logout {
+    margin-top: 15px;
+  }
+
+  .contenido-asesores {
+    min-height: auto;
+    padding: 20px;
+  }
+
+  .contenido-asesores h1 {
+    font-size: 26px;
+  }
+
+  .contenido-lista-asesores {
+    flex-direction: column;
+  }
+
+  .formulario-asesor {
+    width: 100%;
+  }
+
+  .campos-asesor {
+    grid-template-columns: 1fr;
+  }
+
+  .campos-asesor button {
+    width: 100%;
+  }
+
+  .lista-asesores {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==============================
+   MODAL RESPONSIVE
+   ============================== */
+
+@media (max-width: 520px) {
+  .certificado-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-secondary-button,
+  .modal-primary-button {
+    width: 100%;
+  }
+}

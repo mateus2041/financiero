@@ -10,9 +10,6 @@ const API_URL = "http://127.0.0.1:8000";
 export default function AsesorBancario() {
   const navigate = useNavigate();
   const rolActual = (localStorage.getItem("rol") || "").trim().toLowerCase();
-  const [consultasRealizadas, setConsultasRealizadas] = useState([]);
-  const [busquedaUsuario, setBusquedaUsuario] = useState("");
-  const [cargandoLista, setCargandoLista] = useState(true);
   const [mensaje, setMensaje] = useState("");
   const [mensajeExito, setMensajeExito] = useState("");
   const [mensajeAdmin, setMensajeAdmin] = useState("");
@@ -20,10 +17,20 @@ export default function AsesorBancario() {
   const [previewImagenMensaje, setPreviewImagenMensaje] = useState("");
   const [mostrarMensajeAdmin, setMostrarMensajeAdmin] = useState(false);
   const [mostrarRegistro, setMostrarRegistro] = useState(false);
+  const [mostrarGrafica, setMostrarGrafica] = useState(false);
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
   const [cargandoDetalleUsuario, setCargandoDetalleUsuario] = useState(false);
   const [errorDetalleUsuario, setErrorDetalleUsuario] = useState("");
+  const [edicionCuenta, setEdicionCuenta] = useState({});
+  const [guardandoCuenta, setGuardandoCuenta] = useState(null);
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [estadisticas, setEstadisticas] = useState({
+    usuariosRegistrados: 0,
+    cuentasHabilitadas: 0,
+    cuentasDeshabilitadas: 0,
+    tarjetasActivas: 0,
+  });
+  const [cargandoEstadisticas, setCargandoEstadisticas] = useState(true);
 
   useEffect(() => {
     const actualizarEstadoMenu = () => {
@@ -50,25 +57,61 @@ export default function AsesorBancario() {
       return;
     }
 
-    const cargarUsuariosRegistrados = async () => {
+    const cargarEstadisticas = async () => {
       try {
-        const respuesta = await axios.get(`${API_URL}/usuarios`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const [usuariosRes, cuentasRes] = await Promise.all([
+          axios.get(`${API_URL}/usuarios`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`${API_URL}/administradores/cuentas`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
 
-        setConsultasRealizadas(
-          respuesta.data.map((usuario) => ({
-            id: usuario.id_usuario,
-            nombre: usuario.nombre,
-            correo: usuario.correo || usuario.email,
-            telefono: usuario.telefono,
-            direccion: usuario.direccion,
-            codigoRegistro: usuario.codigo_registro,
-            estado: usuario.estado || "activo",
-          }))
-        );
+        const usuarios = Array.isArray(usuariosRes.data) ? usuariosRes.data : [];
+        const cuentas = Array.isArray(cuentasRes.data?.cuentas)
+          ? cuentasRes.data.cuentas
+          : [];
+
+        const cuentasHabilitadas = cuentas.filter(
+          (cuenta) => String(cuenta.estado || "").toLowerCase() === "activa"
+        ).length;
+
+        const cuentasDeshabilitadas = cuentas.filter(
+          (cuenta) => String(cuenta.estado || "").toLowerCase() === "inactiva"
+        ).length;
+
+        const tarjetasActivas = (
+          await Promise.all(
+            usuarios.map(async (usuario) => {
+              try {
+                const respuesta = await axios.get(
+                  `${API_URL}/usuarios/${usuario.id_usuario}/tarjetas`,
+                  {
+                    headers: { Authorization: `Bearer ${token}` },
+                  }
+                );
+
+                const tarjetas = Array.isArray(respuesta.data)
+                  ? respuesta.data
+                  : [];
+
+                return tarjetas.filter(
+                  (tarjeta) => String(tarjeta.estado || "").toLowerCase() === "activa"
+                ).length;
+              } catch (error) {
+                return 0;
+              }
+            })
+          )
+        ).reduce((total, cantidad) => total + cantidad, 0);
+
+        setEstadisticas({
+          usuariosRegistrados: usuarios.length,
+          cuentasHabilitadas,
+          cuentasDeshabilitadas,
+          tarjetasActivas,
+        });
       } catch (error) {
         if (error.response?.status === 401 || error.response?.status === 403) {
           localStorage.removeItem("token");
@@ -83,14 +126,14 @@ export default function AsesorBancario() {
 
         setMensaje(
           error.response?.data?.detail ||
-            "No fue posible cargar los usuarios registrados."
+            "No fue posible cargar las estadísticas del panel."
         );
       } finally {
-        setCargandoLista(false);
+        setCargandoEstadisticas(false);
       }
     };
 
-    cargarUsuariosRegistrados();
+    cargarEstadisticas();
   }, [navigate, rolActual]);
 
   const handleLogout = () => {
@@ -101,7 +144,7 @@ export default function AsesorBancario() {
     localStorage.removeItem("nombre_asesor");
     localStorage.removeItem("codigo_verificacion");
 
-    window.location.href = "/login";
+    window.location.href = "/";
   };
 
   const convertirArchivoADataUrl = (archivo) =>
@@ -213,22 +256,123 @@ export default function AsesorBancario() {
     }
   };
 
-  const usuariosFiltrados = consultasRealizadas.filter((usuario) => {
-    const texto = busquedaUsuario.trim().toLowerCase();
+  const iniciarEdicionCuenta = (cuenta) => {
+    setEdicionCuenta((actual) => ({
+      ...actual,
+      [cuenta.id_cuenta]: {
+        tipo_cuenta: cuenta.tipo_cuenta || "ahorros",
+        tipo_operacion: cuenta.tipo_operacion || "debito",
+        saldo: Number(cuenta.saldo || 0).toString(),
+      },
+    }));
+    setErrorDetalleUsuario("");
+  };
 
-    if (!texto) {
-      return true;
+  const cerrarEdicionCuenta = (idCuenta) => {
+    setEdicionCuenta((actual) => {
+      const siguiente = { ...actual };
+      delete siguiente[idCuenta];
+      return siguiente;
+    });
+  };
+
+  const guardarCuenta = async (idCuenta) => {
+    const datos = edicionCuenta[idCuenta];
+    if (!datos) {
+      return;
     }
 
-    return [
-      usuario.nombre,
-      usuario.correo,
-      usuario.telefono,
-      usuario.direccion,
-      usuario.codigoRegistro,
-      usuario.estado,
-    ].some((valor) => String(valor || "").toLowerCase().includes(texto));
-  });
+    const saldo = Number(datos.saldo);
+    if (!Number.isFinite(saldo) || saldo < 0) {
+      setErrorDetalleUsuario("El saldo debe ser un número válido y no puede ser negativo.");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+
+    try {
+      setGuardandoCuenta(idCuenta);
+      setErrorDetalleUsuario("");
+
+      await Promise.all([
+        axios.put(
+          `${API_URL}/asesor-bancario/cuenta/${idCuenta}/tipo-cuenta`,
+          { tipo_cuenta: datos.tipo_cuenta },
+          { headers: { Authorization: `Bearer ${token}` } }
+        ),
+        axios.put(
+          `${API_URL}/asesor-bancario/cuenta/${idCuenta}/tipo-operacion`,
+          { tipo_operacion: datos.tipo_operacion },
+          { headers: { Authorization: `Bearer ${token}` } }
+        ),
+        axios.put(
+          `${API_URL}/asesor-bancario/cuenta/${idCuenta}/saldo`,
+          { saldo },
+          { headers: { Authorization: `Bearer ${token}` } }
+        ),
+      ]);
+
+      setUsuarioSeleccionado((actual) => ({
+        ...actual,
+        cuentas: (actual?.cuentas || []).map((cuenta) =>
+          cuenta.id_cuenta === idCuenta
+            ? {
+                ...cuenta,
+                tipo_cuenta: datos.tipo_cuenta,
+                tipo_operacion: datos.tipo_operacion,
+                saldo,
+              }
+            : cuenta
+        ),
+      }));
+
+      setEdicionCuenta((actual) => {
+        const siguiente = { ...actual };
+        delete siguiente[idCuenta];
+        return siguiente;
+      });
+
+      setMensajeExito("Cuenta actualizada correctamente.");
+    } catch (error) {
+      setErrorDetalleUsuario(
+        error.response?.data?.detail ||
+          "No se pudo actualizar la cuenta del usuario."
+      );
+    } finally {
+      setGuardandoCuenta(null);
+    }
+  };
+
+  const maximoEstadistica = Math.max(
+    1,
+    estadisticas.usuariosRegistrados,
+    estadisticas.cuentasHabilitadas,
+    estadisticas.cuentasDeshabilitadas,
+    estadisticas.tarjetasActivas
+  );
+
+  const datosGrafica = [
+    {
+      nombre: "Usuarios",
+      valor: estadisticas.usuariosRegistrados,
+      clase: "grafica-usuarios",
+    },
+    {
+      nombre: "Habilitadas",
+      valor: estadisticas.cuentasHabilitadas,
+      clase: "grafica-habilitadas",
+    },
+    {
+      nombre: "Deshabilitadas",
+      valor: estadisticas.cuentasDeshabilitadas,
+      clase: "grafica-deshabilitadas",
+    },
+    {
+      nombre: "Tarjetas",
+      valor: estadisticas.tarjetasActivas,
+      clase: "grafica-tarjetas",
+    },
+  ];
 
   return (
     <div className="asesor-container">
@@ -257,6 +401,12 @@ export default function AsesorBancario() {
             <li>
               <Link to="/asesor-bancario" onClick={() => setMenuAbierto(false)}>
                 📜 asesor
+              </Link>
+            </li>
+
+            <li>
+              <Link to="/lista-usuarios">
+                👤 Usuarios
               </Link>
             </li>
 
@@ -409,6 +559,58 @@ export default function AsesorBancario() {
         </div>
       )}
 
+      {mostrarGrafica && (
+        <div
+          className="modal-grafica-asesor-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="titulo-grafica-asesor"
+          onClick={() => setMostrarGrafica(false)}
+        >
+          <section
+            className="modal-grafica-asesor"
+            onClick={(evento) => evento.stopPropagation()}
+          >
+            <div className="modal-grafica-header">
+              <h3 id="titulo-grafica-asesor">Resumen estadístico</h3>
+              <button
+                type="button"
+                className="cerrar-grafica-asesor"
+                aria-label="Cerrar gráfica"
+                onClick={() => setMostrarGrafica(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="grafica-asesor-barras modal-version" aria-label="Gráfica amplia de estadísticas">
+              {datosGrafica.map((dato) => (
+                <div className="grafica-columna-asesor" key={dato.nombre}>
+                  <span className="grafica-valor-asesor">{dato.valor}</span>
+                  <div className="grafica-eje-asesor">
+                    <div
+                      className={`grafica-barra-asesor ${dato.clase}`}
+                      style={{ height: `${(dato.valor / maximoEstadistica) * 100}%` }}
+                      title={`${dato.nombre}: ${dato.valor}`}
+                    />
+                  </div>
+                  <span className="grafica-label-asesor">{dato.nombre}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="grafica-resumen-datos-asesor">
+              {datosGrafica.map((dato) => (
+                <div key={`resumen-${dato.nombre}`}>
+                  <span>{dato.nombre}</span>
+                  <strong>{dato.valor}</strong>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
+
       {usuarioSeleccionado && (
         <div
           className="detalle-usuario-asesor-overlay"
@@ -462,6 +664,93 @@ export default function AsesorBancario() {
                     <p><strong>Operación:</strong> {cuenta.tipo_operacion || "debito"}</p>
                     <p><strong>Saldo:</strong> ${Number(cuenta.saldo || 0).toLocaleString("es-CO")}</p>
                     <p><strong>Estado:</strong> {cuenta.estado || "activa"}</p>
+
+                    {edicionCuenta[cuenta.id_cuenta] ? (
+                      <div className="formulario-edicion-cuenta-asesor">
+                        <label>
+                          Tipo de cuenta
+                          <select
+                            value={edicionCuenta[cuenta.id_cuenta].tipo_cuenta}
+                            onChange={(evento) =>
+                              setEdicionCuenta((actual) => ({
+                                ...actual,
+                                [cuenta.id_cuenta]: {
+                                  ...actual[cuenta.id_cuenta],
+                                  tipo_cuenta: evento.target.value,
+                                },
+                              }))
+                            }
+                          >
+                            <option value="ahorros">Ahorros</option>
+                            <option value="corriente">Corriente</option>
+                          </select>
+                        </label>
+
+                        <label>
+                          Tipo de operación
+                          <select
+                            value={edicionCuenta[cuenta.id_cuenta].tipo_operacion}
+                            onChange={(evento) =>
+                              setEdicionCuenta((actual) => ({
+                                ...actual,
+                                [cuenta.id_cuenta]: {
+                                  ...actual[cuenta.id_cuenta],
+                                  tipo_operacion: evento.target.value,
+                                },
+                              }))
+                            }
+                          >
+                            <option value="debito">Débito</option>
+                            <option value="credito">Crédito</option>
+                          </select>
+                        </label>
+
+                        <label>
+                          Saldo
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={edicionCuenta[cuenta.id_cuenta].saldo}
+                            onChange={(evento) =>
+                              setEdicionCuenta((actual) => ({
+                                ...actual,
+                                [cuenta.id_cuenta]: {
+                                  ...actual[cuenta.id_cuenta],
+                                  saldo: evento.target.value,
+                                },
+                              }))
+                            }
+                          />
+                        </label>
+
+                        <div className="acciones-edicion-cuenta-asesor">
+                          <button
+                            type="button"
+                            className="boton-cancelar-edicion-asesor"
+                            onClick={() => cerrarEdicionCuenta(cuenta.id_cuenta)}
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            className="boton-guardar-edicion-asesor"
+                            onClick={() => guardarCuenta(cuenta.id_cuenta)}
+                            disabled={guardandoCuenta === cuenta.id_cuenta}
+                          >
+                            {guardandoCuenta === cuenta.id_cuenta ? "Guardando..." : "Guardar"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="boton-editar-cuenta-asesor"
+                        onClick={() => iniciarEdicionCuenta(cuenta)}
+                      >
+                        Editar cuenta
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -478,7 +767,7 @@ export default function AsesorBancario() {
                 <img className="asesor-logo" src={logo} alt="Logo Financiero" />
                 <span className="asesor-brand-name">Financiero</span>
               </div>
-              <h1 className="asesor-title">Asesor Bancario</h1>
+              <h1 className="asesor-title">bienvenido Asesor </h1>
             </div>
             <p className="asesor-description">
               Administre la información bancaria desde este panel.
@@ -487,89 +776,62 @@ export default function AsesorBancario() {
         </section>
 
         <section className="contenido-asesores">
-          <div className="buscador-usuarios-asesor">
-            <span className="icono-buscador-usuarios-asesor" aria-hidden="true">
-              &#128269;
-            </span>
-            <input
-              type="search"
-              value={busquedaUsuario}
-              onChange={(evento) => setBusquedaUsuario(evento.target.value)}
-              placeholder="Buscar usuario por nombre, correo, documento, teléfono..."
-              aria-label="Buscar usuario"
-            />
-          </div>
-
-          <div className="contenido-lista-asesores">
-            <div className="tabla-usuarios-asesor-contenedor">
-              {cargandoLista ? (
-                <p>Cargando usuarios registrados...</p>
-              ) : usuariosFiltrados.length === 0 ? (
-                <p>Aún no hay usuarios registrados.</p>
-              ) : (
-                <table className="tabla-usuarios-asesor">
-                    <thead>
-                      <tr>
-                        <th>Nombre</th>
-                        <th>Correo</th>
-                        <th>Teléfono</th>
-                        <th>Dirección</th>
-                        <th>Código de registro</th>
-                        <th>Contraseña</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {usuariosFiltrados.map((usuario) => (
-                        <tr key={usuario.id}>
-                          <td>{usuario.nombre || "No registrado"}</td>
-                          <td>{usuario.correo || "No registrado"}</td>
-                          <td>{usuario.telefono || "No registrado"}</td>
-                          <td>{usuario.direccion || "No registrada"}</td>
-                          <td>{usuario.codigoRegistro || "No disponible"}</td>
-                          <td><span className="contrasena-protegida">Protegida</span></td>
-                          <td>
-                            <span className={`estado-badge ${usuario.estado}`}>
-                              {usuario.estado}
-                            </span>
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="boton-ver-asesor"
-                              onClick={() => verUsuario(usuario)}
-                            >
-                              Ver
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                </table>
-              )}
+          <div className="estadisticas-asesor">
+            <div className="estadistica-asesor tarjeta-usuarios">
+              <span className="estadistica-label">Usuarios registrados</span>
+              <strong>{cargandoEstadisticas ? "..." : estadisticas.usuariosRegistrados}</strong>
             </div>
 
-            {mensaje && <p className="mensaje-error">{mensaje}</p>}
-            {mensajeExito && <p className="mensaje-exito">{mensajeExito}</p>}
+            <div className="estadistica-asesor tarjeta-cuentas-habilitadas">
+              <span className="estadistica-label">Cuentas habilitadas</span>
+              <strong>{cargandoEstadisticas ? "..." : estadisticas.cuentasHabilitadas}</strong>
+            </div>
+
+            <div className="estadistica-asesor tarjeta-cuentas-deshabilitadas">
+              <span className="estadistica-label">Cuentas deshabilitadas</span>
+              <strong>{cargandoEstadisticas ? "..." : estadisticas.cuentasDeshabilitadas}</strong>
+            </div>
+
+            <div className="estadistica-asesor tarjeta-tarjetas-activas">
+              <span className="estadistica-label">Tarjetas activas</span>
+              <strong>{cargandoEstadisticas ? "..." : estadisticas.tarjetasActivas}</strong>
+            </div>
           </div>
 
-          <div className="acciones-usuarios-asesor">
+          <div className="acciones-grafica-asesor">
             <button
               type="button"
-              className="boton-registrar-asesor"
-              onClick={() => setMostrarRegistro(true)}
+              className="boton-grafica-asesor"
+              onClick={() => setMostrarGrafica(true)}
             >
-              Registrar nuevo usuario
-            </button>
-            <button
-              type="button"
-              className="boton-actualizar-asesor"
-              onClick={() => window.location.reload()}
-            >
-              Actualizar
+              Ver gráfica
             </button>
           </div>
+
+          <div className="grafica-detallada-asesor" aria-label="Resumen estadístico">
+            <div className="grafica-detallada-header">
+              <h3>Resumen estadístico</h3>
+            </div>
+
+            <div className="grafica-asesor-barras">
+              {datosGrafica.map((dato) => (
+                <div className="grafica-columna-asesor" key={dato.nombre}>
+                  <span className="grafica-valor-asesor">{dato.valor}</span>
+                  <div className="grafica-eje-asesor">
+                    <div
+                      className={`grafica-barra-asesor ${dato.clase}`}
+                      style={{ height: `${(dato.valor / maximoEstadistica) * 100}%` }}
+                      title={`${dato.nombre}: ${dato.valor}`}
+                    />
+                  </div>
+                  <span className="grafica-label-asesor">{dato.nombre}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {mensaje && <p className="mensaje-error">{mensaje}</p>}
+          {mensajeExito && <p className="mensaje-exito">{mensajeExito}</p>}
         </section>
       </main>
     </div>

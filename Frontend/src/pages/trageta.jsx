@@ -411,7 +411,6 @@ export default function TarjetasUsuario({
             </li>
           )}
 
-          {esAdministrador && (
             <li>
               <Link
                 to="/lista-usuarios"
@@ -420,7 +419,6 @@ export default function TarjetasUsuario({
                 👤 Usuarios
               </Link>
             </li>
-          )}
 
           <li>
             <Link
