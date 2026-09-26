@@ -7,6 +7,32 @@ const Registro = React.lazy(() => import("./registro"));
 
 function Login({ isModal = false }) {
   const navigate = useNavigate();
+  const rolActual = localStorage.getItem("rol") || "usuario";
+  const textosAcceso = {
+    usuario: {
+      etiqueta: "usuario",
+      destino: "tu cuenta",
+      instruccion: "Ingresa el código de 4 dígitos enviado a tu correo para continuar a tu cuenta.",
+      boton: "🏦 Entrar a mi cuenta",
+    },
+    administrador: {
+      etiqueta: "administrador",
+      destino: "el panel de administración",
+      instruccion: "Ingresa el código de 4 dígitos enviado a tu correo para acceder al panel de administración.",
+      boton: "🛡️ Entrar al panel de administración",
+    },
+    asesor: {
+      etiqueta: "asesor bancario",
+      destino: "el panel de asesor",
+      instruccion: "Ingresa el código de 4 dígitos enviado a tu correo para acceder al panel de asesor.",
+      boton: "💼 Entrar al panel de asesor",
+    },
+  }[rolActual] || {
+    etiqueta: "usuario",
+    destino: "tu cuenta",
+    instruccion: "Ingresa el código de 4 dígitos enviado a tu correo para continuar a tu cuenta.",
+    boton: "🏦 Entrar a mi cuenta",
+  };
 
   const [documento, setDocumento] = useState("");
   const [documentoAdministrador, setDocumentoAdministrador] = useState("");
@@ -55,7 +81,7 @@ function Login({ isModal = false }) {
 
     setVerificandoCodigo(true);
     setMensaje(
-      `✅ Código correcto. Redirigiendo a ${localStorage.getItem("rol") === "asesor" ? "tu panel de asesor" : "tu cuenta"}...`
+      `✅ Código correcto. Redirigiendo a ${textosAcceso.destino}...`
     );
 
     setTimeout(() => {
@@ -375,17 +401,10 @@ function Login({ isModal = false }) {
               <h2>✅ Bienvenido, {localStorage.getItem("nombre_usuario")}</h2>
 
               <p>
-                Has iniciado sesión como{" "}
-                  {localStorage.getItem("rol") === "asesor"
-                  ? "asesor bancario"
-                  : localStorage.getItem("rol") === "administrador"
-                    ? "administrador"
-                    : "usuario"}.
+                Has iniciado sesión como {textosAcceso.etiqueta}.
               </p>
 
-              <p>
-                Ingresa el código de 4 dígitos enviado a tu correo para continuar.
-              </p>
+              <p>{textosAcceso.instruccion}</p>
 
               <label>Código de verificación</label>
               <input
@@ -396,7 +415,6 @@ function Login({ isModal = false }) {
                     e.target.value.replace(/\D/g, "").slice(0, 4)
                   )
                 }
-                placeholder="0000"
                 maxLength={4}
                 inputMode="numeric"
                 style={{ textAlign: "center", letterSpacing: "0.5rem" }}
@@ -420,10 +438,10 @@ function Login({ isModal = false }) {
                 onClick={validarCodigoCuenta}
                 disabled={verificandoCodigo}
               >
-                {verificandoCodigo ? "Validando..." : "🏦 Entrar a mi cuenta"}
+                {verificandoCodigo ? "Validando..." : textosAcceso.boton}
               </button>
 
-              {localStorage.getItem("rol") !== "asesor" && (
+              {rolActual === "usuario" && (
                 <button
                   type="button"
                   className="btn"
