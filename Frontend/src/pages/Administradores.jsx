@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/Administradores.css";
+import logoProyecto from "../assets/images/logo.jpeg";
 
 const API_URL = "http://localhost:8000";
 
@@ -24,9 +25,21 @@ export default function Administradores() {
   const [campoEditando, setCampoEditando] = useState("");
   const [graficaAbierta, setGraficaAbierta] = useState(false);
   const [detalleGraficaVisible, setDetalleGraficaVisible] = useState(null);
+  const [menuAbierto, setMenuAbierto] = useState(true);
 
   useEffect(() => {
     cargarDatos();
+  }, []);
+
+  useEffect(() => {
+    const actualizarEstadoMenu = () => {
+      setMenuAbierto(window.innerWidth > 650);
+    };
+
+    actualizarEstadoMenu();
+    window.addEventListener("resize", actualizarEstadoMenu);
+
+    return () => window.removeEventListener("resize", actualizarEstadoMenu);
   }, []);
 
   useEffect(() => {
@@ -283,34 +296,46 @@ export default function Administradores() {
     <div className="asesor-container">
       <div className="panel-financiero">
 
-        <aside className="sidebar">
+        <button
+          type="button"
+          className={`boton-menu-administradores ${
+            menuAbierto ? "" : "menu-cerrado"
+          }`}
+          onClick={() => setMenuAbierto((actual) => !actual)}
+          aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+          aria-expanded={menuAbierto}
+        >
+          {menuAbierto ? "×" : "☰"}
+        </button>
+
+        <aside className={`sidebar ${menuAbierto ? "" : "sidebar-cerrado"}`}>
           <ul>
             <li>
-              <Link to="/Administradores">
+              <Link to="/Administradores" onClick={() => setMenuAbierto(false)}>
                 📜 Principal
               </Link>
             </li>
 
             <li>
-              <Link to="/lista-asesores">
+              <Link to="/lista-asesores" onClick={() => setMenuAbierto(false)}>
                 👥 Asesores
               </Link>
             </li>
 
             <li>
-              <Link to="/lista-usuarios">
+              <Link to="/lista-usuarios" onClick={() => setMenuAbierto(false)}>
                 👤 Usuarios
               </Link>
             </li>
 
             <li>
-              <Link to="/lista-cuentas">
+              <Link to="/lista-cuentas" onClick={() => setMenuAbierto(false)}>
                 🌐 Cuentas
               </Link>
             </li>
 
             <li>
-              <Link to="/notoficaciones">
+              <Link to="/notoficaciones" onClick={() => setMenuAbierto(false)}>
                 🔔 notoficaciones
               </Link>
             </li>
@@ -319,7 +344,10 @@ export default function Administradores() {
 
           <button
             className="logout"
-            onClick={cerrarSesion}
+            onClick={() => {
+              setMenuAbierto(false);
+              cerrarSesion();
+            }}
           >
             🚪 Cerrar sesión
           </button>
@@ -327,7 +355,17 @@ export default function Administradores() {
 
         <main className="contenido-asesores">
 
-          <h1>Administración de asesores</h1>
+          <div className="encabezado-administracion-asesores">
+            <div className="marca-financiera">
+              <img
+                className="logo-administracion-asesores"
+                src={logoProyecto}
+                alt="Logo de Financiero"
+              />
+              <span>Financiero</span>
+            </div>
+            <h1>Administración de asesores</h1>
+          </div>
 
           <p className="subtitulo-asesores">
             Gestión de usuarios y asesores bancarios

@@ -230,6 +230,10 @@ body {
   box-sizing: border-box;
 }
 
+.subtitulo-cuentas {
+  text-align: center;
+}
+
 .boton-volver-asesor {
   display: block;
   margin: 24px auto 0;

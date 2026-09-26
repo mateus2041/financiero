@@ -2161,6 +2161,16 @@ button:hover {
     font-size: 26px;
   }
 
+  .resumen-administrador {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .tarjeta-resumen {
+    min-width: 0;
+    padding: 16px 14px;
+  }
+
   .encabezado-administracion-asesores {
     display: flex;
     flex-direction: column;
@@ -2214,6 +2224,39 @@ button:hover {
 
   .fila-asesor {
     grid-template-columns: 1fr;
+  }
+
+  .modal-grafica-overlay {
+    padding: 10px;
+  }
+
+  .modal-grafica {
+    width: 100%;
+    min-width: 0;
+    padding: 16px 12px;
+    overflow: hidden;
+  }
+
+  .grafica-barras {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    min-height: 230px;
+    padding: 12px 0 6px;
+  }
+
+  .barra-grupo {
+    min-width: 0;
+    min-height: 205px;
+    gap: 8px;
+  }
+
+  .barra-label {
+    width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .barra-espacio {
+    height: 160px;
   }
 }
 
