@@ -1,435 +1,84 @@
-# Plan de Trabajo — Financiero
-
-**Proyecto:** FinanSys — Plataforma financiera para gestión de ingresos, gastos, presupuestos y reportes
-**Backend:** FastAPI · PostgreSQL · SQLAlchemy · JWT · Pytest
-**Frontend:** React · TypeScript · Vite · React Query · TailwindCSS
-**Gestión:** pnpm · Python venv · Docker
-**Plataformas:** Web → Mobile Responsive
-**Narrativa:** dashboard financiero · transacciones · presupuestos · reportes · autenticación · analytics
-**Última actualización:** Mayo 2026
-
-> Marcar cada ítem con `[x]` al completarlo.
-> Añadir la fecha de cierre al final del ítem: `[x] descripción — ✅ 2026-04-16`
-
----
-
-# Fase 0 — Fundamentos del proyecto
-
-## 0.1 Documentación base
-
-* [ ] Crear `README.md` con descripción del sistema
-* [ ] Crear `docs/requirements/functional.md`
-* [ ] Crear `docs/requirements/non-functional.md`
-* [ ] Crear `docs/requirements/user-stories.md`
-* [ ] Crear `docs/requirements/constraints.md`
-* [ ] Configurar `.gitignore`
-* [ ] Crear `.env.example` para backend y frontend
-* [ ] Definir arquitectura cliente-servidor
-* [ ] Crear diagramas ER de base de datos
-* [ ] Commit: `docs(init): create initial documentation structure`
-
----
-
-# Fase 1 — Inicialización Backend FastAPI
-
-> **Caso de uso:** configuración base API financiera
-
-## 1.1 Configuración inicial
-
-* [ ] Crear entorno virtual Python
-* [ ] Instalar FastAPI, Uvicorn y dependencias base
-* [ ] Configurar estructura modular del backend
-* [ ] Configurar SQLAlchemy
-* [ ] Configurar PostgreSQL
-* [ ] Configurar Alembic para migraciones
-* [ ] Configurar CORS
-* [ ] Configurar variables de entorno
-* [ ] Configurar JWT Authentication
-* [ ] Configurar manejo global de errores
-* [ ] Configurar logs del sistema
-* [ ] Configurar Docker backend
-* [ ] Commit: `feat(backend): initialize FastAPI backend structure`
-
-## 1.2 Testing Backend
-
-* [ ] Instalar Pytest
-* [ ] Configurar testing environment
-* [ ] Configurar base de datos de pruebas
-* [ ] Crear primer test de healthcheck
-* [ ] Cobertura mínima ≥ 80%
-* [ ] Commit: `test(backend): configure pytest and coverage`
-
----
-
-# Fase 2 — Inicialización Frontend React
-
-> **Caso de uso:** configuración base aplicación web financiera
-
-## 2.1 Configuración inicial
-
-* [ ] Crear proyecto React + TypeScript + Vite
-* [ ] Configurar ESLint + Prettier
-* [ ] Configurar TailwindCSS
-* [ ] Configurar React Router DOM
-* [ ] Configurar Axios
-* [ ] Configurar React Query
-* [ ] Configurar alias `@/`
-* [ ] Configurar estructura modular
-* [ ] Configurar tema dark/light
-* [ ] Configurar variables de entorno
-* [ ] Configurar Docker frontend
-* [ ] Commit: `feat(frontend): initialize React application structure`
-
-## 2.2 Testing Frontend
-
-* [ ] Instalar Vitest + Testing Library
-* [ ] Configurar tests de componentes
-* [ ] Configurar cobertura ≥ 80%
-* [ ] Commit: `test(frontend): setup testing environment`
-
----
-
-# Fase 3 — Autenticación (`auth/`)
-
-> **Caso de uso:** login y seguridad financiera
-
-## Backend
-
-* [ ] Modelo User
-* [ ] Hash de contraseñas con bcrypt
-* [ ] JWT access token
-* [ ] JWT refresh token
-* [ ] Endpoint registro
-* [ ] Endpoint login
-* [ ] Endpoint perfil usuario
-* [ ] Middleware autenticación
-* [ ] Roles y permisos
-* [ ] Tests autenticación backend
-
-## Frontend
-
-* [ ] Pantalla Login
-
-* [ ] Pantalla Registro
-
-* [ ] Protected Routes
-
-* [ ] Persistencia de sesión
-
-* [ ] Logout
-
-* [ ] Manejo de errores
-
-* [ ] Tests auth frontend
-
-* [ ] Commit: `feat(auth): implement JWT authentication system`
-
----
-
-# Fase 4 — Dashboard Financiero (`dashboard/`)
-
-> **Caso de uso:** resumen financiero general
-
-## Backend
-
-* [ ] Endpoint resumen financiero
-* [ ] Endpoint métricas mensuales
-* [ ] Endpoint balance total
-* [ ] Endpoint estadísticas
-
-## Frontend
-
-* [ ] Dashboard principal
-
-* [ ] Tarjetas resumen
-
-* [ ] Gráficas financieras
-
-* [ ] Balance ingresos/gastos
-
-* [ ] Resumen mensual
-
-* [ ] Diseño responsive
-
-* [ ] Loading skeletons
-
-* [ ] Tests dashboard
-
-* [ ] Commit: `feat(dashboard): create financial overview dashboard`
-
----
-
-# Fase 5 — Gestión de Transacciones (`transactions/`)
-
-> **Caso de uso:** registrar ingresos y gastos
-
-## Backend
-
-* [ ] Modelo Transaction
-* [ ] CRUD transacciones
-* [ ] Filtros por fecha
-* [ ] Filtros por categoría
-* [ ] Paginación
-* [ ] Validaciones financieras
-* [ ] Tests CRUD
-
-## Frontend
-
-* [ ] Tabla transacciones
-
-* [ ] Formulario crear transacción
-
-* [ ] Editar transacción
-
-* [ ] Eliminar transacción
-
-* [ ] Filtros avanzados
-
-* [ ] Búsqueda
-
-* [ ] Modal confirmación delete
-
-* [ ] Tests transactions
-
-* [ ] Commit: `feat(transactions): implement financial transactions CRUD`
-
----
-
-# Fase 6 — Categorías (`categories/`)
-
-> **Caso de uso:** organización financiera
-
-## Backend
-
-* [ ] Modelo Category
-* [ ] CRUD categorías
-* [ ] Relación con transacciones
-* [ ] Seed categorías iniciales
-
-## Frontend
-
-* [ ] Gestión categorías
-
-* [ ] Selector de categorías
-
-* [ ] Colores e iconos
-
-* [ ] Estadísticas por categoría
-
-* [ ] Commit: `feat(categories): implement transaction categories module`
-
----
-
-# Fase 7 — Presupuestos (`budgets/`)
-
-> **Caso de uso:** control de gastos mensuales
-
-## Backend
-
-* [ ] Modelo Budget
-* [ ] CRUD presupuestos
-* [ ] Validación límites
-* [ ] Alertas de presupuesto
-
-## Frontend
-
-* [ ] Crear presupuesto
-
-* [ ] Barra de progreso
-
-* [ ] Alertas visuales
-
-* [ ] Comparación gasto vs presupuesto
-
-* [ ] Tests budgets
-
-* [ ] Commit: `feat(budgets): implement budgeting system`
-
----
-
-# Fase 8 — Reportes (`reports/`)
-
-> **Caso de uso:** análisis financiero
-
-## Backend
-
-* [ ] Endpoint reportes PDF
-* [ ] Endpoint exportación Excel
-* [ ] Reportes mensuales
-* [ ] Reportes anuales
-
-## Frontend
-
-* [ ] Pantalla reportes
-
-* [ ] Descarga PDF
-
-* [ ] Descarga Excel
-
-* [ ] Gráficas avanzadas
-
-* [ ] Comparativas históricas
-
-* [ ] Commit: `feat(reports): financial reports and exports`
-
----
-
-# Fase 9 — Notificaciones (`notifications/`)
-
-> **Caso de uso:** alertas financieras
-
-## Backend
-
-* [ ] Sistema notificaciones
-* [ ] Alertas automáticas
-* [ ] Recordatorios pagos
-
-## Frontend
-
-* [ ] Centro notificaciones
-
-* [ ] Toast notifications
-
-* [ ] Configuración alertas
-
-* [ ] Notificaciones en tiempo real
-
-* [ ] Commit: `feat(notifications): financial alerts and reminders`
-
----
-
-# Fase 10 — Analytics (`analytics/`)
-
-> **Caso de uso:** análisis de comportamiento financiero
-
-## Backend
-
-* [ ] Estadísticas avanzadas
-* [ ] Tendencias financieras
-* [ ] Predicciones simples
-
-## Frontend
-
-* [ ] Gráficas interactivas
-
-* [ ] Comparativas
-
-* [ ] Insights financieros
-
-* [ ] KPIs financieros
-
-* [ ] Commit: `feat(analytics): advanced financial analytics module`
-
----
-
-# Fase 11 — Seguridad y Optimización
-
-## Seguridad
-
-* [ ] Rate limiting
-* [ ] Protección CORS
-* [ ] Sanitización inputs
-* [ ] Validaciones backend
-* [ ] Protección XSS
-* [ ] Protección CSRF
-
-## Optimización
-
-* [ ] Lazy loading frontend
-
-* [ ] Caché React Query
-
-* [ ] Optimización SQL
-
-* [ ] Índices PostgreSQL
-
-* [ ] Optimización imágenes
-
-* [ ] Commit: `fix(security): security hardening and optimization`
-
----
-
-# Fase 12 — Testing Final
-
-## Backend
-
-* [ ] Tests unitarios
-* [ ] Tests integración
-* [ ] Tests endpoints
-* [ ] Cobertura ≥ 80%
-
-## Frontend
-
-* [ ] Tests componentes
-
-* [ ] Tests hooks
-
-* [ ] Tests navegación
-
-* [ ] Cobertura ≥ 80%
-
-* [ ] Commit: `test(final): complete project testing coverage`
-
----
-
-# Fase 13 — Deploy
-
-## Backend
-
-* [ ] Deploy FastAPI
-* [ ] Configurar PostgreSQL producción
-* [ ] Variables entorno producción
-* [ ] HTTPS
-
-## Frontend
-
-* [ ] Build producción
-* [ ] Deploy Vercel/Netlify
-* [ ] Configurar dominio
-
-## DevOps
-
-* [ ] Docker Compose
-
-* [ ] CI/CD GitHub Actions
-
-* [ ] Monitoreo logs
-
-* [ ] Commit: `ci(deploy): production deployment configuration`
-
----
-
-# Fase 14 — Documentación Final
-
-* [ ] Actualizar README
-* [ ] Documentar endpoints API
-* [ ] Documentar arquitectura
-* [ ] Manual instalación
-* [ ] Manual usuario
-* [ ] Capturas del sistema
-* [ ] Verificar `.env.example`
-* [ ] Commit final documentación
-
----
-
-# Resumen de progreso
-
-| Fase | Módulo          | Estado      |
-| ---- | --------------- | ----------- |
-| 0    | Fundamentos     | ⬜ Pendiente |
-| 1    | Backend FastAPI | ✅ Completo  |
-| 2    | Frontend React  | ✅ Completo  |
-| 3    | Auth            | ✅ Completo |
-| 4    | Dashboard       | ⬜ Pendiente |
-| 5    | Transactions    | ⬜ Pendiente |
-| 6    | Categories      | ⬜ Pendiente |
-| 7    | Budgets         | ✅ Completo  |
-| 8    | Reports         | ⬜ Pendiente |
-| 9    | Notifications   | ✅ Completo  |
-| 10   | Analytics       | ✅ Completo  |
-| 11   | Seguridad       | ⬜ Pendiente |
-| 12   | Testing Final   | ⬜ Pendiente |
-| 13   | Deploy          | ⬜ Pendiente |
-| 14   | Documentación   | ✅ Completo |
-
-**Leyenda:** ✅ Completo · 🟡 En progreso · ⬜ Pendiente
+# Plan de trabajo — Billetera Financiera
+
+**Estado del documento:** actualizado el 6 de octubre de 2026
+**Producto:** aplicación web de billetera financiera
+**Estado de avance:** inventario estático del repositorio; no equivale a aceptación funcional ni a despliegue productivo.
+
+## Propósito
+
+Este plan registra el alcance que se observa en el código y organiza el trabajo pendiente. Los elementos marcados como **Código presente** tienen una implementación identificable, pero requieren pruebas manuales/integrales antes de considerarse terminados. **Pendiente de validar** significa que la documentación o la interfaz sugiere la capacidad, pero la integración no se ha comprobado. No se asignan fechas de entrega ni responsables sin confirmación del equipo.
+
+## Estado técnico observado
+
+| Área | Evidencia en el repositorio | Observación |
+| --- | --- | --- |
+| Frontend | React y JavaScript; Create React App (`react-scripts`); React Router; Axios | No es una aplicación TypeScript/Vite. Los scripts disponibles están en `Frontend/package.json`. |
+| API | FastAPI, SQLAlchemy y Uvicorn | Punto de entrada: `Backend/main.py`; también existen routers para BRE-B, asesoría y chat IA. |
+| Persistencia | MySQL 8.4 en Docker Compose, acceso mediante SQLAlchemy/PyMySQL | No es PostgreSQL. El arranque crea tablas y aplica algunos cambios de esquema; no se encontró configuración de Alembic. |
+| Ejecución local | Docker Compose para base de datos, backend y frontend | Puertos declarados: 3307, 8000 y 3000. Revisar credenciales de desarrollo antes de exponer servicios. |
+| Pruebas | Seis archivos de pruebas backend bajo `Backend/tests/` | No hay evidencia de cobertura medida ni de una suite frontend configurada/ejecutada. |
+| Integraciones | Servicio de correo y módulo de chat IA | Requieren configuración externa; confirmar variables y secretos en entorno local/despliegue. |
+
+## Funcionalidades con código identificable
+
+| Módulo | Evidencia principal | Estado documental |
+| --- | --- | --- |
+| Registro, login y recuperación | Rutas de registro/login, recuperación y restablecimiento en `Backend/main.py`; `Backend/security.py` | Código presente; verificar flujo completo, expiración y manejo de errores. |
+| Usuarios y perfiles | Rutas de perfil/usuarios y modelos en `Backend/main.py` y `Backend/models.py` | Código presente; verificar autorización por rol y propiedad de los datos. |
+| Cuentas | Creación/listado de cuentas, saldo, tipo, estado y gestión administrativa en `Backend/main.py` | Código presente; revisar consistencia de saldos y autorizaciones. |
+| Tarjetas | Registro, consulta, activación, edición, bloqueo y desbloqueo en `Backend/main.py` | Código presente; revisar tratamiento de datos sensibles y pruebas. |
+| Transacciones y transferencias | Historial, transferencias entre cuentas y reporte de transacción fallida | Código presente; verificar atomicidad, límites y casos de error. |
+| Llaves y transferencias BRE-B | `Backend/routers/breb.py` y rutas BRE-B en `Backend/main.py` | Código presente; validar integración y reglas reales antes de anunciar operación bancaria. |
+| Administración y asesoría | Gestión de asesores, consulta de usuarios y cambios autorizados de cuentas | Código presente; completar matriz de roles/permisos y pruebas negativas. |
+| Notificaciones | Consulta, lectura y eliminación de notificaciones en `Backend/main.py` | Código presente; no se ha confirmado entrega en tiempo real ni preferencias. |
+| Asistente IA | Endpoint `/chat` en `Backend/ai/router.py` | Código presente; validar configuración, límites, privacidad y fallbacks. |
+| Interfaz | Páginas en `Frontend/src/pages/` y rutas en `Frontend/src/routes/AppRoutes.jsx` | Inventario e integración por ruta requieren revisión: algunas rutas importan módulos desde ubicaciones distintas. |
+
+## Plan priorizado
+
+### P0 — Hacer reproducible el entorno
+
+- [ ] Documentar requisitos locales (Python, Node.js, pnpm/npm y Docker) según versiones que el equipo soporte.
+- [ ] Revisar y documentar variables de entorno efectivamente usadas; crear `.env.example` sin secretos.
+- [ ] Alinear los comandos de instalación con `pnpm-lock.yaml`, los manifiestos y `compose.yml`.
+- [ ] Sustituir o parametrizar credenciales de ejemplo de Docker Compose; no reutilizarlas fuera de desarrollo.
+- [ ] Confirmar el formato de `DATABASE_URL` y los valores predeterminados de conexión.
+- [ ] Definir una estrategia de migraciones repetible; el arranque actual modifica el esquema directamente.
+
+### P1 — Asegurar flujos críticos
+
+- [ ] Ejecutar y corregir las pruebas existentes de registro, login, cuentas, administradores y notificaciones.
+- [ ] Añadir pruebas de autorización: usuario, asesor y administrador; propietario frente a cuenta ajena.
+- [ ] Verificar recuperación de contraseña, expiración de códigos/tokens y respuestas que no filtren si una cuenta existe.
+- [ ] Verificar saldos y transferencias con transacciones de base de datos y rollback ante fallos.
+- [ ] Revisar CORS, autenticación/autorización de todas las rutas y exposición de información de tarjetas.
+- [ ] Confirmar que los datos de tarjeta/CVV no se almacenen ni registren de forma insegura.
+
+### P2 — Cerrar la experiencia de usuario
+
+- [ ] Contrastar todas las páginas con `AppRoutes.jsx`; corregir rutas/importaciones rotas y documentar las rutas accesibles.
+- [ ] Probar flujos completos desde la interfaz, incluidos estados de error, carga y sesión expirada.
+- [ ] Confirmar qué operaciones aparecen en historial y cómo se actualizan los saldos.
+- [ ] Validar accesibilidad básica y comportamiento en escritorio y móvil.
+- [ ] Decidir alcance real de reportes, certificado, QR, retiro sin tarjeta y preferencias; no anunciar capacidades no integradas.
+
+### P3 — Operación y entrega
+
+- [ ] Añadir comprobaciones de salud y guía de respaldo/restauración MySQL.
+- [ ] Definir configuración segura para producción: secretos, HTTPS, CORS por origen y acceso a base de datos.
+- [ ] Incorporar automatización de pruebas y build si el equipo la requiere.
+- [ ] Registrar versiones de runtime y dependencias soportadas; resolver rangos/versiones contradictorios entre manifiestos.
+- [ ] Ejecutar revisión final de seguridad, pruebas y documentación antes de una entrega.
+
+## No se debe considerar terminado todavía
+
+La presencia de páginas, rutas o modelos no demuestra que el flujo esté integrado ni que cumpla criterios de aceptación. En particular, este inventario no certifica transferencias bancarias reales, operación BRE-B contra una red financiera, despliegue productivo, cumplimiento normativo, cobertura mínima de pruebas ni rendimiento.
+
+## Documentos relacionados
+
+- [Requisitos funcionales](Backend/docs/requirements/functional.md)
+- [Requisitos no funcionales](Backend/docs/requirements/non-functional.md)
+- [Restricciones](Backend/docs/requirements/constraints.md)
+- [Historias de usuario](Backend/docs/requirements/user-stories.md)
+- [Backlog](Backend/docs/requirements/SprintBacklog.md)
+- [Plan de sprints](Backend/docs/requirements/sprints.md)
