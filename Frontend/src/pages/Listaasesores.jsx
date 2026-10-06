@@ -18,11 +18,13 @@ export default function Administradores() {
   const [esMovil, setEsMovil] = useState(() => window.innerWidth <= 650);
   const [asesorEditando, setAsesorEditando] = useState(null);
   const [registroModalAbierto, setRegistroModalAbierto] = useState(false);
+  const [archivoAdicional, setArchivoAdicional] = useState(null);
   const [formularioRegistro, setFormularioRegistro] = useState({
     nombre: "",
     documento: "",
     email: "",
     tipo_documento: "",
+    documento_adicional: "",
   });
   const [formularioEdicion, setFormularioEdicion] = useState({});
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
@@ -169,7 +171,18 @@ export default function Administradores() {
   };
 
   const cambiarFormularioRegistro = (evento) => {
-    const { name, value } = evento.target;
+    const { name, value, files } = evento.target;
+
+    if (name === "documento_adicional") {
+      const archivo = files && files[0] ? files[0] : null;
+      setArchivoAdicional(archivo);
+      setFormularioRegistro((actual) => ({
+        ...actual,
+        documento_adicional: archivo ? archivo.name : "",
+      }));
+      return;
+    }
+
     setFormularioRegistro((actual) => ({ ...actual, [name]: value }));
   };
 
@@ -182,9 +195,14 @@ export default function Administradores() {
       setGuardandoRegistro(true);
 
       const token = localStorage.getItem("token");
+      const payload = {
+        ...formularioRegistro,
+        documento_adicional: formularioRegistro.documento_adicional || archivoAdicional?.name || "",
+      };
+
       const respuesta = await axios.post(
         `${API_URL}/administradores/asesores`,
-        formularioRegistro,
+        payload,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -198,7 +216,9 @@ export default function Administradores() {
         documento: "",
         email: "",
         tipo_documento: "",
+        documento_adicional: "",
       });
+      setArchivoAdicional(null);
       setRegistroModalAbierto(false);
       setMensaje(
         `${respuesta.data?.mensaje || "Asesor registrado correctamente."}${
@@ -654,6 +674,20 @@ export default function Administradores() {
                         onChange={cambiarFormularioRegistro}
                         required
                       />
+                    </label>
+                    <label className="campo-archivo-asesor">
+                      Documento adicional
+                      <input
+                        name="documento_adicional"
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={cambiarFormularioRegistro}
+                      />
+                      {archivoAdicional && archivoAdicional.name ? (
+                        <span className="nombre-archivo-asesor">
+                          {archivoAdicional.name}
+                        </span>
+                      ) : null}
                     </label>
                     <label>
                       Tipo de documento
