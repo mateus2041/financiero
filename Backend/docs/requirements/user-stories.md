@@ -1,318 +1,132 @@
-# Historias de Usuario — FinanceWeb
+# Historias de usuario
 
-**Proyecto:** FinanceWeb — Plataforma web de gestión financiera personal
-**Versión:** 1.0
-**Fecha:** Abril 2026
-**Clasificación:** Académico
+**Producto:** Billetera Financiera
+**Revisión:** 6 de octubre de 2026
 
----
+## Actores
 
-## Actores del sistema
+| Actor | Necesidad |
+| --- | --- |
+| Visitante | Crear una cuenta o recuperar el acceso. |
+| Usuario | Consultar y administrar sus propias cuentas, tarjetas, movimientos y datos. |
+| Asesor | Ayudar a usuarios mediante operaciones permitidas por su rol. |
+| Administrador | Administrar asesores y realizar tareas de supervisión autorizadas. |
 
-| Actor             | Descripción                                                                   |
-| ----------------- | ----------------------------------------------------------------------------- |
-| **Visitante**     | Usuario no autenticado que explora la plataforma.                             |
-| **Usuario**       | Persona registrada que administra sus finanzas personales.                    |
-| **Administrador** | Usuario encargado de supervisar configuraciones y control básico del sistema. |
-| **Desarrollador** | Persona que estudia el proyecto como referencia académica y técnica.          |
+## Convención de estado
 
----
+**Código presente** identifica rutas/pantallas relacionadas, no una aceptación de producto. **Por validar** requiere ejecutar el flujo completo y comprobar criterios. No se trasladan estimaciones, fechas ni responsables del material anterior porque no se pudieron verificar.
 
-## Épica 1 — Gestión de autenticación y acceso
+## Acceso y perfil
 
-### HU-01 — Registrarme en la plataforma
+### HU-01 — Crear mi cuenta
 
-> **Como** visitante,
-> **quiero** crear una cuenta con email y contraseña,
-> **para** acceder a las funcionalidades financieras del sistema.
+Como visitante, quiero registrarme con mis datos, para acceder a la billetera.
 
-**Criterios de aceptación:**
+- El formulario valida los campos requeridos y formatos.
+- La API rechaza identificadores duplicados y no devuelve secretos.
+- La interfaz presenta confirmación o errores accionables.
+- **Estado:** código presente; reglas y flujo integral por validar.
 
-* [ ] El formulario valida email y contraseña con mínimo 8 caracteres.
-* [ ] Se muestra mensaje de confirmación al registrarse correctamente.
-* [ ] El sistema evita registros duplicados.
-* [ ] Los errores se muestran en español y de forma descriptiva.
+### HU-02 — Acceder a mi cuenta
 
-**Estimación:** S (Pequeña)
-**Módulo:** `auth/`
+Como usuario, quiero iniciar sesión, para consultar mis cuentas de forma protegida.
 
----
+- Las credenciales inválidas no permiten acceso.
+- La sesión se valida en rutas privadas y termina al vencer o cerrar sesión.
+- Roles de usuario, asesor y administrador no se intercambian.
+- **Estado:** rutas de login y seguridad presentes; expiración y autorización por validar.
 
-### HU-02 — Iniciar sesión
+### HU-03 — Recuperar el acceso
 
-> **Como** usuario,
-> **quiero** iniciar sesión de manera segura,
-> **para** acceder a mi información financiera.
+Como usuario, quiero verificar mi identidad y cambiar mi contraseña, para recuperar el acceso.
 
-**Criterios de aceptación:**
+- El código/token expira y no puede reutilizarse.
+- El sistema comunica el resultado sin revelar innecesariamente si el usuario existe.
+- La nueva contraseña se almacena usando hash seguro.
+- **Estado:** rutas de recuperación presentes; envío, expiración y casos negativos por validar.
 
-* [ ] El sistema valida credenciales correctamente.
-* [ ] El usuario es redirigido al dashboard tras autenticarse.
-* [ ] La sesión permanece activa hasta expiración del token.
-* [ ] Los intentos fallidos muestran mensajes de error claros.
+### HU-04 — Mantener mis datos actualizados
 
-**Estimación:** S (Pequeña)
-**Módulo:** `auth/`
+Como usuario, quiero consultar y modificar los datos permitidos de mi perfil, para mantenerlos correctos.
 
----
+- Solo puedo consultar/editar mi propio perfil, salvo permiso administrativo explícito.
+- La API valida campos y la interfaz confirma el resultado.
+- **Estado:** rutas de perfil presentes; autorización e integración por validar.
 
-### HU-03 — Recuperar contraseña
+## Cuentas, tarjetas y movimientos
 
-> **Como** usuario,
-> **quiero** recuperar mi contraseña mediante correo electrónico,
-> **para** volver a acceder a mi cuenta si la olvido.
+### HU-05 — Consultar mis cuentas
 
-**Criterios de aceptación:**
+Como usuario, quiero ver mis cuentas, estado y saldo, para conocer mi dinero disponible.
 
-* [ ] El sistema envía enlace de recuperación al correo registrado.
-* [ ] El enlace expira automáticamente después de un tiempo definido.
-* [ ] Se muestra confirmación de envío correctamente.
+- Solo aparecen cuentas a las que tengo acceso.
+- El saldo mostrado coincide con los movimientos confirmados.
+- Los errores de carga se comunican sin mostrar datos incorrectos como actuales.
+- **Estado:** modelo y rutas presentes; consistencia y experiencia completa por validar.
 
-**Estimación:** XS (Muy pequeña)
-**Módulo:** `auth/`
+### HU-06 — Administrar una tarjeta
 
----
+Como usuario, quiero consultar y bloquear o desbloquear mi tarjeta, para controlar su uso.
 
-## Épica 2 — Dashboard financiero
+- Solo el titular o un rol autorizado puede operar la tarjeta.
+- Los datos sensibles no se muestran ni registran sin necesidad.
+- El estado actualizado se comunica claramente.
+- **Estado:** rutas de gestión presentes; revisión de seguridad obligatoria.
 
-### HU-04 — Ver resumen financiero
+### HU-07 — Revisar mis movimientos
 
-> **Como** usuario,
-> **quiero** visualizar un resumen de mis ingresos, gastos y balance total,
-> **para** conocer mi estado financiero actual.
+Como usuario, quiero consultar las transacciones de mis cuentas, para entender cambios en mi saldo.
 
-**Criterios de aceptación:**
+- Cada movimiento corresponde a una cuenta autorizada.
+- Fecha, tipo, monto y descripción se presentan con formato consistente.
+- Filtros/paginación se ofrecen si están disponibles en el contrato final.
+- **Estado:** modelo y endpoint presentes; filtros, paginación y UI por validar.
 
-* [ ] El dashboard muestra ingresos totales, gastos totales y balance.
-* [ ] Los datos se actualizan automáticamente tras registrar movimientos.
-* [ ] Se muestran gráficos financieros interactivos.
-* [ ] La carga inicial ocurre en menos de 2 segundos.
+### HU-08 — Transferir entre cuentas
 
-**Estimación:** M (Media)
-**Módulo:** `dashboard/`
+Como usuario, quiero transferir dinero a una cuenta permitida, para mover fondos.
 
----
+- Se valida titularidad/permisos, cuenta activa y fondos disponibles.
+- Débito y crédito se confirman juntos o se revierten juntos.
+- La operación confirmada aparece en el historial; un fallo no descuenta saldo.
+- **Estado:** endpoint presente; atomicidad, errores e integración por validar.
 
-### HU-05 — Visualizar estadísticas mensuales
+### HU-09 — Usar una llave BRE-B
 
-> **Como** usuario,
-> **quiero** consultar estadísticas y gráficos financieros mensuales,
-> **para** analizar mis hábitos económicos.
+Como usuario, quiero registrar o consultar una llave y solicitar una transferencia, para operar mediante ese identificador.
 
-**Criterios de aceptación:**
+- La llave se valida y se asocia al titular/cuenta correctos.
+- Antes de confirmar, se muestra información suficiente del destino sin exponer datos innecesarios.
+- Se informa claramente si la operación solo es simulada o no alcanza una red bancaria real.
+- **Estado:** rutas BRE-B presentes; integración real y alcance por confirmar.
 
-* [ ] El sistema genera gráficos de ingresos y gastos.
-* [ ] El usuario puede filtrar por fechas.
-* [ ] Los gráficos responden correctamente en dispositivos móviles y escritorio.
-* [ ] La información puede exportarse en PDF y Excel.
+## Atención y administración
 
-**Estimación:** M (Media)
-**Módulo:** `reports/`
+### HU-10 — Recibir y gestionar notificaciones
 
----
+Como usuario, quiero consultar y marcar notificaciones, para conocer eventos de mi cuenta.
 
-## Épica 3 — Gestión de ingresos
+- Solo puedo acceder a mis notificaciones.
+- Puedo marcar como leídas y eliminar según las acciones disponibles.
+- **Estado:** endpoints presentes; aislamiento e interfaz por validar.
 
-### HU-06 — Registrar ingresos
+### HU-11 — Obtener ayuda del asistente
 
-> **Como** usuario,
-> **quiero** registrar ingresos económicos,
-> **para** llevar control de mi dinero recibido.
+Como usuario, quiero enviar una consulta al asistente, para recibir orientación dentro de la aplicación.
 
-**Criterios de aceptación:**
+- El fallo o indisponibilidad del proveedor se comunica y no bloquea otros servicios.
+- No se envían secretos ni datos financieros innecesarios al proveedor.
+- **Estado:** endpoint presente; privacidad, límites y fallback por validar.
 
-* [ ] El formulario valida montos positivos.
-* [ ] El usuario puede seleccionar categoría de ingreso.
-* [ ] El ingreso aparece inmediatamente en el dashboard.
-* [ ] Se registra fecha y descripción opcional.
+### HU-12 — Gestionar operaciones por rol
 
-**Estimación:** S (Pequeña)
-**Módulo:** `income/`
+Como asesor o administrador, quiero realizar solo las operaciones que me corresponden, para dar soporte sin acceso excesivo.
 
----
+- Cada acción verifica rol y autorización en el servidor.
+- Las acciones sensibles dejan evidencia auditable sin incluir secretos.
+- Se prueban explícitamente accesos denegados.
+- **Estado:** rutas de asesoría/administración presentes; matriz de permisos y auditoría por validar.
 
-### HU-07 — Editar y eliminar ingresos
+## Criterio común de aceptación
 
-> **Como** usuario,
-> **quiero** modificar o eliminar ingresos registrados,
-> **para** mantener mi información actualizada.
-
-**Criterios de aceptación:**
-
-* [ ] El sistema permite editar datos previamente registrados.
-* [ ] El usuario puede eliminar ingresos con confirmación previa.
-* [ ] El dashboard se actualiza automáticamente después del cambio.
-
-**Estimación:** S (Pequeña)
-**Módulo:** `income/`
-
----
-
-## Épica 4 — Gestión de gastos
-
-### HU-08 — Registrar gastos
-
-> **Como** usuario,
-> **quiero** registrar mis gastos diarios,
-> **para** controlar en qué utilizo mi dinero.
-
-**Criterios de aceptación:**
-
-* [ ] El sistema valida que el monto sea mayor a cero.
-* [ ] El usuario puede seleccionar categoría de gasto.
-* [ ] Los gastos se reflejan automáticamente en el balance.
-* [ ] El formulario muestra mensajes claros de validación.
-
-**Estimación:** S (Pequeña)
-**Módulo:** `expenses/`
-
----
-
-### HU-09 — Filtrar gastos
-
-> **Como** usuario,
-> **quiero** filtrar gastos por fecha y categoría,
-> **para** encontrar información específica rápidamente.
-
-**Criterios de aceptación:**
-
-* [ ] El sistema permite filtrar por rango de fechas.
-* [ ] El sistema permite filtrar por categorías.
-* [ ] Los resultados se actualizan sin recargar la página.
-
-**Estimación:** XS (Muy pequeña)
-**Módulo:** `expenses/`
-
----
-
-## Épica 5 — Presupuestos financieros
-
-### HU-10 — Crear presupuestos
-
-> **Como** usuario,
-> **quiero** establecer presupuestos mensuales,
-> **para** controlar límites de gasto por categoría.
-
-**Criterios de aceptación:**
-
-* [ ] El usuario puede asignar un límite monetario por categoría.
-* [ ] El sistema calcula automáticamente el porcentaje usado.
-* [ ] El sistema muestra alertas visuales al superar límites.
-* [ ] El presupuesto puede editarse o eliminarse.
-
-**Estimación:** M (Media)
-**Módulo:** `budgets/`
-
----
-
-## Épica 6 — Navegación bloqueada y seguridad
-
-### HU-11 — Bloquear navegación privada
-
-> **Como** visitante,
-> **quiero** que las rutas privadas estén bloqueadas,
-> **para** evitar acceder a información sin autenticación.
-
-**Criterios de aceptación:**
-
-* [ ] El sistema redirige automáticamente al login.
-* [ ] Los módulos privados muestran icono de bloqueo.
-* [ ] Los enlaces restringidos aparecen deshabilitados.
-* [ ] El estado de bloqueo persiste tras recargar la página.
-
-**Estimación:** S (Pequeña)
-**Módulo:** `navigation/`
-
----
-
-### HU-12 — Mantener sesión segura
-
-> **Como** usuario,
-> **quiero** que mi sesión expire automáticamente tras inactividad,
-> **para** proteger mi información financiera.
-
-**Criterios de aceptación:**
-
-* [ ] El sistema detecta expiración del token JWT.
-* [ ] La sesión se cierra automáticamente al expirar.
-* [ ] El usuario es redirigido al login.
-* [ ] Se muestra mensaje indicando expiración de sesión.
-
-**Estimación:** S (Pequeña)
-**Módulo:** `security/`
-
----
-
-## Épica 7 — Configuración del sistema
-
-### HU-13 — Cambiar preferencias visuales
-
-> **Como** usuario,
-> **quiero** cambiar entre modo claro y oscuro,
-> **para** personalizar la experiencia visual.
-
-**Criterios de aceptación:**
-
-* [ ] El sistema permite alternar entre tema claro y oscuro.
-* [ ] La preferencia se guarda automáticamente.
-* [ ] El diseño se actualiza sin recargar la página.
-
-**Estimación:** XS (Muy pequeña)
-**Módulo:** `settings/`
-
----
-
-### HU-14 — Configurar moneda principal
-
-> **Como** usuario,
-> **quiero** seleccionar la moneda principal de mi cuenta,
-> **para** visualizar correctamente mis movimientos financieros.
-
-**Criterios de aceptación:**
-
-* [ ] El usuario puede seleccionar moneda desde configuración.
-* [ ] Todos los montos se actualizan automáticamente.
-* [ ] La configuración se mantiene entre sesiones.
-
-**Estimación:** XS (Muy pequeña)
-**Módulo:** `settings/`
-
----
-
-## Épica 8 — Showcase académico
-
-### HU-15 — Explorar la arquitectura del sistema
-
-> **Como** desarrollador,
-> **quiero** visualizar la estructura y módulos del proyecto,
-> **para** estudiar la arquitectura implementada.
-
-**Criterios de aceptación:**
-
-* [ ] La plataforma muestra listado de módulos principales.
-* [ ] Cada módulo incluye descripción técnica breve.
-* [ ] Se indican tecnologías utilizadas por módulo.
-* [ ] La navegación entre módulos es clara y organizada.
-
-**Estimación:** S (Pequeña)
-**Módulo:** `docs/`
-
----
-
-### HU-16 — Consultar estado del sistema
-
-> **Como** administrador,
-> **quiero** visualizar el estado general del sistema,
-> **para** monitorear funcionamiento básico y seguridad.
-
-**Criterios de aceptación:**
-
-* [ ] El sistema muestra estado de autenticación y servicios.
-* [ ] Se visualizan registros básicos de errores y accesos bloqueados.
-* [ ] La información se actualiza automáticamente.
-* [ ] Solo usuarios administradores pueden acceder a esta sección.
-
-**Estimación:** M (Media)
-**Módulo:** `admin/`
-
----
+Una historia queda aceptada cuando cumple todos sus criterios en una prueba reproducible de API y, cuando tenga interfaz, en el flujo frontend. Adjuntar evidencia y registrar limitaciones; no marcarla como terminada solo por encontrar código relacionado.

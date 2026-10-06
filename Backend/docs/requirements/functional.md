@@ -1,174 +1,66 @@
-# Requisitos Funcionales — FinanceWeb
+# Requisitos funcionales
 
-**Proyecto:** FinanceWeb — Plataforma web de gestión financiera personal
-**Versión:** 1.0
-**Fecha:** Abril 2026
-**Clasificación:** Académico
+**Producto:** Billetera Financiera
+**Última revisión:** 6 de octubre de 2026
 
----
+## Alcance y lectura
 
-## Módulo 1 — Navegación y Dashboard (RF-NAV)
+Este documento describe capacidades del producto a partir de los modelos, endpoints y pantallas encontrados. **Código presente** no significa flujo aceptado: la integración frontend/API, permisos, casos de error y comportamiento en ejecución deben probarse. Los requisitos futuros se indican como **Por confirmar**.
 
-| ID        | Requisito                                                                                             |
-| --------- | ----------------------------------------------------------------------------------------------------- |
-| RF-NAV-01 | El sistema debe presentar una pantalla principal (Dashboard) con resumen financiero del usuario.      |
-| RF-NAV-02 | El sistema debe implementar navegación mediante Sidebar para acceder a todos los módulos del sistema. |
-| RF-NAV-03 | El sistema debe implementar rutas protegidas para módulos privados.                                   |
-| RF-NAV-04 | El sistema debe soportar navegación responsive para escritorio, tablet y móvil.                       |
-| RF-NAV-05 | El sistema debe soportar deep linking para acceder directamente a módulos específicos mediante URL.   |
+## Actores
 
----
+| Actor | Responsabilidad |
+| --- | --- |
+| Visitante | Registrarse, iniciar sesión o solicitar recuperación de acceso. |
+| Usuario | Consultar y administrar su perfil, cuentas, tarjetas, movimientos, llaves y notificaciones. |
+| Asesor bancario | Consultar usuarios/cuentas y realizar las operaciones autorizadas para su rol. |
+| Administrador | Administrar asesores y ejecutar acciones administrativas sobre cuentas. |
 
-## Módulo 2 — Gestión de usuarios (RF-USER)
+## Requisitos
 
-| ID         | Requisito                                                                             |
-| ---------- | ------------------------------------------------------------------------------------- |
-| RF-USER-01 | El sistema debe permitir registro de usuarios mediante email y contraseña.            |
-| RF-USER-02 | El sistema debe permitir inicio y cierre de sesión seguro mediante JWT.               |
-| RF-USER-03 | El sistema debe permitir recuperación de contraseña mediante correo electrónico.      |
-| RF-USER-04 | El sistema debe permitir edición del perfil del usuario autenticado.                  |
-| RF-USER-05 | El sistema debe mantener la sesión activa hasta expiración del token o cierre manual. |
+### Acceso y perfil
 
----
+| ID | Requisito | Estado observado |
+| --- | --- | --- |
+| RF-ACC-01 | El visitante puede crear una cuenta con los datos requeridos por el formulario/API. | Código presente (`/register`); validar reglas y duplicados. |
+| RF-ACC-02 | El usuario puede iniciar sesión y obtener acceso autenticado. | Código presente (`/login`, login de administrador y asesor). |
+| RF-ACC-03 | El usuario puede solicitar recuperación, verificar un código y restablecer la contraseña. | Rutas presentes; validar expiración, envío y uso único. |
+| RF-ACC-04 | El usuario autenticado puede consultar y actualizar su perfil. | Rutas presentes; verificar autorización por propietario. |
+| RF-ACC-05 | Las rutas privadas deben rechazar credenciales inválidas o vencidas. | Hay validación de token; inventario de cobertura pendiente. |
 
-## Módulo 3 — Gestión de ingresos (RF-INCOME)
+### Usuarios, cuentas y tarjetas
 
-| ID           | Requisito                                                                                   |
-| ------------ | ------------------------------------------------------------------------------------------- |
-| RF-INCOME-01 | El sistema debe permitir registrar ingresos financieros manualmente.                        |
-| RF-INCOME-02 | El sistema debe permitir categorizar ingresos por tipo (salario, inversión, ventas, otros). |
-| RF-INCOME-03 | El sistema debe validar que el monto ingresado sea mayor a cero.                            |
-| RF-INCOME-04 | El sistema debe permitir editar y eliminar ingresos registrados.                            |
-| RF-INCOME-05 | El sistema debe mostrar historial paginado de ingresos.                                     |
+| ID | Requisito | Estado observado |
+| --- | --- | --- |
+| RF-CUE-01 | El usuario puede consultar sus cuentas y sus saldos. | Rutas de listado y saldo presentes. |
+| RF-CUE-02 | Se pueden crear cuentas con tipo y datos iniciales válidos. | Ruta de creación presente; confirmar reglas de negocio. |
+| RF-CUE-03 | Las operaciones autorizadas pueden cambiar tipo, operación, estado, saldo o datos parciales de una cuenta. | Rutas de asesoría/administración presentes; falta validar matriz de permisos. |
+| RF-TAR-01 | El usuario puede consultar y administrar tarjetas asociadas a sus cuentas. | Rutas de registro, consulta, edición, activación, bloqueo y desbloqueo presentes. |
+| RF-TAR-02 | Solo el titular o un rol autorizado puede operar una tarjeta. | Requisito; pruebas de autorización pendientes. |
 
----
+### Movimientos y transferencias
 
-## Módulo 4 — Gestión de gastos (RF-EXP)
+| ID | Requisito | Estado observado |
+| --- | --- | --- |
+| RF-MOV-01 | El usuario puede consultar movimientos asociados a sus cuentas. | Ruta `/transacciones` presente; verificar filtros, paginación y permisos. |
+| RF-MOV-02 | El sistema registra ingresos, gastos y transferencias con monto, tipo, fecha y descripción cuando corresponda. | Modelo `Transaccion` presente; verificar reglas y actualización de saldo. |
+| RF-TRF-01 | Un usuario puede iniciar una transferencia entre cuentas desde la aplicación. | Rutas presentes; verificar titularidad, fondos, atomicidad y comprobante. |
+| RF-TRF-02 | El sistema permite reportar una transferencia/transacción fallida. | Ruta de reporte presente; validar el ciclo de seguimiento. |
+| RF-BREB-01 | El usuario puede registrar/consultar una llave BRE-B y solicitar una transferencia por llave. | Rutas presentes; no implica conexión o liquidación en una red bancaria real. |
 
-| ID        | Requisito                                                                                                         |
-| --------- | ----------------------------------------------------------------------------------------------------------------- |
-| RF-EXP-01 | El sistema debe permitir registrar gastos financieros manualmente.                                                |
-| RF-EXP-02 | El sistema debe permitir categorizar gastos (alimentación, transporte, salud, entretenimiento, servicios, otros). |
-| RF-EXP-03 | El sistema debe validar que el monto del gasto sea positivo.                                                      |
-| RF-EXP-04 | El sistema debe permitir editar y eliminar gastos registrados.                                                    |
-| RF-EXP-05 | El sistema debe mostrar historial filtrable por categoría y fecha.                                                |
+### Administración, notificaciones y asistencia
 
----
+| ID | Requisito | Estado observado |
+| --- | --- | --- |
+| RF-ADM-01 | El administrador puede iniciar sesión y administrar asesores. | Rutas presentes en `Backend/main.py`; validar rol y auditoría. |
+| RF-ASE-01 | El asesor puede consultar usuarios/cuentas y realizar cambios permitidos. | Rutas presentes en `Backend/routers/asesor_bancario.py` y `Backend/main.py`. |
+| RF-NOT-01 | El usuario puede consultar, marcar como leídas y eliminar sus notificaciones. | Rutas presentes; probar aislamiento por usuario. |
+| RF-IA-01 | El cliente puede enviar una conversación al endpoint del asistente. | Endpoint `/chat` presente; disponibilidad depende de configuración externa. |
 
-## Módulo 5 — Presupuestos (RF-BUD)
+## Fuera de alcance confirmado o por confirmar
 
-| ID        | Requisito                                                                              |
-| --------- | -------------------------------------------------------------------------------------- |
-| RF-BUD-01 | El sistema debe permitir crear presupuestos mensuales por categoría.                   |
-| RF-BUD-02 | El sistema debe calcular automáticamente el porcentaje utilizado del presupuesto.      |
-| RF-BUD-03 | El sistema debe mostrar alertas visuales cuando el gasto supere el límite configurado. |
-| RF-BUD-04 | El sistema debe permitir modificar y eliminar presupuestos existentes.                 |
-| RF-BUD-05 | El sistema debe mostrar gráficos comparativos entre presupuesto y gasto real.          |
+No se encontraron módulos dedicados que permitan afirmar gestión completa de presupuestos/categorías, exportación de reportes financieros PDF/Excel, analítica predictiva, recordatorios configurables o actualización financiera en tiempo real. Certificados, QR y retiro sin tarjeta aparecen como páginas/nombres en el frontend o en documentación anterior, pero su funcionamiento e integración deben confirmarse antes de incluirlos como requisitos entregados.
 
----
+## Criterio de aceptación transversal
 
-## Módulo 6 — Reportes y estadísticas (RF-REP)
-
-| ID        | Requisito                                                        |
-| --------- | ---------------------------------------------------------------- |
-| RF-REP-01 | El sistema debe generar gráficos de ingresos y gastos mensuales. |
-| RF-REP-02 | El sistema debe permitir filtrar reportes por rango de fechas.   |
-| RF-REP-03 | El sistema debe mostrar balance total (ingresos - gastos).       |
-| RF-REP-04 | El sistema debe exportar reportes en formato PDF.                |
-| RF-REP-05 | El sistema debe exportar reportes en formato Excel (.xlsx).      |
-
----
-
-## Módulo 7 — Categorías financieras (RF-CAT)
-
-| ID        | Requisito                                                                              |
-| --------- | -------------------------------------------------------------------------------------- |
-| RF-CAT-01 | El sistema debe permitir crear categorías personalizadas de ingresos y gastos.         |
-| RF-CAT-02 | El sistema debe validar que no existan categorías duplicadas para el mismo usuario.    |
-| RF-CAT-03 | El sistema debe permitir editar categorías existentes.                                 |
-| RF-CAT-04 | El sistema debe impedir eliminar categorías que estén asociadas a movimientos activos. |
-| RF-CAT-05 | El sistema debe mostrar listado completo de categorías registradas.                    |
-
----
-
-## Módulo 8 — Notificaciones y alertas (RF-NOTIF)
-
-| ID          | Requisito                                                                                        |
-| ----------- | ------------------------------------------------------------------------------------------------ |
-| RF-NOTIF-01 | El sistema debe enviar alertas visuales cuando un presupuesto esté cerca del límite configurado. |
-| RF-NOTIF-02 | El sistema debe mostrar recordatorios de pagos próximos configurados por el usuario.             |
-| RF-NOTIF-03 | El sistema debe permitir activar o desactivar notificaciones desde configuración.                |
-| RF-NOTIF-04 | El sistema debe mostrar mensajes de éxito o error después de operaciones importantes.            |
-
----
-
-## Módulo 9 — Persistencia y almacenamiento (RF-STOR)
-
-| ID         | Requisito                                                                                      |
-| ---------- | ---------------------------------------------------------------------------------------------- |
-| RF-STOR-01 | El sistema debe almacenar toda la información financiera en PostgreSQL.                        |
-| RF-STOR-02 | El sistema debe realizar persistencia automática de cambios en tiempo real.                    |
-| RF-STOR-03 | El sistema debe implementar respaldo lógico de la base de datos.                               |
-| RF-STOR-04 | El sistema debe permitir mantener sesión persistente mediante almacenamiento seguro del token. |
-
----
-
-## Módulo 10 — Seguridad y acceso (RF-SEC)
-
-| ID        | Requisito                                                                              |
-| --------- | -------------------------------------------------------------------------------------- |
-| RF-SEC-01 | El sistema debe restringir el acceso a rutas privadas sin autenticación válida.        |
-| RF-SEC-02 | El sistema debe cifrar contraseñas utilizando bcrypt o equivalente.                    |
-| RF-SEC-03 | El sistema debe validar permisos antes de modificar o eliminar información financiera. |
-| RF-SEC-04 | El sistema debe cerrar automáticamente sesiones expiradas.                             |
-| RF-SEC-05 | El sistema debe registrar intentos fallidos de autenticación.                          |
-
----
-
-## Módulo 11 — Dashboard en tiempo real (RF-REAL)
-
-| ID         | Requisito                                                                                        |
-| ---------- | ------------------------------------------------------------------------------------------------ |
-| RF-REAL-01 | El sistema debe actualizar automáticamente el balance financiero al registrar ingresos o gastos. |
-| RF-REAL-02 | El sistema debe actualizar gráficos y estadísticas sin necesidad de recargar la página.          |
-| RF-REAL-03 | El sistema debe sincronizar cambios de información en tiempo real para la sesión activa.         |
-
----
-
-## Módulo 12 — Responsividad y experiencia de usuario (RF-UX)
-
-| ID       | Requisito                                                                                     |
-| -------- | --------------------------------------------------------------------------------------------- |
-| RF-UX-01 | El sistema debe ser responsivo desde 320 px hasta 1440 px de ancho.                           |
-| RF-UX-02 | El sistema debe adaptar componentes para escritorio, tablet y móvil.                          |
-| RF-UX-03 | El sistema debe mostrar indicadores de carga durante peticiones HTTP.                         |
-| RF-UX-04 | El sistema debe mostrar mensajes claros de validación en formularios.                         |
-| RF-UX-05 | El sistema debe mantener tiempos de respuesta inferiores a 3 segundos en operaciones comunes. |
-
----
-
-## Módulo 13 — Configuración del sistema (RF-CONF)
-
-| ID         | Requisito                                                              |
-| ---------- | ---------------------------------------------------------------------- |
-| RF-CONF-01 | El sistema debe permitir cambiar entre modo claro y oscuro.            |
-| RF-CONF-02 | El sistema debe permitir configurar moneda principal del usuario.      |
-| RF-CONF-03 | El sistema debe permitir configurar idioma del sistema.                |
-| RF-CONF-04 | El sistema debe guardar preferencias de usuario de manera persistente. |
-
----
-
-## Módulo 14 — Navegación bloqueada y control de acceso (RF-BLOCK)
-
-| ID          | Requisito                                                                                                                       |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| RF-BLOCK-01 | El sistema debe bloquear el acceso a rutas privadas cuando el usuario no esté autenticado.                                      |
-| RF-BLOCK-02 | El sistema debe redirigir automáticamente al login cuando un usuario intente acceder a una ruta restringida.                    |
-| RF-BLOCK-03 | El sistema debe mostrar un mensaje informativo indicando que la navegación está bloqueada por falta de permisos.                |
-| RF-BLOCK-04 | El sistema debe deshabilitar enlaces y botones de navegación hacia módulos restringidos para usuarios sin permisos.             |
-| RF-BLOCK-05 | El sistema debe mantener el estado de bloqueo incluso tras recargar la página hasta que el usuario se autentique correctamente. |
-| RF-BLOCK-06 | El sistema debe permitir desbloquear la navegación automáticamente después de iniciar sesión exitosamente.                      |
-| RF-BLOCK-07 | El sistema debe registrar intentos de acceso no autorizados para fines de auditoría básica.                                     |
-| RF-BLOCK-08 | El sistema debe mostrar indicadores visuales (ícono de candado o estado deshabilitado) en módulos bloqueados.                   |
-
----
+Cada operación debe validar datos en el servidor, autenticar y autorizar al actor, limitar el acceso a recursos del titular, devolver errores comprensibles y preservar la consistencia de la base de datos. Para marcar un requisito como aceptado, añadir una prueba automatizada o un caso de prueba manual reproducible y registrar su resultado.

@@ -1,96 +1,49 @@
-# Restricciones del Proyecto — FinanceWeb
+# Restricciones y decisiones del proyecto
 
-**Proyecto:** FinanceWeb — Plataforma web de gestión financiera personal
-**Versión:** 1.0
-**Fecha:** Abril 2026
-**Clasificación:** Académico
+**Producto:** Billetera Financiera
+**Última revisión:** 6 de octubre de 2026
+**Base:** configuración y código presentes en el repositorio. Las decisiones no respaldadas por código o acuerdos del equipo se señalan como pendientes.
 
----
+## Tecnologías comprobadas
 
-## RC-01 — Restricciones tecnológicas
+| Área | Situación observada | Restricción documental |
+| --- | --- | --- |
+| Interfaz | React con JavaScript y `react-scripts`; React Router y Axios | Mantener el stack actual salvo decisión explícita de migración. No describirlo como TypeScript/Vite. |
+| API | FastAPI, SQLAlchemy y Uvicorn | Los endpoints deben conservar contratos compatibles con el frontend y las pruebas. |
+| Base de datos | MySQL 8.4 en Compose; PyMySQL | PostgreSQL no forma parte de la configuración actual. |
+| Dependencias frontend | Hay `pnpm-lock.yaml`; el Compose ejecuta `npm start`; los manifiestos contienen rangos semver | Acordar un gestor único y reconciliar manifiestos/lock antes de exigir builds reproducibles. |
+| Dependencias backend | `Backend/requirements.txt`, sin versiones exactas | Fijar versiones y probar instalación reproducible antes de una entrega estable. |
+| Contenedores | Servicios `db`, `backend` y `frontend` en `compose.yml` | La configuración actual es de desarrollo y no constituye por sí sola un despliegue de producción. |
 
-| ID      | Restricción                                                                                                                                              | Justificación                                                             |
-| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| RC-01.1 | El framework obligatorio es **React** con **Vite** y **TypeScript**. No se permite migrar a Angular, Vue, Svelte ni otros frameworks.                    | El objetivo académico es demostrar arquitectura moderna basada en React.  |
-| RC-01.2 | El lenguaje es **TypeScript** en modo estricto (`"strict": true`). No se permite JavaScript puro.                                                        | Garantiza type safety y facilita el mantenimiento del sistema financiero. |
-| RC-01.3 | El único gestor de paquetes permitido es **pnpm**. No se puede usar `npm`, `yarn` ni `bun`.                                                              | Reproducibilidad de builds y control centralizado de dependencias.        |
-| RC-01.4 | Todas las versiones de dependencias deben ser **exactas** (sin `^`, `~`, `*` ni `latest`).                                                               | Evita builds inconsistentes y vulnerabilidades inesperadas.               |
-| RC-01.5 | El backend debe implementarse con **FastAPI** y base de datos **PostgreSQL**. No se permite cambiar a otros frameworks backend sin aprobación académica. | Uniformidad tecnológica y compatibilidad con el entorno del proyecto.     |
-| RC-01.6 | El sistema de autenticación debe usar **JWT** con expiración controlada. No se permiten sesiones inseguras basadas únicamente en almacenamiento local.   | Garantiza un estándar mínimo de seguridad.                                |
-| RC-01.7 | El diseño visual debe implementarse usando **Tailwind CSS**. No se permite Bootstrap ni frameworks CSS externos adicionales.                             | Mantener consistencia visual y control de estilos.                        |
+## Restricciones de seguridad
 
----
+- No guardar claves, tokens ni contraseñas reales en el código, documentación, pruebas o commits. Usar variables de entorno y proporcionar solo nombres/valores ficticios en ejemplos.
+- No desplegar los valores de ejemplo de Compose (`root`, `app_user`, `app_pass`) ni publicar el puerto de MySQL sin controles de red.
+- Configurar `ASESOR_REGISTRATION_CODE`, credenciales de correo, proveedor IA y demás secretos en el entorno donde se ejecuta el backend. La lista definitiva de variables está pendiente de inventario.
+- Las rutas que consultan o modifican información de usuarios/cuentas deben validar identidad, rol y propiedad de los recursos en el servidor; ocultar una opción en la interfaz no es autorización.
+- No registrar contraseñas, tokens, códigos de recuperación, CVV ni datos completos de tarjetas. Revisar expresamente el modelo y las rutas de tarjetas antes de habilitar datos reales.
+- Limitar CORS a los orígenes necesarios en entornos desplegados. `allow_origins=["*"]` junto con credenciales no debe tratarse como configuración de producción.
+- Usar HTTPS y secretos rotables fuera de desarrollo. El repositorio no documenta todavía una configuración de producción.
 
-## RC-02 — Restricciones de APIs externas
+## Persistencia y cambios de esquema
 
-| ID      | Restricción                                                                                                             | Justificación                                                      |
-| ------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| RC-02.1 | Solo se pueden integrar APIs financieras gratuitas previamente documentadas en el proyecto.                             | Control de costes y validación académica de dependencias externas. |
-| RC-02.2 | Las API keys deben almacenarse únicamente en archivos `.env`. Nunca pueden escribirse directamente en el código fuente. | Prevención de filtración de credenciales.                          |
-| RC-02.3 | No se permite depender de APIs premium o de pago para funcionalidades esenciales del sistema.                           | Restricción económica del entorno académico.                       |
-| RC-02.4 | Toda integración externa debe tener manejo de errores, timeout y fallback visual para evitar bloqueos del sistema.      | Mejora la resiliencia de la aplicación.                            |
+- La aplicación usa MySQL y SQLAlchemy. `Backend/main.py` crea tablas al iniciar y contiene cambios de esquema condicionales.
+- No se encontró una configuración de Alembic. Antes de múltiples instancias o producción, definir migraciones versionadas y una estrategia de respaldo/restauración.
+- Los cambios de saldo y transferencia deben preservar consistencia, evitar saldos negativos no autorizados y revertir todas las escrituras ante un fallo.
+- No usar datos bancarios reales durante desarrollo, pruebas o demostraciones sin autorización y controles apropiados.
 
----
+## Calidad y proceso
 
-## RC-03 — Restricciones de plataforma
+- Las pruebas backend se ejecutan con pytest (hay pruebas bajo `Backend/tests/`). El alcance/cobertura efectiva debe medirse; no hay un porcentaje mínimo confirmado por configuración.
+- El frontend define `start`, `build` y `test` en `Frontend/package.json`; no se identificó un script `lint` ni un chequeo TypeScript.
+- No afirmar cobertura, cumplimiento WCAG, rendimiento, compatibilidad de navegador o certificación de seguridad sin mediciones reproducibles.
+- Registrar requisitos y decisiones pendientes como tales. No asignar fechas, responsables, tecnologías obligatorias ni políticas de commit sin aprobación del equipo.
 
-| ID      | Restricción                                                                                     | Justificación                                                       |
-| ------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| RC-03.1 | La plataforma principal es **Web Responsive Desktop First**. La adaptación móvil es secundaria. | El sistema financiero será evaluado principalmente en computadores. |
-| RC-03.2 | La aplicación debe funcionar correctamente en los navegadores modernos: Chrome, Edge y Firefox. | Compatibilidad mínima requerida para la evaluación académica.       |
-| RC-03.3 | No se requiere soporte para Internet Explorer ni navegadores obsoletos.                         | Reducción de complejidad técnica innecesaria.                       |
-| RC-03.4 | Las funcionalidades críticas deben funcionar incluso con conexiones lentas o inestables.        | Accesibilidad académica y pruebas en diferentes entornos de red.    |
+## Pendientes de decisión
 
----
-
-## RC-04 — Restricciones de seguridad
-
-| ID      | Restricción                                                                                                                    |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| RC-04.1 | Los archivos `.env`, `.env.local` y cualquier variante **no deben commitearse** al repositorio.                                |
-| RC-04.2 | Las contraseñas deben almacenarse cifradas utilizando algoritmos seguros (`bcrypt` o equivalente).                             |
-| RC-04.3 | Ninguna vulnerabilidad CVE de nivel **moderate, high o critical** puede llegar al branch principal sin mitigación documentada. |
-| RC-04.4 | El sistema no debe almacenar información bancaria real ni datos financieros sensibles de terceros.                             |
-| RC-04.5 | Todas las rutas privadas deben validar autenticación y autorización antes de renderizar información sensible.                  |
-| RC-04.6 | Los tokens JWT no deben exponerse en logs ni respuestas visibles al usuario.                                                   |
-
----
-
-## RC-05 — Restricciones de calidad
-
-| ID      | Restricción                                                                                                  |
-| ------- | ------------------------------------------------------------------------------------------------------------ |
-| RC-05.1 | La cobertura de tests no puede bajar del **80 %** de líneas y ramas por módulo.                              |
-| RC-05.2 | No se puede hacer merge a `main` con errores de TypeScript (`pnpm tsc --noEmit`) ni de ESLint (`pnpm lint`). |
-| RC-05.3 | No se permiten `// TODO` sin issue asociado en el repositorio.                                               |
-| RC-05.4 | Cada función, hook, servicio y componente debe tener documentación TSDoc (`@what / @why / @impact`).         |
-| RC-05.5 | Toda petición HTTP debe tener tipado estricto de request y response.                                         |
-| RC-05.6 | No se permite código duplicado entre módulos; la lógica compartida debe centralizarse.                       |
-
----
-
-## RC-06 — Restricciones de proceso y tiempo
-
-| ID      | Restricción                                                                              |
-| ------- | ---------------------------------------------------------------------------------------- |
-| RC-06.1 | El proyecto sigue el formato **Conventional Commits** con cuerpo pedagógico obligatorio. |
-| RC-06.2 | Cada módulo debe entregarse con documentación, pruebas y validaciones completas.         |
-| RC-06.3 | El proyecto es **académico y sin fines comerciales**.                                    |
-| RC-06.4 | No se aceptan módulos incompletos o marcados como “en construcción” en la entrega final. |
-| RC-06.5 | Toda funcionalidad nueva debe pasar revisión técnica antes de integrarse a `main`.       |
-
----
-
-## RC-07 — Restricciones de arquitectura
-
-| ID      | Restricción                                                                                                                           |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| RC-07.1 | La estructura de carpetas definida en `src/modules/` y `src/shared/` es obligatoria y no puede modificarse sin aprobación del equipo. |
-| RC-07.2 | No se permiten importaciones cruzadas entre módulos (`src/modules/auth` no puede importar de `src/modules/dashboard`).                |
-| RC-07.3 | Toda lógica compartida debe ubicarse en `src/shared/`.                                                                                |
-| RC-07.4 | El cliente HTTP debe centralizarse en `src/shared/lib/httpClient.ts`. No se permiten llamadas `fetch` directas dentro de módulos.     |
-| RC-07.5 | El manejo global de estado debe implementarse mediante Context API, Zustand o Redux Toolkit previamente definidos por el equipo.      |
-| RC-07.6 | Las variables de entorno deben validarse al iniciar la aplicación mediante un esquema tipado.                                         |
-| RC-07.7 | Cada módulo debe ser independiente, escalable y desacoplado del resto del sistema.                                                    |
-
----
+1. Gestor de paquetes frontend y ubicación/manifiesto canónicos.
+2. Versiones soportadas de Python y Node.js, y versiones fijadas de dependencias.
+3. Política de ramas, revisión y formato de commits.
+4. Estrategia de migraciones, backups, retención y recuperación.
+5. Proveedor de correo/IA y variables de entorno necesarias en cada entorno.
+6. Requisitos de privacidad, jurisdicción y alcance de cualquier integración financiera.

@@ -1769,6 +1769,19 @@ body {
   font-size: 14px;
 }
 
+.campo-archivo-asesor {
+  min-width: 0;
+}
+
+.nombre-archivo-asesor {
+  display: block;
+  color: var(--texto-secundario);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .formulario-edicion-asesor input {
   width: 100%;
   padding: 11px 12px;
@@ -1779,6 +1792,22 @@ body {
   -webkit-text-fill-color: #ffffff;
   font: inherit;
   box-sizing: border-box;
+}
+
+.formulario-edicion-asesor input[type="file"] {
+  padding: 9px 10px;
+  cursor: pointer;
+}
+
+.formulario-edicion-asesor input[type="file"]::file-selector-button {
+  margin-right: 10px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(242, 201, 76, 0.16);
+  color: var(--dorado);
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .formulario-edicion-asesor select {
