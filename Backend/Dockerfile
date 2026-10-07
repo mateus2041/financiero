@@ -1,17 +1,17 @@
-FROM python:3.12
+FROM python:3.12-slim
+
+COPY --from=ghcr.io/astral-sh/uv:0.8.22 /uv /uvx /bin/
 
 WORKDIR /app
 
-COPY Backend/requirements.txt .
+ENV PYTHONPATH=/app \
+    UV_LINK_MODE=copy
 
-RUN pip install --upgrade pip
-
-RUN pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml uv.lock .python-version ./
+RUN uv sync --frozen
 
 COPY . .
 
-ENV PYTHONPATH=/app
-
 EXPOSE 8000
 
-CMD ["python", "-m", "uvicorn", "Backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "Backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
