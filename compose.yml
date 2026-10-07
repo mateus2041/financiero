@@ -76,7 +76,7 @@ services:
       DATABASE_URL: mysql+pymysql://app_user:app_pass@db:3306/billetera
 
 
-      ASESOR_REGISTRATION_CODE: ${ASESOR_REGISTRATION_CODE}
+      ASESOR_REGISTRATION_CODE: ${ASESOR_REGISTRATION_CODE:-}
 
       PYTHONPATH: /app
 
@@ -87,10 +87,11 @@ services:
     volumes:
 
       - .:/app
+      - backend_venv:/app/.venv
 
     working_dir: /app
 
-    command: uvicorn Backend.main:app --host 0.0.0.0 --port 8000
+    command: uv run uvicorn Backend.main:app --host 0.0.0.0 --port 8000 --reload
 
     networks:
 
@@ -147,6 +148,8 @@ services:
 volumes:
 
   mysql_data:
+
+  backend_venv:
 
   frontend_node_modules:
 

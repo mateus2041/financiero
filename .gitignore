@@ -1,4 +1,12 @@
-﻿# Dependencias de Node.js en cualquier nivel del proyecto
+﻿# Python / UV
+.venv/
+__pycache__/
+*.pyc
+.env
+.pytest_cache/
+.vscode/
+
+# Dependencias de Node.js en cualquier nivel del proyecto
 node_modules/
 
 

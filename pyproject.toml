@@ -1,0 +1,25 @@
+[project]
+name = "financiero-backend"
+version = "0.1.0"
+description = "Backend FastAPI de la billetera Financiero"
+requires-python = "==3.12.*"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "sqlalchemy",
+    "PyMySQL",
+    "python-jose[cryptography]",
+    "passlib[argon2,bcrypt]",
+    "python-multipart",
+    "python-dotenv",
+    "cryptography",
+    "langchain",
+    "langchain-openai",
+    "langchain-community",
+    "faiss-cpu",
+    "tiktoken",
+    "openai",
+]
+
+[tool.uv]
+package = false
