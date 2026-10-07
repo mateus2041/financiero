@@ -391,3 +391,58 @@ DELETE FROM tarjetas
 WHERE id_tarjeta = 5;
 
 COMMIT;
+-- SQLBook: Code
+USE billetera;
+
+CREATE TABLE IF NOT EXISTS `ubicacionesPorCiudad` (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ciudad VARCHAR(100) NOT NULL,
+    localidad VARCHAR(100) NOT NULL,
+    barrios JSON NOT NULL,
+    UNIQUE KEY uq_ciudad_localidad (ciudad, localidad)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+INSERT INTO `ubicacionesPorCiudad` (ciudad, localidad, barrios) VALUES
+('Bogotá', 'Usaquén', '["Cedritos", "Santa Bárbara", "San Patricio", "Otro"]'),
+('Bogotá', 'Chapinero', '["Chapinero Alto", "Chapinero Central", "Rosales", "Otro"]'),
+('Bogotá', 'La Candelaria', '["La Catedral", "Las Aguas", "Centro Administrativo", "Otro"]'),
+('Bogotá', 'Santa Fe', '["Las Nieves", "San Diego", "La Perseverancia", "Otro"]'),
+('Bogotá', 'San Cristóbal', '["20 de Julio", "San Blas", "San Martín de Loba", "Otro"]'),
+('Bogotá', 'Usme', '["Usme Centro", "La Flora", "Gran Yomasa", "Otro"]'),
+('Bogotá', 'Tunjuelito', '["Venecia", "Fátima", "San Vicente Ferrer", "Otro"]'),
+('Bogotá', 'Bosa', '["Bosa Centro", "La Despensa", "El Porvenir", "Bosa La Estación", "Bosa Nova", "Bosa Piamonte", "Ciudadela El Recreo", "El Corzo", "La Libertad", "San Bernardino", "San Pablo Bosa", "Santa Fe Bosa", "Antonia Santos", "Brasil", "Campo Verde", "Carlos Albán Holguín", "El Anhelo", "El Progreso", "Escocia", "Islandia", "Jiménez de Quesada", "La Paz Bosa", "Olarte", "Paso Ancho", "Villa del Río", "Villa Sonia", "Villa Anny", "Villas del Progreso", "Otro"]'),
+('Bogotá', 'Kennedy', '["Ciudad Kennedy", "Castilla", "Timiza", "Otro"]'),
+('Bogotá', 'Fontibón', '["Fontibón Centro", "Modelia", "Villemar", "Otro"]'),
+('Bogotá', 'Engativá', '["Engativá Centro", "Las Ferias", "Boyacá Real", "Otro"]'),
+('Bogotá', 'Suba', '["Suba Centro", "Niza", "La Campiña", "Otro"]'),
+('Bogotá', 'Barrios Unidos', '["Doce de Octubre", "La Castellana", "Metrópolis", "Otro"]'),
+('Bogotá', 'Teusaquillo', '["Teusaquillo", "La Soledad", "Galerías", "Otro"]'),
+('Bogotá', 'Los Mártires', '["Ricaurte", "Paloquemao", "Santa Isabel", "Otro"]'),
+('Bogotá', 'Antonio Nariño', '["Restrepo", "Ciudad Berna", "Policarpa", "Otro"]'),
+('Bogotá', 'Puente Aranda', '["Ciudad Montes", "Alcalá", "Muzu", "Otro"]'),
+('Bogotá', 'Rafael Uribe Uribe', '["Quiroga", "Marruecos", "Diana Turbay", "Otro"]'),
+('Bogotá', 'Ciudad Bolívar', '["Arborizadora", "San Francisco", "Lucero", "Otro"]'),
+('Bogotá', 'Sumapaz', '["San Juan", "Nazareth", "Betania", "Otro"]'),
+('Medellín', 'Centro', '["Centro", "Boston", "Prado", "Otro"]'),
+('Cali', 'Centro', '["Centro", "San Fernando", "Granada", "Otro"]'),
+('Barranquilla', 'Centro', '["Centro", "El Prado", "Alto Prado", "Otro"]'),
+('Cartagena', 'Centro', '["Centro", "Getsemaní", "Manga", "Otro"]'),
+('Bucaramanga', 'Centro', '["Centro", "Cabecera", "San Francisco", "Otro"]'),
+('Pereira', 'Centro', '["Centro", "Cuba", "Alamos", "Otro"]'),
+('Cúcuta', 'Centro', '["Centro", "Caobos", "La Riviera", "Otro"]'),
+('Ibagué', 'Centro', '["Centro", "La Pola", "Piedrapintada", "Otro"]'),
+('Manizales', 'Centro', '["Centro", "Palogrande", "Chipre", "Otro"]'),
+('Armenia', 'Centro', '["Centro", "Granada", "La Castellana", "Otro"]'),
+('Pasto', 'Centro', '["Centro", "San Ignacio", "Las Cuadras", "Otro"]'),
+('Villavicencio', 'Centro', '["Centro", "Barzal", "La Esperanza", "Otro"]'),
+('Neiva', 'Centro', '["Centro", "Quirinal", "La Toma", "Otro"]'),
+('Montería', 'Centro', '["Centro", "La Castellana", "La Coquera", "Otro"]'),
+('Sincelejo', 'Centro', '["Centro", "La Pajuela", "Venecia", "Otro"]'),
+('Tunja', 'Centro', '["Centro", "Las Nieves", "Maldonado", "Otro"]'),
+('Popayán', 'Centro', '["Centro", "San Camilo", "El Recuerdo", "Otro"]'),
+('Santa Marta', 'Centro', '["Centro", "Bellavista", "El Rodadero", "Otro"]'),
+('Valledupar', 'Centro', '["Centro", "Novalito", "Mayales", "Otro"]');
+
+SELECT ciudad, localidad, barrios
+FROM `ubicacionesPorCiudad`
+ORDER BY ciudad, localidad;

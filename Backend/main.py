@@ -606,6 +606,26 @@ def register(
     return registrar_usuario(data, db, "usuario")
 
 
+@app.get("/ubicaciones")
+def obtener_ubicaciones(db: Session = Depends(get_db)):
+    filas = db.execute(text(
+        "SELECT ciudad, localidad, barrios "
+        "FROM ubicacionesPorCiudad "
+        "ORDER BY ciudad, localidad"
+    )).fetchall()
+
+    ubicaciones = {}
+    for ciudad, localidad, barrios in filas:
+        if isinstance(barrios, str):
+            barrios = json.loads(barrios)
+        elif isinstance(barrios, bytes):
+            barrios = json.loads(barrios.decode("utf-8"))
+
+        ubicaciones.setdefault(ciudad, {})[localidad] = barrios
+
+    return ubicaciones
+
+
 @app.post("/register-asesor")
 def register_asesor(
     data: dict,
