@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Login from "./login";
 import Recuperacion from "./recuperacion";
@@ -28,57 +28,35 @@ function Registro({ isModal = false, onClose }) {
   const [mostrarRecuperacion, setMostrarRecuperacion] = useState(false);
 
   const [mensaje, setMensaje] = useState("");
+  const [ubicacionesPorCiudad, setUbicacionesPorCiudad] = useState({});
+  const [cargandoUbicaciones, setCargandoUbicaciones] = useState(true);
+  const [errorUbicaciones, setErrorUbicaciones] = useState("");
 
-  const ubicacionesPorCiudad = {
-    Bogotá: {
-      "Usaquén": ["Cedritos", "Santa Bárbara", "San Patricio", "Otro"],
-      "Chapinero": ["Chapinero Alto", "Chapinero Central", "Rosales", "Otro"],
-      "La Candelaria": ["La Catedral", "Las Aguas", "Centro Administrativo", "Otro"],
-      "Santa Fe": ["Las Nieves", "San Diego", "La Perseverancia", "Otro"],
-      "San Cristóbal": ["20 de Julio", "San Blas", "San Martín de Loba", "Otro"],
-      Usme: ["Usme Centro", "La Flora", "Gran Yomasa", "Otro"],
-      Tunjuelito: ["Venecia", "Fátima", "San Vicente Ferrer", "Otro"],
-      Bosa: ["Bosa Centro", "La Despensa", "El Porvenir", "Bosa La Estación", "Bosa Nova", "Bosa Piamonte", "Ciudadela El Recreo", "El Corzo", "La Libertad", "San Bernardino", "San Pablo Bosa", "Santa Fe Bosa", "Antonia Santos", "Brasil", "Campo Verde", "Carlos Albán Holguín", "El Anhelo", "El Progreso", "Escocia", "Islandia", "Jiménez de Quesada", "La Paz Bosa", "Olarte", "Paso Ancho", "Villa del Río", "Villa Sonia", "Villa Anny", "Villas del Progreso", "Otro"],
-      Kennedy: ["Ciudad Kennedy", "Castilla", "Timiza", "Otro"],
-      Fontibón: ["Fontibón Centro", "Modelia", "Villemar", "Otro"],
-      Engativá: ["Engativá Centro", "Las Ferias", "Boyacá Real", "Otro"],
-      Suba: ["Suba Centro", "Niza", "La Campiña", "Otro"],
-      "Barrios Unidos": ["Doce de Octubre", "La Castellana", "Metrópolis", "Otro"],
-      Teusaquillo: ["Teusaquillo", "La Soledad", "Galerías", "Otro"],
-      "Los Mártires": ["Ricaurte", "Paloquemao", "Santa Isabel", "Otro"],
-      "Antonio Nariño": ["Restrepo", "Ciudad Berna", "Policarpa", "Otro"],
-      "Puente Aranda": ["Ciudad Montes", "Alcalá", "Muzu", "Otro"],
-      "Rafael Uribe Uribe": ["Quiroga", "Marruecos", "Diana Turbay", "Otro"],
-      "Ciudad Bolívar": ["Arborizadora", "San Francisco", "Lucero", "Otro"],
-      Sumapaz: ["San Juan", "Nazareth", "Betania", "Otro"],
-    },
-    Medellín: { Centro: ["Centro", "Boston", "Prado", "Otro"] },
-    Cali: { Centro: ["Centro", "San Fernando", "Granada", "Otro"] },
-    Barranquilla: { Centro: ["Centro", "El Prado", "Alto Prado", "Otro"] },
-    Cartagena: { Centro: ["Centro", "Getsemaní", "Manga", "Otro"] },
-    Bucaramanga: { Centro: ["Centro", "Cabecera", "San Francisco", "Otro"] },
-    Pereira: { Centro: ["Centro", "Cuba", "Alamos", "Otro"] },
-    Cúcuta: { Centro: ["Centro", "Caobos", "La Riviera", "Otro"] },
-    Ibagué: { Centro: ["Centro", "La Pola", "Piedrapintada", "Otro"] },
-    Manizales: { Centro: ["Centro", "Palogrande", "Chipre", "Otro"] },
-    Armenia: { Centro: ["Centro", "Granada", "La Castellana", "Otro"] },
-    Pasto: { Centro: ["Centro", "San Ignacio", "Las Cuadras", "Otro"] },
-    Villavicencio: { Centro: ["Centro", "Barzal", "La Esperanza", "Otro"] },
-    Neiva: { Centro: ["Centro", "Quirinal", "La Toma", "Otro"] },
-    Montería: { Centro: ["Centro", "La Castellana", "La Coquera", "Otro"] },
-    Sincelejo: { Centro: ["Centro", "La Pajuela", "Venecia", "Otro"] },
-    Tunja: { Centro: ["Centro", "Las Nieves", "Maldonado", "Otro"] },
-    Popayán: { Centro: ["Centro", "San Camilo", "El Recuerdo", "Otro"] },
-    "Santa Marta": { Centro: ["Centro", "Bellavista", "El Rodadero", "Otro"] },
-    Valledupar: { Centro: ["Centro", "Novalito", "Mayales", "Otro"] },
-  };
+  useEffect(() => {
+    const cargarUbicaciones = async () => {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/ubicaciones");
+        if (!res.ok) {
+          throw new Error("No fue posible cargar las ubicaciones");
+        }
+        setUbicacionesPorCiudad(await res.json());
+      } catch (error) {
+        console.error(error);
+        setErrorUbicaciones("No se pudieron cargar las ubicaciones. Intenta nuevamente más tarde.");
+      } finally {
+        setCargandoUbicaciones(false);
+      }
+    };
+
+    cargarUbicaciones();
+  }, []);
 
   const ciudades = Object.keys(ubicacionesPorCiudad);
   const localidadesDisponibles = ciudad
-    ? Object.keys(ubicacionesPorCiudad[ciudad])
+    ? Object.keys(ubicacionesPorCiudad[ciudad] || {})
     : [];
   const barriosDisponibles = ciudad && localidad
-    ? ubicacionesPorCiudad[ciudad][localidad]
+    ? ubicacionesPorCiudad[ciudad]?.[localidad] || []
     : [];
 
   const siguiente = () => {
@@ -241,13 +219,20 @@ function Registro({ isModal = false, onClose }) {
             <label>Ciudad</label>
             <select
               value={ciudad}
+              disabled={cargandoUbicaciones || !!errorUbicaciones}
               onChange={(e) => {
                 setCiudad(e.target.value);
                 setLocalidad("");
                 setBarrio("");
               }}
             >
-              <option value="">Seleccione una ciudad</option>
+              <option value="">
+                {cargandoUbicaciones
+                  ? "Cargando ciudades..."
+                  : ciudades.length
+                    ? "Seleccione una ciudad"
+                    : "No hay ciudades disponibles"}
+              </option>
               {ciudades.map((item) => (
                 <option key={item} value={item}>
                   {item}
@@ -285,6 +270,12 @@ function Registro({ isModal = false, onClose }) {
                 </option>
               ))}
             </select>
+
+            {errorUbicaciones && (
+              <p role="alert" className="error-message">
+                {errorUbicaciones}
+              </p>
+            )}
 
             <label>Código postal </label>
             <input
