@@ -9,77 +9,90 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import json
 
-from Backend.database.database import Base, engine
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import inspect, text
-from pydantic import BaseModel
+from sqlalchemy import text
+from pydantic import BaseModel, EmailStr, Field
+from typing import Literal
+
+from Backend.schemas import (
+    AdministradorLoginSchema,
+    AsesorActualizacionSchema,
+    AsesorLoginSchema,
+    AsesorRegistroSchema,
+    AsesoresRespuesta,
+    CuentasAdministradorRespuesta,
+    LoginRespuesta,
+    NuevaCuenta,
+    PerfilActualizacionSchema,
+    RegistroRespuesta,
+    TransferenciaEntreCuentasSchema,
+    TransferenciaSchema,
+    UsuarioActualizacionSchema,
+    UsuarioLoginSchema,
+    UsuarioRegistroSchema,
+    UsuarioRespuesta,
+)
 
 
 class SaldoCuenta(BaseModel):
-    saldo: float
+    saldo: Decimal = Field(ge=0)
 
 
 class SaldoCuentaAutorizado(BaseModel):
-    saldo: float
-    codigo_autorizacion: str
+    saldo: Decimal = Field(ge=0)
+    codigo_autorizacion: str = Field(min_length=4, max_length=6)
 
 
 class CodigoAutorizacion(BaseModel):
-    codigo_autorizacion: str
+    codigo_autorizacion: str = Field(min_length=4, max_length=6)
 
 
 class UltimosDigitosCuenta(BaseModel):
-    ultimos_digitos: str
+    ultimos_digitos: str = Field(pattern=r"^\d{4}$")
 
 
 class UltimosDigitosCuentaAutorizada(BaseModel):
-    ultimos_digitos: str
-    codigo_autorizacion: str
+    ultimos_digitos: str = Field(pattern=r"^\d{4}$")
+    codigo_autorizacion: str = Field(min_length=4, max_length=6)
 
 
 class TipoOperacionCuenta(BaseModel):
-    tipo_operacion: str
+    tipo_operacion: Literal["debito", "credito"]
 
 
 class TipoOperacionCuentaAutorizada(BaseModel):
-    tipo_operacion: str
-    codigo_autorizacion: str
+    tipo_operacion: Literal["debito", "credito"]
+    codigo_autorizacion: str = Field(min_length=4, max_length=6)
 
 
 class TipoCuentaCuenta(BaseModel):
-    tipo_cuenta: str
-
-class NuevaCuenta(BaseModel):
-    tipo_cuenta: str
-    tipo_operacion: str = "debito"
-    opcion_cuenta: str | None = None
-    saldo: float = 0
+    tipo_cuenta: Literal["ahorros", "corriente"]
 
 class ConfirmarContrasena(BaseModel):
-    password: str
+    password: str = Field(min_length=1, max_length=128)
 
 
 class SolicitudRecuperacion(BaseModel):
-    documento: str
-    email: str
+    documento: str = Field(min_length=1, max_length=50)
+    email: EmailStr
 
 
 class VerificarRecuperacion(BaseModel):
-    documento: str
-    codigo: str
+    documento: str = Field(min_length=1, max_length=50)
+    codigo: str = Field(pattern=r"^\d{6}$")
 
 
 class RestablecerContrasena(BaseModel):
-    token: str
-    nueva_password: str
+    token: str = Field(min_length=1)
+    nueva_password: str = Field(min_length=8, max_length=128)
 
 
 class VerificarTarjetaRecuperacion(BaseModel):
-    token: str
-    ultimos_digitos: str
-    fecha_expiracion: str
-    codigo_seguridad: str
+    token: str = Field(min_length=1)
+    ultimos_digitos: str = Field(pattern=r"^\d{6}$")
+    fecha_expiracion: str = Field(min_length=4, max_length=7)
+    codigo_seguridad: str = Field(pattern=r"^\d{3,4}$")
 
 
 class NuevaTarjeta(BaseModel):
@@ -141,228 +154,6 @@ app.add_middleware(
 # ==========================================================
 
 app.include_router(ia_router)
-
-
-# ==========================================================
-# CREAR TABLAS
-# ==========================================================
-
-@app.on_event("startup")
-def startup():
-
-    Base.metadata.create_all(
-        bind=engine
-    )
-
-    columnas_usuario = {
-        columna["name"]
-        for columna in inspect(engine).get_columns("usuario")
-    }
-
-    columnas_cuentas = {
-        columna["name"]
-        for columna in inspect(engine).get_columns("cuentas")
-    }
-
-    columnas_administradores = {
-        columna["name"]
-        for columna in inspect(engine).get_columns("administradores")
-    }
-
-    columnas_tarjetas = {
-        columna["name"]
-        for columna in inspect(engine).get_columns("tarjetas")
-    }
-
-    with engine.begin() as conexion:
-        conexion.execute(text(
-            """
-            CREATE TABLE IF NOT EXISTS asesores_banco (
-                id_asesor INT AUTO_INCREMENT PRIMARY KEY,
-                id_usuario INT NULL,
-                nombre VARCHAR(100) NULL,
-                documento VARCHAR(50) NULL,
-                tipo_documento VARCHAR(50) NULL,
-                email VARCHAR(100) NULL,
-                codigo_asesor VARCHAR(30) NOT NULL UNIQUE,
-                especialidad VARCHAR(100),
-                estado ENUM('activo', 'inactivo') NOT NULL DEFAULT 'activo',
-                fecha_ingreso DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-        ))
-
-    columnas_asesores = {
-        columna["name"]
-        for columna in inspect(engine).get_columns("asesores_banco")
-    }
-
-    claves_asesores = inspect(engine).get_foreign_keys("asesores_banco")
-
-    with engine.begin() as conexion:
-
-        if "id_usuario" not in columnas_administradores:
-
-            conexion.execute(text(
-                "ALTER TABLE administradores "
-                "ADD COLUMN id_usuario INT NULL UNIQUE, "
-                "ADD CONSTRAINT fk_administradores_usuario "
-                "FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)"
-            ))
-
-        if "fecha_expiracion" not in columnas_tarjetas:
-            conexion.execute(text(
-                "ALTER TABLE tarjetas "
-                "ADD COLUMN fecha_expiracion CHAR(5) NULL"
-            ))
-
-        if "codigo_seguridad" not in columnas_tarjetas:
-            conexion.execute(text(
-                "ALTER TABLE tarjetas "
-                "ADD COLUMN codigo_seguridad CHAR(4) NULL"
-            ))
-        else:
-            conexion.execute(text(
-                "ALTER TABLE tarjetas "
-                "MODIFY COLUMN codigo_seguridad CHAR(4) NULL"
-            ))
-
-        if "codigo_postal" not in columnas_usuario:
-            conexion.execute(text(
-                "ALTER TABLE usuario ADD COLUMN codigo_postal VARCHAR(6) NULL"
-            ))
-
-        if "fecha_estado" not in columnas_cuentas:
-            conexion.execute(text(
-                "ALTER TABLE cuentas ADD COLUMN fecha_estado DATETIME NULL"
-            ))
-            conexion.execute(text(
-                "UPDATE cuentas SET fecha_estado = CURRENT_TIMESTAMP "
-                "WHERE estado = 'bloqueada' AND fecha_estado IS NULL"
-            ))
-
-        if "ciudad" not in columnas_usuario:
-            conexion.execute(text(
-                "ALTER TABLE usuario ADD COLUMN ciudad VARCHAR(100) NULL"
-            ))
-
-        if "localidad" not in columnas_usuario:
-            conexion.execute(text(
-                "ALTER TABLE usuario ADD COLUMN localidad VARCHAR(100) NULL"
-            ))
-
-        if "barrio" not in columnas_usuario:
-            conexion.execute(text(
-                "ALTER TABLE usuario ADD COLUMN barrio VARCHAR(100) NULL"
-            ))
-
-        if "nombre" not in columnas_asesores:
-            conexion.execute(text(
-                "ALTER TABLE asesores_banco ADD COLUMN nombre VARCHAR(100) NULL"
-            ))
-
-        if "documento" not in columnas_asesores:
-            conexion.execute(text(
-                "ALTER TABLE asesores_banco ADD COLUMN documento VARCHAR(50) NULL"
-            ))
-
-        if "tipo_documento" not in columnas_asesores:
-            conexion.execute(text(
-                "ALTER TABLE asesores_banco "
-                "ADD COLUMN tipo_documento VARCHAR(50) NULL"
-            ))
-
-        conexion.execute(text(
-            "UPDATE asesores_banco "
-            "SET tipo_documento = 'Cedula de ciudadania' "
-            "WHERE tipo_documento IS NULL OR tipo_documento = ''"
-        ))
-
-        if "email" not in columnas_asesores:
-            conexion.execute(text(
-                "ALTER TABLE asesores_banco ADD COLUMN email VARCHAR(100) NULL"
-            ))
-
-        if any(
-            clave.get("name") == "fk_asesor_usuario"
-            for clave in claves_asesores
-        ):
-            conexion.execute(text(
-                "ALTER TABLE asesores_banco DROP FOREIGN KEY fk_asesor_usuario"
-            ))
-
-        conexion.execute(text(
-            "ALTER TABLE asesores_banco MODIFY COLUMN id_usuario INT NULL"
-        ))
-
-        if "tope_ahorros" not in columnas_usuario:
-
-            conexion.execute(text(
-                "ALTER TABLE usuario "
-                "ADD COLUMN tope_ahorros DECIMAL(15, 2) "
-                "NOT NULL DEFAULT 0"
-            ))
-
-        if "tope_corriente" not in columnas_usuario:
-
-            conexion.execute(text(
-                "ALTER TABLE usuario "
-                "ADD COLUMN tope_corriente DECIMAL(15, 2) "
-                "NOT NULL DEFAULT 0"
-            ))
-
-        if "llave_bre_b" not in columnas_usuario:
-
-            conexion.execute(text(
-                "ALTER TABLE usuario "
-                "ADD COLUMN llave_bre_b VARCHAR(100) UNIQUE NULL"
-            ))
-
-        if "rol" not in columnas_usuario:
-
-            conexion.execute(text(
-                "ALTER TABLE usuario "
-                "ADD COLUMN rol VARCHAR(20) NOT NULL DEFAULT 'usuario'"
-            ))
-
-        if "codigo_registro" not in columnas_usuario:
-
-            conexion.execute(text(
-                "ALTER TABLE usuario "
-                "ADD COLUMN codigo_registro VARCHAR(6) UNIQUE NULL"
-            ))
-
-        if "numero_cuenta" not in columnas_cuentas:
-
-            conexion.execute(text(
-                "ALTER TABLE cuentas "
-                "ADD COLUMN numero_cuenta VARCHAR(16) UNIQUE NULL"
-            ))
-
-        if "tipo_operacion" not in columnas_cuentas:
-
-            conexion.execute(text(
-                "ALTER TABLE cuentas "
-                "ADD COLUMN tipo_operacion ENUM('debito', 'credito') "
-                "NOT NULL DEFAULT 'debito'"
-            ))
-
-        cuentas_sin_numero = conexion.execute(text(
-            "SELECT id_cuenta FROM cuentas WHERE numero_cuenta IS NULL OR numero_cuenta = ''"
-        )).fetchall()
-
-        for (id_cuenta,) in cuentas_sin_numero:
-            numero = generar_numero_cuenta()
-            while conexion.execute(
-                text("SELECT 1 FROM cuentas WHERE numero_cuenta = :numero LIMIT 1"),
-                {"numero": numero}
-            ).first() is not None:
-                numero = generar_numero_cuenta()
-
-            conexion.execute(
-                text("UPDATE cuentas SET numero_cuenta = :numero WHERE id_cuenta = :id_cuenta"),
-                {"numero": numero, "id_cuenta": id_cuenta}
-            )
 
 
 # ==========================================================
@@ -598,12 +389,12 @@ def ubicacion_real(
         return False
 
 
-@app.post("/register")
+@app.post("/register", response_model=RegistroRespuesta)
 def register(
-    data: dict,
+    data: UsuarioRegistroSchema,
     db: Session = Depends(get_db)
 ):
-    return registrar_usuario(data, db, "usuario")
+    return registrar_usuario(data.model_dump(exclude_none=True), db, "usuario")
 
 
 @app.get("/ubicaciones")
@@ -626,11 +417,12 @@ def obtener_ubicaciones(db: Session = Depends(get_db)):
     return ubicaciones
 
 
-@app.post("/register-asesor")
+@app.post("/register-asesor", response_model=RegistroRespuesta)
 def register_asesor(
-    data: dict,
+    data: UsuarioRegistroSchema,
     db: Session = Depends(get_db)
 ):
+    data = data.model_dump(exclude_none=True)
     codigo_autorizacion = os.getenv("ASESOR_REGISTRATION_CODE")
     codigo_recibido = str(data.get("codigo_autorizacion", ""))
 
@@ -1038,11 +830,12 @@ def formatear_numero_cuenta(numero_actual: str | None, ultimos_digitos: str) -> 
 # LOGIN
 # ==========================================================
 
-@app.post("/asesor-login")
+@app.post("/asesor-login", response_model=LoginRespuesta)
 def asesor_login(
-    data: dict,
+    data: AsesorLoginSchema,
     db: Session = Depends(get_db)
 ):
+    data = data.model_dump()
     email_asesor = str(data.get("email", "")).strip().lower()
     codigo_asesor = str(data.get("codigo_asesor", "")).strip()
 
@@ -1125,10 +918,11 @@ def asesor_login(
 
 @app.post("/administradores/asesores")
 def registrar_codigo_asesor(
-    data: dict,
+    data: AsesorRegistroSchema,
     current_user: int = Depends(token_required),
     db: Session = Depends(get_db)
 ):
+    data = data.model_dump(exclude_unset=True)
     administrador = db.query(Administrador).filter(
         Administrador.id_usuario == current_user
     ).first()
@@ -1203,7 +997,7 @@ def registrar_codigo_asesor(
     }
 
 
-@app.get("/administradores/asesores")
+@app.get("/administradores/asesores", response_model=AsesoresRespuesta)
 def consultar_asesores(
     codigo_asesor: str | None = None,
     current_user: int = Depends(token_required),
@@ -1293,10 +1087,11 @@ def eliminar_asesor(
 @app.put("/administradores/asesores/{id_asesor}")
 def actualizar_asesor(
     id_asesor: int,
-    data: dict,
+    data: AsesorActualizacionSchema,
     current_user: int = Depends(token_required),
     db: Session = Depends(get_db)
 ):
+    data = data.model_dump(exclude_unset=True)
     administrador = db.query(Administrador).filter(
         Administrador.id_usuario == current_user
     ).first()
@@ -1420,11 +1215,12 @@ def actualizar_asesor(
     }
 
 
-@app.post("/administrador-login")
+@app.post("/administrador-login", response_model=LoginRespuesta)
 def administrador_login(
-    data: dict,
+    data: AdministradorLoginSchema,
     db: Session = Depends(get_db)
 ):
+    data = data.model_dump()
     documento = str(data.get("documento", "")).strip()
     codigo_administrador = str(
         data.get("codigo_administrador", "")
@@ -1491,14 +1287,20 @@ def administrador_login(
         }
     }
 
-@app.post("/login")
+@app.post("/login", response_model=LoginRespuesta)
 def login(
 
-    data: dict,
+    data: UsuarioLoginSchema,
 
     db: Session = Depends(get_db)
 
 ):
+
+    data = (
+        data.model_dump()
+        if isinstance(data, UsuarioLoginSchema)
+        else UsuarioLoginSchema.model_validate(data).model_dump()
+    )
 
     rol_solicitado = data.get(
         "rol",
@@ -1731,7 +1533,7 @@ def perfil(
 # USUARIO
 # ==========================================================
 
-@app.get("/usuarios")
+@app.get("/usuarios", response_model=list[UsuarioRespuesta])
 def listar_usuarios(
     current_user: int = Depends(administrador_o_asesor_requerido),
     db: Session = Depends(get_db)
@@ -1761,7 +1563,7 @@ def listar_usuarios(
     ]
 
 
-@app.get("/administradores/cuentas")
+@app.get("/administradores/cuentas", response_model=CuentasAdministradorRespuesta)
 def listar_cuentas_admin(
     current_user: int = Depends(administrador_o_asesor_requerido),
     db: Session = Depends(get_db)
@@ -1954,10 +1756,11 @@ def listar_cuentas_usuario(
 @app.put("/usuarios/{id_usuario}/perfil")
 def actualizar_perfil_usuario(
     id_usuario: int,
-    data: dict,
+    data: UsuarioActualizacionSchema,
     asesor=Depends(asesor_requerido),
     db: Session = Depends(get_db)
 ):
+    data = data.model_dump(exclude_unset=True)
     usuario = db.query(Usuario).filter(
         Usuario.id_usuario == id_usuario,
         Usuario.rol == "usuario",
@@ -2114,13 +1917,15 @@ def obtener_usuario(
 @app.put("/usuario/perfil")
 def actualizar_perfil(
 
-    data: dict,
+    data: PerfilActualizacionSchema,
 
     current_user: int = Depends(token_required),
 
     db: Session = Depends(get_db)
 
 ):
+
+    data = data.model_dump(exclude_unset=True)
 
     usuario = db.query(Usuario).filter(
 
@@ -3990,28 +3795,6 @@ def cuentas_destino(
 # MODELOS TRANSFERENCIA
 # ==========================================================
 
-class Transferencia(BaseModel):
-
-    origen: str
-
-    destino: int
-
-    monto: Decimal
-
-    descripcion: str = ""
-
-
-class TransferenciaEntreCuentas(BaseModel):
-
-    origen: str
-
-    destino: str
-
-    monto: Decimal
-
-    descripcion: str = ""
-
-
 # ==========================================================
 # CONVERTIR TIPO DE CUENTA
 # ==========================================================
@@ -4047,7 +3830,7 @@ def tipo_cuenta(origen: str):
 @app.post("/transferencias/entre-cuentas")
 def transferir_entre_cuentas(
 
-    data: TransferenciaEntreCuentas,
+    data: TransferenciaEntreCuentasSchema,
 
     current_user: int = Depends(token_required),
 
@@ -4254,7 +4037,7 @@ def transferir_entre_cuentas(
 @app.post("/transferencias")
 def realizar_transferencia(
 
-    data: Transferencia,
+    data: TransferenciaSchema,
 
     current_user: int = Depends(token_required),
 

@@ -4,9 +4,12 @@ version = "0.1.0"
 description = "Backend FastAPI de la billetera Financiero"
 requires-python = "==3.12.*"
 dependencies = [
-    "fastapi",
+    "fastapi>=0.115,<1",
+    "pydantic>=2.7,<3",
+    "email-validator>=2,<3",
     "uvicorn[standard]",
     "sqlalchemy",
+    "alembic",
     "PyMySQL",
     "python-jose[cryptography]",
     "passlib[argon2,bcrypt]",
