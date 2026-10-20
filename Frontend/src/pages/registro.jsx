@@ -4,6 +4,26 @@ import Login from "./login";
 import Recuperacion from "./recuperacion";
 import "../styles/registro.css";
 
+const obtenerMensajeError = (detalle) => {
+  if (typeof detalle === "string") {
+    return detalle;
+  }
+
+  if (Array.isArray(detalle)) {
+    return detalle.map(obtenerMensajeError).filter(Boolean).join(" ");
+  }
+
+  if (detalle && typeof detalle === "object") {
+    if (detalle.msg || detalle.message) {
+      return obtenerMensajeError(detalle.msg || detalle.message);
+    }
+
+    return JSON.stringify(detalle);
+  }
+
+  return detalle == null ? "No se pudo completar el registro." : String(detalle);
+};
+
 function Registro({ isModal = false, onClose }) {
   const navigate = useNavigate();
 
@@ -70,6 +90,11 @@ function Registro({ isModal = false, onClose }) {
       return;
     }
 
+    if (password.length < 8) {
+      setMensaje("La contraseña debe tener al menos 8 caracteres");
+      return;
+    }
+
     if (!/^\d+$/.test(documento.trim())) {
       setMensaje("El número de documento solo debe contener números");
       return;
@@ -114,7 +139,7 @@ function Registro({ isModal = false, onClose }) {
       const data = await res.json();
 
       if (!res.ok) {
-        setMensaje(data.detail);
+        setMensaje(obtenerMensajeError(data.detail));
         return;
       }
 
