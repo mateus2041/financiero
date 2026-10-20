@@ -7,6 +7,32 @@ import logoProyecto from "../assets/images/logo.jpeg";
 
 const API_URL = "http://localhost:8000";
 
+const obtenerMensajeError = (error, mensajePredeterminado) => {
+  const detalle = error.response?.data?.detail;
+
+  const convertirDetalle = (valor) => {
+    if (typeof valor === "string") {
+      return valor;
+    }
+
+    if (Array.isArray(valor)) {
+      return valor.map(convertirDetalle).filter(Boolean).join(" ");
+    }
+
+    if (valor && typeof valor === "object") {
+      if (valor.msg || valor.message) {
+        return convertirDetalle(valor.msg || valor.message);
+      }
+
+      return JSON.stringify(valor);
+    }
+
+    return valor == null ? "" : String(valor);
+  };
+
+  return convertirDetalle(detalle) || mensajePredeterminado;
+};
+
 export default function ListaUsuarios() {
   const navigate = useNavigate();
 
@@ -184,10 +210,7 @@ export default function ListaUsuarios() {
       console.error("Error al cargar usuarios:", error);
 
       if (error.response) {
-        setError(
-          error.response.data?.detail ||
-            "No se pudieron cargar los usuarios"
-        );
+        setError(obtenerMensajeError(error, "No se pudieron cargar los usuarios"));
       } else {
         setError("No se pudo conectar con el servidor");
       }
@@ -245,8 +268,7 @@ export default function ListaUsuarios() {
       );
 
       setErrorDetalle(
-        error.response?.data?.detail ||
-          "No se pudieron cargar las cuentas del usuario"
+        obtenerMensajeError(error, "No se pudieron cargar las cuentas del usuario")
       );
     } finally {
       setCargandoDetalle(false);
@@ -337,8 +359,7 @@ export default function ListaUsuarios() {
       setMensajeEdicion("Cuenta actualizada correctamente.");
     } catch (error) {
       setErrorDetalle(
-        error.response?.data?.detail ||
-          "No se pudo actualizar la cuenta del usuario."
+        obtenerMensajeError(error, "No se pudo actualizar la cuenta del usuario.")
       );
     } finally {
       setGuardandoCuenta(null);
@@ -377,8 +398,7 @@ export default function ListaUsuarios() {
     } catch (error) {
       console.error("Error al cargar las tarjetas de la cuenta:", error);
       setErrorTarjetasCuenta(
-        error.response?.data?.detail ||
-          "No se pudieron cargar las tarjetas de la cuenta."
+        obtenerMensajeError(error, "No se pudieron cargar las tarjetas de la cuenta.")
       );
     } finally {
       setCargandoTarjetasCuenta(null);
@@ -478,8 +498,7 @@ export default function ListaUsuarios() {
     } catch (error) {
       console.error("Error al actualizar usuario:", error);
       setErrorEdicion(
-        error.response?.data?.detail ||
-          "No se pudo actualizar la información del usuario."
+        obtenerMensajeError(error, "No se pudo actualizar la información del usuario.")
       );
     } finally {
       setGuardandoEdicion(false);
