@@ -73,7 +73,6 @@ services:
 
       DB_NAME: ${DB_NAME:-billetera}
 
-      DATABASE_URL: mysql+pymysql://app_user:app_pass@db:3306/billetera
 
 
       ASESOR_REGISTRATION_CODE: ${ASESOR_REGISTRATION_CODE:-}
