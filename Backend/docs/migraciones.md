@@ -64,4 +64,8 @@ docker compose run --rm migrate uv run alembic -c Backend/alembic.ini stamp e869
 docker compose run --rm migrate uv run alembic -c Backend/alembic.ini upgrade head
 ```
 
+<<<<<<< HEAD
 La revisión posterior normaliza algunos datos heredados; por eso se marca específicamente la revisión inicial y luego se ejecuta `upgrade head`, en vez de marcar `head`. Si hay diferencias de esquema, cree y revise una revisión de adopción específica; no las oculte con `stamp head`.
+=======
+La revisión posterior normaliza algunos datos heredados; por eso se marca específicamente la revisión inicial y luego se ejecuta `upgrade head`, en vez de marcar `head`. Si hay diferencias de esquema, cree y revise una revisión de adopción específica; no las oculte con `stamp head`.
+>>>>>>> develop
