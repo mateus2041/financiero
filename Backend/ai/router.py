@@ -1,131 +1,60 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from Backend.dependencias import get_db
 from Backend.security import token_required
+from .llm import LLMUnavailableError, chat_completion
 
-from .chains import chain
-from .tools import (
-    obtener_usuario,
-    obtener_cuenta,
-    obtener_transacciones
-)
-
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/ia",
-    tags=["Inteligencia Artificial"]
+    tags=["Inteligencia Artificial"],
 )
 
 
-
 class Consulta(BaseModel):
-    pregunta:str
-
+    pregunta: str = Field(min_length=1, max_length=2000)
 
 
 @router.post("/chat")
-def chat(
-    data:Consulta,
-    current_user:int=Depends(token_required),
-    db:Session=Depends(get_db)
-):
-
-    if chain is None:
+async def chat(
+    data: Consulta,
+    current_user: int = Depends(token_required),
+) -> dict[str, str]:
+    del current_user
+    pregunta = data.pregunta.strip()
+    if not pregunta:
         raise HTTPException(
-            status_code=503,
-            detail="La IA no está configurada. Agrega OPENAI_API_KEY en Backend/.env para habilitar /ia/chat."
+            status_code=422,
+            detail="El mensaje no puede estar vacío.",
         )
 
     try:
-
-        usuario = obtener_usuario(
-            db,
-            current_user
+        respuesta = await chat_completion(
+            [
+                {
+                    "role": "system",
+                    "content": (
+                        "Eres un asistente académico del programa ADSO. "
+                        "Responde en español de forma clara y precisa, "
+                        "apoyando el aprendizaje de programación y desarrollo de software."
+                    ),
+                },
+                {"role": "user", "content": pregunta},
+            ]
         )
-
-
-        if not usuario:
-            raise HTTPException(
-                status_code=404,
-                detail="Usuario no encontrado"
-            )
-
-
-        cuenta = obtener_cuenta(
-            db,
-            current_user
-        )
-
-
-        historial = ""
-
-
-        if cuenta:
-
-            movimientos = obtener_transacciones(
-                db,
-                cuenta.id_cuenta
-            )
-
-
-            for movimiento in movimientos:
-
-                historial += (
-                    f"Tipo: {movimiento.tipo}\n"
-                    f"Monto: {movimiento.monto}\n"
-                    f"Descripción: {movimiento.descripcion}\n\n"
-                )
-
-
-
-        contexto = f"""
-
-Nombre:
-{usuario.nombre}
-
-Documento:
-{usuario.documento}
-
-Correo:
-{usuario.email}
-
-
-Transacciones:
-
-{historial}
-
-"""
-
-
-        if chain is None:
-            raise HTTPException(
-                status_code=503,
-                detail="La IA no está configurada. Agrega OPENAI_API_KEY al archivo .env."
-            )
-
-        respuesta = chain.invoke(
-            {
-                "pregunta":data.pregunta,
-                "contexto":contexto
-            }
-        )
-
-
-        return {
-            "respuesta":respuesta.content
-        }
-
-
-
-    except HTTPException:
-        raise
-
-
-    except Exception as e:
-
+        return {"respuesta": respuesta, "reply": respuesta}
+    except LLMUnavailableError as exc:
+        logger.warning("El servicio LLM no está disponible para /ia/chat.")
+        raise HTTPException(
+            status_code=503,
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        logger.exception("Error inesperado al atender /ia/chat.")
         raise HTTPException(
             status_code=500,
-            detail=str(e)
-        )
+            detail="No se pudo procesar la solicitud.",
+        ) from exc

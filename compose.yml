@@ -43,52 +43,6 @@ services:
       - billetera_net
 
 
-  migrate:
-
-    build:
-
-      context: .
-
-      dockerfile: Backend/Dockerfile
-
-    restart: "no"
-
-    depends_on:
-
-      db:
-
-        condition: service_healthy
-
-    environment:
-
-      DB_USER: ${MYSQL_APP_USER:-app_user}
-
-      DB_PASSWORD: ${MYSQL_APP_PASSWORD:?Define MYSQL_APP_PASSWORD en .env}
-
-      DB_HOST: db
-
-      DB_PORT: 3306
-
-      DB_NAME: ${DB_NAME:-billetera}
-
-      ASESOR_REGISTRATION_CODE: ${ASESOR_REGISTRATION_CODE:-}
-
-      PYTHONPATH: /app
-
-    volumes:
-
-      - .:/app
-      - backend_venv:/app/.venv
-
-    working_dir: /app
-
-    command: uv run alembic -c Backend/alembic.ini upgrade head
-
-    networks:
-
-      - billetera_net
-
-
   backend:
 
     build:
@@ -107,10 +61,6 @@ services:
 
         condition: service_healthy
 
-      migrate:
-
-        condition: service_completed_successfully
-
     environment:
 
       DB_USER: ${MYSQL_APP_USER:-app_user}
@@ -122,6 +72,9 @@ services:
       DB_PORT: 3306
 
       DB_NAME: ${DB_NAME:-billetera}
+
+      DATABASE_URL: mysql+pymysql://app_user:app_pass@db:3306/billetera
+
 
       ASESOR_REGISTRATION_CODE: ${ASESOR_REGISTRATION_CODE:-}
 
@@ -138,7 +91,7 @@ services:
 
     working_dir: /app
 
-    command: uv run uvicorn Backend.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn Backend.main:app --host 0.0.0.0 --port 8000 --reload
 
     networks:
 
