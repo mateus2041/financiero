@@ -1,60 +1,95 @@
-import logging
+﻿import logging
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field, ValidationError
 
+from Backend.ai.chains import generar_respuesta
 from Backend.security import token_required
-from .llm import LLMUnavailableError, chat_completion
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(
+ia_router = APIRouter(
     prefix="/ia",
     tags=["Inteligencia Artificial"],
 )
+router = ia_router
+
+
+class MensajeChat(BaseModel):
+    mensaje: str = Field(..., min_length=1, max_length=4000)
+    historial: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class RespuestaChat(BaseModel):
+    respuesta: str
 
 
 class Consulta(BaseModel):
-    pregunta: str = Field(min_length=1, max_length=2000)
+    pregunta: str = Field(..., min_length=1, max_length=2000)
 
 
-@router.post("/chat")
-async def chat(
-    data: Consulta,
+@ia_router.post("/chat", response_model=RespuestaChat)
+async def chat_bancario(
+    request: Request,
     current_user: int = Depends(token_required),
-) -> dict[str, str]:
+):
     del current_user
-    pregunta = data.pregunta.strip()
-    if not pregunta:
+    try:
+        payload = await request.json()
+    except Exception as exc:  # pragma: no cover - validación de entrada
+        raise HTTPException(
+            status_code=400,
+            detail="La solicitud no contiene un JSON válido.",
+        ) from exc
+
+    if not isinstance(payload, dict):
+        raise HTTPException(
+            status_code=400,
+            detail="El cuerpo de la petición debe ser un objeto JSON.",
+        )
+
+    mensaje = payload.get("mensaje")
+    if mensaje is None:
+        mensaje = payload.get("pregunta")
+
+    historial = payload.get("historial", [])
+
+    try:
+        datos = MensajeChat(mensaje=str(mensaje or ""), historial=historial)
+    except ValidationError as exc:
         raise HTTPException(
             status_code=422,
+            detail=exc.errors(),
+        ) from exc
+
+    mensaje_limpio = datos.mensaje.strip()
+    if not mensaje_limpio:
+        raise HTTPException(
+            status_code=400,
             detail="El mensaje no puede estar vacío.",
         )
 
     try:
-        respuesta = await chat_completion(
-            [
-                {
-                    "role": "system",
-                    "content": (
-                        "Eres un asistente académico del programa ADSO. "
-                        "Responde en español de forma clara y precisa, "
-                        "apoyando el aprendizaje de programación y desarrollo de software."
-                    ),
-                },
-                {"role": "user", "content": pregunta},
-            ]
-        )
-        return {"respuesta": respuesta, "reply": respuesta}
-    except LLMUnavailableError as exc:
-        logger.warning("El servicio LLM no está disponible para /ia/chat.")
+        respuesta = generar_respuesta(mensaje_limpio, datos.historial)
+        return {"respuesta": respuesta}
+    except ValueError as exc:
         raise HTTPException(
-            status_code=503,
+            status_code=422,
             detail=str(exc),
         ) from exc
-    except Exception as exc:
+    except RuntimeError as exc:
+        logger.warning("El asistente bancario no pudo responder: %s", exc)
+        raise HTTPException(
+            status_code=502,
+            detail="No fue posible obtener una respuesta del asistente bancario.",
+        ) from exc
+    except Exception:
         logger.exception("Error inesperado al atender /ia/chat.")
         raise HTTPException(
-            status_code=500,
-            detail="No se pudo procesar la solicitud.",
-        ) from exc
+            status_code=502,
+            detail="No fue posible obtener una respuesta del asistente bancario.",
+        )
+
+
+chat = chat_bancario

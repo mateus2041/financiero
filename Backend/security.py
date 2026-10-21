@@ -1,4 +1,4 @@
-from passlib.context import CryptContext
+﻿from passlib.context import CryptContext
 import bcrypt
 from jose import JWTError, jwt
 from fastapi import HTTPException, Depends
@@ -32,15 +32,12 @@ security = HTTPBearer(
 )
 
 
-
 # =========================
 # ENCRIPTAR PASSWORD
 # =========================
 
 def hash_password(password: str):
-
     return pwd_context.hash(password)
-
 
 
 # =========================
@@ -51,25 +48,18 @@ def check_password(
     plain: str,
     hashed: str
 ):
-
     try:
-
         if hashed.startswith(("$2a$", "$2b$", "$2y$")):
-
             return bcrypt.checkpw(
                 plain.encode("utf-8"),
                 hashed.encode("utf-8")
             )
-
         return pwd_context.verify(
             plain,
             hashed
         )
-
     except Exception:
-
         return False
-
 
 
 # =========================
@@ -77,35 +67,22 @@ def check_password(
 # =========================
 
 def generate_token(identity: int):
-
-
     expire = datetime.utcnow() + timedelta(
         minutes=ACCESS_TOKEN_EXPIRE_MINUTES
     )
 
-
     payload = {
-
         "sub": str(identity),
-
         "exp": expire
-
     }
 
-
     token = jwt.encode(
-
         payload,
-
         SECRET_KEY,
-
         algorithm=ALGORITHM
-
     )
 
-
     return token
-
 
 
 # =========================
@@ -115,74 +92,31 @@ def generate_token(identity: int):
 def token_required(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
-
     try:
-
-
         token = credentials.credentials
-
-
-        print("======================")
-        print("TOKEN RECIBIDO:")
-        print(token)
-        print("======================")
-
-
         payload = jwt.decode(
-
             token,
-
             SECRET_KEY,
-
             algorithms=[ALGORITHM]
-
         )
 
-
         usuario_id = payload.get("sub")
-
-
         if usuario_id is None:
-
             raise HTTPException(
-
                 status_code=401,
-
                 detail="Token sin usuario"
-
             )
-
 
         return int(usuario_id)
 
-
-
-    except JWTError as e:
-
-
-        print("ERROR JWT:", e)
-
-
+    except JWTError:
         raise HTTPException(
-
             status_code=401,
-
             detail="Token inválido o expirado"
-
         )
 
-
-
-    except Exception as e:
-
-
-        print("ERROR TOKEN:", e)
-
-
+    except Exception:
         raise HTTPException(
-
             status_code=401,
-
             detail="Token inválido"
-
         )
