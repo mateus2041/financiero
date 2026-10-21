@@ -4,13 +4,44 @@ import "../styles/chatIA.css";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 
-function ChatIA() {
-  const [pregunta, setPregunta] = useState("");
-  const [mensajes, setMensajes] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+const OPCIONES_CHAT = [
+  { etiqueta: "Cuentas", pregunta: "Quiero información sobre cuentas de ahorro y corrientes." },
+  { etiqueta: "Transferencias", tipo: "transferencias" },
+  { etiqueta: "Historial", pregunta: "Quiero saber cómo consultar mi historial de transacciones." },
+  { etiqueta: "Llaves Bre-B", pregunta: "Quiero información sobre las llaves Bre-B." },
+  { etiqueta: "Certificados", pregunta: "Quiero saber cómo obtener un certificado bancario." },
+  { etiqueta: "Seguridad", pregunta: "Quiero recomendaciones para proteger la seguridad de mi cuenta." },
+  { etiqueta: "Uso de la aplicación", pregunta: "Necesito ayuda para usar la aplicación." },
+];
 
-  const enviarPregunta = async () => {
-    const texto = pregunta.trim();
+const OPCIONES_TRANSFERENCIA = [
+  {
+    etiqueta: "Entre mis cuentas",
+    pregunta: "Necesito ayuda para transferir dinero entre mis propias cuentas.",
+  },
+  {
+    etiqueta: "A otra persona con Bre-B",
+    pregunta: "Necesito información para enviar dinero a otra persona usando una llave Bre-B.",
+  },
+  {
+    etiqueta: "Otro tipo de transferencia",
+    pregunta: "Necesito ayuda con otro tipo de transferencia.",
+  },
+];
+
+function ChatIA({ onClose }) {
+  const [pregunta, setPregunta] = useState("");
+  const [mensajes, setMensajes] = useState([
+    {
+      tipo: "ia",
+      texto: "¡Hola! Soy el asistente virtual de Financiero. ¿En qué puedo ayudarte hoy?",
+    },
+  ]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [tipoOpciones, setTipoOpciones] = useState("inicio");
+
+  const enviarPregunta = async (textoSeleccionado) => {
+    const texto = (textoSeleccionado || pregunta).trim();
     if (!texto || isLoading) return;
 
     const token = localStorage.getItem("token");
@@ -22,6 +53,7 @@ function ChatIA() {
       }));
 
     setMensajes((prev) => [...prev, { tipo: "usuario", texto }]);
+    setTipoOpciones(null);
     setPregunta("");
     setIsLoading(true);
 
@@ -64,9 +96,38 @@ function ChatIA() {
     }
   };
 
+  const seleccionarOpcion = (opcion) => {
+    if (opcion.tipo === "transferencias") {
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: "Transferencias" },
+        {
+          tipo: "ia",
+          texto: "¿Qué tipo de transferencia necesitas?",
+        },
+      ]);
+      setTipoOpciones("transferencias");
+      return;
+    }
+
+    enviarPregunta(opcion.pregunta);
+  };
+
   return (
     <div className="chat-container">
-      <div className="chat-header">Asistente IA 🤖</div>
+      <div className="chat-header">
+        <span id="asistente-titulo">Asistente IA 🤖</span>
+        {onClose && (
+          <button
+            type="button"
+            className="chat-close"
+            onClick={onClose}
+            aria-label="Cerrar asistente"
+          >
+            ×
+          </button>
+        )}
+      </div>
 
       <div className="chat-body">
         {mensajes.map((msg, index) => (
@@ -78,11 +139,30 @@ function ChatIA() {
           </div>
         ))}
 
+        {tipoOpciones && (
+          <div className="chat-opciones" role="group" aria-label="Opciones de ayuda">
+            {(tipoOpciones === "transferencias"
+              ? OPCIONES_TRANSFERENCIA
+              : OPCIONES_CHAT
+            ).map((opcion) => (
+              <button
+                key={opcion.etiqueta}
+                type="button"
+                onClick={() => seleccionarOpcion(opcion)}
+                disabled={isLoading}
+              >
+                {opcion.etiqueta}
+              </button>
+            ))}
+          </div>
+        )}
+
         {isLoading && <div className="ia">Escribiendo...</div>}
       </div>
 
       <div className="chat-footer">
         <input
+          className="chat-input"
           type="text"
           placeholder="Escribe una pregunta..."
           value={pregunta}
