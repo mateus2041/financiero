@@ -8,13 +8,15 @@ from sqlalchemy import (
     Boolean,
     DECIMAL,
     Text,
-    CHAR
+    CHAR,
+    Index,
+    text
 )
 
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
-from Backend.database.database import Base, engine
+from Backend.database.database import Base
 
 
 # =========================================================
@@ -49,6 +51,9 @@ class TipoDocumento(Base):
 class Usuario(Base):
 
     __tablename__ = "usuario"
+    __table_args__ = (
+        Index("codigo_registro", "codigo_registro", unique=True),
+    )
 
     id_usuario = Column(
         Integer,
@@ -97,6 +102,12 @@ class Usuario(Base):
         String(100)
     )
 
+    llave_bre_b = Column(
+        String(100),
+        unique=True,
+        nullable=True
+    )
+
     documento = Column(
         String(50),
         unique=True
@@ -111,21 +122,28 @@ class Usuario(Base):
 
     codigo_registro = Column(
         String(6),
-        unique=True,
         nullable=True,
-        index=True
+        index=False
+    )
+
+    estado = Column(
+        String(20),
+        nullable=False,
+        server_default="activo"
     )
 
     tope_ahorros = Column(
         DECIMAL(15, 2),
         nullable=False,
-        default=0
+        default=0,
+        server_default=text("0.00")
     )
 
     tope_corriente = Column(
         DECIMAL(15, 2),
         nullable=False,
-        default=0
+        default=0,
+        server_default=text("0.00")
     )
 
     fecha_creacion = Column(
@@ -186,14 +204,13 @@ class Administrador(Base):
 
     id_administrador = Column(
         Integer,
-        primary_key=True,
-        index=True
+        primary_key=True
     )
 
     id_usuario = Column(
         Integer,
         ForeignKey("usuario.id_usuario"),
-        nullable=False,
+        nullable=True,
         unique=True
     )
 
@@ -206,7 +223,37 @@ class Administrador(Base):
     fecha_ingreso = Column(
         DateTime,
         nullable=False,
-        default=datetime.utcnow
+        default=datetime.utcnow,
+        server_default=text("CURRENT_TIMESTAMP")
+    )
+
+
+class AsesorBanco(Base):
+
+    __tablename__ = "asesores_banco"
+    __table_args__ = (
+        Index("id_usuario", "id_usuario", unique=True),
+    )
+
+    id_asesor = Column(Integer, primary_key=True)
+    id_usuario = Column(Integer, nullable=True)
+    nombre = Column(String(100), nullable=True)
+    documento = Column(String(50), nullable=True)
+    tipo_documento = Column(String(50), nullable=True)
+    email = Column(String(100), nullable=True)
+    codigo_asesor = Column(String(30), nullable=False, unique=True)
+    especialidad = Column(String(100), nullable=True)
+    estado = Column(
+        Enum("activo", "inactivo", name="estado_asesor_enum"),
+        nullable=False,
+        default="activo",
+        server_default="activo"
+    )
+    fecha_ingreso = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        server_default=text("CURRENT_TIMESTAMP")
     )
 
 
@@ -217,6 +264,9 @@ class Administrador(Base):
 class Cuenta(Base):
 
     __tablename__ = "cuentas"
+    __table_args__ = (
+        Index("numero_cuenta", "numero_cuenta", unique=True),
+    )
 
     id_cuenta = Column(
         Integer,
@@ -226,9 +276,7 @@ class Cuenta(Base):
 
     numero_cuenta = Column(
         String(16),
-        unique=True,
-        nullable=False,
-        index=True,
+        nullable=True,
         default=""
     )
 
@@ -262,7 +310,7 @@ class Cuenta(Base):
 
     saldo = Column(
         DECIMAL(15, 2),
-        nullable=False,
+        nullable=True,
         default=0
     )
 
@@ -273,7 +321,7 @@ class Cuenta(Base):
             "bloqueada",
             name="estado_cuenta_enum"
         ),
-        nullable=False,
+        nullable=True,
         default="activa"
     )
 
@@ -394,7 +442,7 @@ class Notificacion(Base):
 
     leido = Column(
         Boolean,
-        nullable=False,
+        nullable=True,
         default=False
     )
 
@@ -453,7 +501,7 @@ class Tarjeta(Base):
             "expirada",
             name="estado_tarjeta_enum"
         ),
-        nullable=False,
+        nullable=True,
         default="activa"
     )
 
@@ -687,10 +735,4 @@ class ControlTopeBreb(Base):
     )
 
 
-# =========================================================
-# 🔹 CREAR TABLAS
-# =========================================================
 
-Base.metadata.create_all(
-    bind=engine
-)
