@@ -1,10 +1,9 @@
-﻿# Python / UV
+# Python / UV
 .venv/
 __pycache__/
 *.pyc
-
+.env
 .scripts
-/scripts/
 .pytest_cache/
 .vscode/
 
