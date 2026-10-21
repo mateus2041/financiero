@@ -7,11 +7,11 @@ WORKDIR /app
 ENV PYTHONPATH=/app \
     UV_LINK_MODE=copy
 
-COPY pyproject.toml uv.lock .python-version ./
-RUN uv sync --frozen
+COPY Backend/requirements.txt ./requirements.txt
+RUN uv pip install --system -r requirements.txt
 
 COPY . .
 
 EXPOSE 8000
 
-CMD ["uv", "run", "uvicorn", "Backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "Backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
