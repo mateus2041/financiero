@@ -1,9 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
 from decimal import Decimal
 from datetime import datetime
 import uuid
+
+from Backend.schemas import (
+    RegistrarLlaveSchema as RegistrarLlave,
+    TransferenciaBreBSchema as TransferenciaBreB,
+)
 
 from Backend.database.database import get_db
 from Backend.models import (
@@ -25,34 +29,6 @@ router = APIRouter(
     prefix="/bre-b",
     tags=["Bre-B"]
 )
-
-
-# =========================================================
-# 🔹 MODELO PARA REGISTRAR LLAVE
-# =========================================================
-
-class RegistrarLlave(BaseModel):
-
-    llave: str
-
-    tipo_llave: str
-
-    id_cuenta: int
-
-
-# =========================================================
-# 🔹 MODELO PARA TRANSFERENCIA
-# =========================================================
-
-class TransferenciaBreB(BaseModel):
-
-    origen: str
-
-    llave_destino: str
-
-    monto: Decimal
-
-    descripcion: str = ""
 
 
 # =========================================================
