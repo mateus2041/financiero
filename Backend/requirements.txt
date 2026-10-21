@@ -19,3 +19,4 @@ langchain-community
 faiss-cpu
 tiktoken
 openai
+groq
