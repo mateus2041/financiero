@@ -73,7 +73,7 @@ services:
 
       DB_NAME: ${DB_NAME:-billetera}
 
-
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
 
       ASESOR_REGISTRATION_CODE: ${ASESOR_REGISTRATION_CODE:-}
 
