@@ -1,131 +1,95 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from pydantic import BaseModel
+﻿import logging
+from typing import Any
 
-from Backend.dependencias import get_db
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field, ValidationError
+
+from Backend.ai.chains import generar_respuesta
 from Backend.security import token_required
 
-from .chains import chain
-from .tools import (
-    obtener_usuario,
-    obtener_cuenta,
-    obtener_transacciones
-)
+logger = logging.getLogger(__name__)
 
-
-router = APIRouter(
+ia_router = APIRouter(
     prefix="/ia",
-    tags=["Inteligencia Artificial"]
+    tags=["Inteligencia Artificial"],
 )
+router = ia_router
 
+
+class MensajeChat(BaseModel):
+    mensaje: str = Field(..., min_length=1, max_length=4000)
+    historial: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class RespuestaChat(BaseModel):
+    respuesta: str
 
 
 class Consulta(BaseModel):
-    pregunta:str
+    pregunta: str = Field(..., min_length=1, max_length=2000)
 
 
-
-@router.post("/chat")
-def chat(
-    data:Consulta,
-    current_user:int=Depends(token_required),
-    db:Session=Depends(get_db)
+@ia_router.post("/chat", response_model=RespuestaChat)
+async def chat_bancario(
+    request: Request,
+    current_user: int = Depends(token_required),
 ):
-
-    if chain is None:
+    del current_user
+    try:
+        payload = await request.json()
+    except Exception as exc:  # pragma: no cover - validación de entrada
         raise HTTPException(
-            status_code=503,
-            detail="La IA no está configurada. Agrega OPENAI_API_KEY en Backend/.env para habilitar /ia/chat."
+            status_code=400,
+            detail="La solicitud no contiene un JSON válido.",
+        ) from exc
+
+    if not isinstance(payload, dict):
+        raise HTTPException(
+            status_code=400,
+            detail="El cuerpo de la petición debe ser un objeto JSON.",
+        )
+
+    mensaje = payload.get("mensaje")
+    if mensaje is None:
+        mensaje = payload.get("pregunta")
+
+    historial = payload.get("historial", [])
+
+    try:
+        datos = MensajeChat(mensaje=str(mensaje or ""), historial=historial)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=exc.errors(),
+        ) from exc
+
+    mensaje_limpio = datos.mensaje.strip()
+    if not mensaje_limpio:
+        raise HTTPException(
+            status_code=400,
+            detail="El mensaje no puede estar vacío.",
         )
 
     try:
-
-        usuario = obtener_usuario(
-            db,
-            current_user
-        )
-
-
-        if not usuario:
-            raise HTTPException(
-                status_code=404,
-                detail="Usuario no encontrado"
-            )
-
-
-        cuenta = obtener_cuenta(
-            db,
-            current_user
-        )
-
-
-        historial = ""
-
-
-        if cuenta:
-
-            movimientos = obtener_transacciones(
-                db,
-                cuenta.id_cuenta
-            )
-
-
-            for movimiento in movimientos:
-
-                historial += (
-                    f"Tipo: {movimiento.tipo}\n"
-                    f"Monto: {movimiento.monto}\n"
-                    f"Descripción: {movimiento.descripcion}\n\n"
-                )
-
-
-
-        contexto = f"""
-
-Nombre:
-{usuario.nombre}
-
-Documento:
-{usuario.documento}
-
-Correo:
-{usuario.email}
-
-
-Transacciones:
-
-{historial}
-
-"""
-
-
-        if chain is None:
-            raise HTTPException(
-                status_code=503,
-                detail="La IA no está configurada. Agrega OPENAI_API_KEY al archivo .env."
-            )
-
-        respuesta = chain.invoke(
-            {
-                "pregunta":data.pregunta,
-                "contexto":contexto
-            }
-        )
-
-
-        return {
-            "respuesta":respuesta.content
-        }
-
-
-
-    except HTTPException:
-        raise
-
-
-    except Exception as e:
-
+        respuesta = generar_respuesta(mensaje_limpio, datos.historial)
+        return {"respuesta": respuesta}
+    except ValueError as exc:
         raise HTTPException(
-            status_code=500,
-            detail=str(e)
+            status_code=422,
+            detail=str(exc),
+        ) from exc
+    except RuntimeError as exc:
+        logger.warning("El asistente bancario no pudo responder: %s", exc)
+        raise HTTPException(
+            status_code=502,
+            detail="No fue posible obtener una respuesta del asistente bancario.",
+        ) from exc
+    except Exception:
+        logger.exception("Error inesperado al atender /ia/chat.")
+        raise HTTPException(
+            status_code=502,
+            detail="No fue posible obtener una respuesta del asistente bancario.",
         )
+
+
+chat = chat_bancario
