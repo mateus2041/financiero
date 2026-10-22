@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Chart from "chart.js/auto";
 import { useNavigate, Link } from "react-router-dom";
+import ChatIA from "./ChatIA";
 import "../styles/cuenta.css";
 
 const Cuenta = () => {
@@ -33,6 +34,7 @@ const Cuenta = () => {
     () => localStorage.getItem("cuenta_corriente_tipo") || "debito"
   );
   const [openTransfer, setOpenTransfer] = useState(false);
+  const [asistenteAbierto, setAsistenteAbierto] = useState(false);
   const [id, setId] = useState("");
   const [actualizando, setActualizando] = useState(false);
   const [actualizacion, setActualizacion] = useState(0);
@@ -43,6 +45,23 @@ const Cuenta = () => {
 
   const mostrarCuentaCorriente = estadoCuentaCorriente === "activa";
   const mostrarCuentaAhorro = estadoCuentaAhorro === "activa";
+
+  useEffect(() => {
+    if (!asistenteAbierto) return undefined;
+
+    const cerrarConEscape = (event) => {
+      if (event.key === "Escape") setAsistenteAbierto(false);
+    };
+    const overflowAnterior = document.body.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", cerrarConEscape);
+
+    return () => {
+      document.body.style.overflow = overflowAnterior;
+      document.removeEventListener("keydown", cerrarConEscape);
+    };
+  }, [asistenteAbierto]);
 
 
   useEffect(() => {
@@ -544,14 +563,15 @@ const Cuenta = () => {
 
           <li>
 
-            <Link
-              to="/ChatIA"
-              className="btn-nav"
+            <button
+              type="button"
+              className="sidebar-link"
+              onClick={() => setAsistenteAbierto(true)}
             >
 
               🤖 Asistente IA
 
-            </Link>
+            </button>
 
 
           </li>
@@ -722,6 +742,38 @@ const Cuenta = () => {
 
         </section>
 
+
+
+        {asistenteAbierto && (
+          <div
+            className="cuenta-asistente-overlay"
+            onClick={() => setAsistenteAbierto(false)}
+          >
+            <section
+              className="cuenta-asistente-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="cuenta-asistente-titulo"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="cuenta-asistente-header">
+                <div>
+                  <h2 id="cuenta-asistente-titulo">Asistente IA</h2>
+                  <p>Tu apoyo para tomar mejores decisiones financieras.</p>
+                </div>
+                <button
+                  type="button"
+                  className="cuenta-asistente-cerrar"
+                  onClick={() => setAsistenteAbierto(false)}
+                  aria-label="Cerrar asistente"
+                >
+                  &times;
+                </button>
+              </div>
+              <ChatIA compacto />
+            </section>
+          </div>
+        )}
 
 
       </main>

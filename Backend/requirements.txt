@@ -1,6 +1,9 @@
 fastapi>=0.115,<1
 pydantic>=2.7,<3
+<<<<<<< HEAD
+=======
 pydantic-settings>=2.4,<3
+>>>>>>> origin/feat/administrator-management-and-code-corrections
 email-validator>=2,<3
 uvicorn[standard]
 sqlalchemy
