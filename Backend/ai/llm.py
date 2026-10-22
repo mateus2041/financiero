@@ -1,33 +1,35 @@
 ﻿import logging
 import os
-<<<<<<< HEAD
 from pathlib import Path
-
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-
-
-# =========================
-# CARGAR VARIABLES .ENV
-# =========================
-
-BACKEND_ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
-load_dotenv(BACKEND_ENV_PATH, override=False)
-=======
 from typing import Any
 
 import httpx
+from dotenv import load_dotenv
 from groq import Groq
+from langchain_openai import ChatOpenAI
 
 from Backend.ai.prompt import PROMPT_BANCARIO
 from .config import settings
 
 logger = logging.getLogger(__name__)
 
+BACKEND_ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
+load_dotenv(BACKEND_ENV_PATH, override=False)
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("LLM_API_KEY")
+if OPENAI_API_KEY:
+    llm = ChatOpenAI(
+        model=os.getenv("LLM_MODEL") or "gpt-4.1-mini",
+        temperature=0.3,
+        api_key=OPENAI_API_KEY,
+        base_url=os.getenv("LLM_BASE_URL") or None,
+    )
+else:
+    llm = None
+
 
 class LLMUnavailableError(RuntimeError):
     """Error cuando ningún proveedor de IA puede responder."""
->>>>>>> origin/feat/administrator-management-and-code-corrections
 
 
 def _extract_reply(data: Any) -> str:
@@ -35,9 +37,6 @@ def _extract_reply(data: Any) -> str:
     if not isinstance(data, dict):
         raise ValueError("La respuesta del proveedor no es un JSON válido.")
 
-<<<<<<< HEAD
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("LLM_API_KEY")
-=======
     choices = data.get("choices")
     if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
         raise ValueError("La respuesta no contiene choices válidas.")
@@ -61,7 +60,6 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("LLM_API_KEY")
             return reply
 
     raise ValueError("El proveedor no devolvió texto.")
->>>>>>> origin/feat/administrator-management-and-code-corrections
 
 
 def _get_groq_api_key() -> str | None:
@@ -69,17 +67,6 @@ def _get_groq_api_key() -> str | None:
     if env_key and env_key.strip():
         return env_key.strip()
 
-<<<<<<< HEAD
-if OPENAI_API_KEY:
-    llm = ChatOpenAI(
-        model=os.getenv("LLM_MODEL") or "gpt-4.1-mini",
-        temperature=0.3,
-        api_key=OPENAI_API_KEY,
-        base_url=os.getenv("LLM_BASE_URL") or None,
-    )
-else:
-    llm = None
-=======
     settings_key = getattr(settings, "primary_api_key", None)
     if settings_key and settings_key.strip():
         return settings_key.strip()
@@ -164,7 +151,7 @@ async def _request_provider(
         response = await client.post(
             url,
             headers={
-                "Authorization": f"Bearer {api_key}",
+                "Authorization": f"Bearer {api_key.strip()}",
                 "Content-Type": "application/json",
             },
             json={
@@ -222,4 +209,3 @@ async def chat_completion(messages: list[dict[str, Any]]) -> str:
     raise LLMUnavailableError(
         "Ningún proveedor LLM pudo completar la solicitud. Verifica la configuración y la disponibilidad del servicio."
     ) from last_error
->>>>>>> origin/feat/administrator-management-and-code-corrections

@@ -2,7 +2,8 @@
 import axios from "axios";
 import "../styles/chatIA.css";
 
-<<<<<<< HEAD
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
+
 const MENSAJE_SALUDO =
   "¡Hola, Gabriel! Soy tu asistente financiero. ¿En qué puedo ayudarte hoy?";
 
@@ -30,22 +31,15 @@ const OPCIONES_ASISTENTE = [
 ];
 
 function ChatIA({ compacto = false }) {
-=======
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
->>>>>>> origin/feat/administrator-management-and-code-corrections
-
-function ChatIA() {
   const [pregunta, setPregunta] = useState("");
   const [mensajes, setMensajes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const enviarPregunta = async () => {
-<<<<<<< HEAD
+    const texto = pregunta.trim();
+    if (!texto || isLoading) return;
 
-
-    if (!pregunta.trim()) return;
-
-    const preguntaEnviada = pregunta.trim();
+    const preguntaEnviada = texto;
     const esSaludo =
       preguntaEnviada
         .toLocaleLowerCase("es")
@@ -60,12 +54,6 @@ function ChatIA() {
       setPregunta("");
       return;
     }
-
-
-=======
-    const texto = pregunta.trim();
-    if (!texto || isLoading) return;
->>>>>>> origin/feat/administrator-management-and-code-corrections
 
     const token = localStorage.getItem("token");
     const historial = mensajes
@@ -100,24 +88,12 @@ function ChatIA() {
       ]);
     } catch (error) {
       let mensaje = "Error al conectar con la IA.";
-<<<<<<< HEAD
-      if (error.response) {
-        if (error.response.status === 503) {
-          mensaje = "El asistente no está disponible por ahora. Inténtalo más tarde.";
-        } else if (
-          error.response.data.detail
-        ) {
-          mensaje =
-            error.response.data.detail;
-        }
-=======
 
       if (error.response?.data?.detail) {
         mensaje =
           typeof error.response.data.detail === "string"
             ? error.response.data.detail
             : "El asistente bancario no está disponible en este momento.";
->>>>>>> origin/feat/administrator-management-and-code-corrections
       } else if (error.request) {
         mensaje = "No hay respuesta del servidor.";
       } else if (error.message) {
@@ -151,8 +127,6 @@ function ChatIA() {
       <div className="chat-header">Asistente IA 🤖</div>
 
       <div className="chat-body">
-<<<<<<< HEAD
-
         {mensajes.map((msg, index) => {
           if (compacto && msg.tipo === "ia" && msg.texto === MENSAJE_SALUDO) {
             return (
@@ -175,18 +149,8 @@ function ChatIA() {
             </div>
           );
         })}
-=======
-        {mensajes.map((msg, index) => (
-          <div
-            key={index}
-            className={msg.tipo === "usuario" ? "usuario" : "ia"}
-          >
-            {msg.texto}
-          </div>
-        ))}
 
         {isLoading && <div className="ia">Escribiendo...</div>}
->>>>>>> origin/feat/administrator-management-and-code-corrections
       </div>
 
       <div className="chat-footer">
