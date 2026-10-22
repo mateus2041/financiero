@@ -20,16 +20,29 @@ orientada al desarrollo local, no acredita un despliegue productivo.
 
 | Componente | Evidencia de versión/configuración | Observación |
 |---|---|---|
+<<<<<<< HEAD
+| API | `Backend/Dockerfile`: imagen `python:3.12-slim`; copia `uv` 0.8.22. `Backend/requirements.txt` incluye FastAPI, Uvicorn, SQLAlchemy y PyMySQL sin fijar versiones. | El Dockerfile también requiere `pyproject.toml`, `uv.lock` y `.python-version` en la raíz; esos archivos no están presentes. |
+=======
 | API | `Backend/Dockerfile`: imagen `python:3.12-slim`; copia `uv` 0.8.22 e instala `Backend/requirements.txt`. El archivo incluye FastAPI, Uvicorn, SQLAlchemy y PyMySQL sin fijar versiones. | Las dependencias no están fijadas mediante un lockfile; el resultado de instalación puede variar. |
+>>>>>>> origin/feat/administrator-management-and-code-corrections
 | Frontend | `Frontend/Dockerfile`: `node:22`. `Frontend/package.json` declara React 19.3.1 y `react-scripts` 5.0.1, entre otras dependencias; `Frontend/package-lock.json` está presente. | Se usa Create React App. Ejecutar `npm ci` desde `Frontend` para respetar el lockfile. |
 | Base de datos | `compose.yml`: imagen `mysql:8.4`, puerto local publicado `3307` hacia el puerto interno `3306`. | Persistencia en `mysql_data`; no se observó un sistema externo de migraciones versionadas. |
 | Pruebas | Hay seis archivos bajo `Backend/tests/`; el frontend declara `test` y `build` en `Frontend/package.json`. | No se ejecutaron pruebas como parte de este entregable. `pytest` no aparece en `Backend/requirements.txt`. |
 | Integraciones | El backend lee variables para correo, OpenAI y registro de asesores. | La disponibilidad de SMTP/OpenAI y sus secretos depende de la configuración del ambiente. |
 
+<<<<<<< HEAD
+**Bloqueo de instalación Docker:** el `Backend/Dockerfile` copia manifiestos de `uv` desde la
+raíz del repositorio que no existen en el árbol local. Por ello, `docker compose up -d
+--build` no debe considerarse un procedimiento verificado y probablemente falla al construir
+el backend. El plan propone abajo un arranque de desarrollo con MySQL en Compose y API y
+frontend ejecutados desde sus carpetas. Corregir/alinear el Dockerfile y los manifiestos es
+un pendiente del proyecto, no una modificación incluida en esta entrega.
+=======
 **Instalación Docker:** el `Backend/Dockerfile` instala dependencias desde
 `Backend/requirements.txt`, que sí existe en el contexto de construcción del repositorio.
 El archivo no fija versiones exactas, por lo que la instalación no es reproducible por
 versión. El flujo Docker debe validarse en el ambiente antes de considerarlo aceptado.
+>>>>>>> origin/feat/administrator-management-and-code-corrections
 
 **Seguridad de configuración:** `compose.yml` contiene credenciales de desarrollo escritas
 directamente en el archivo, y `Backend/.env.example` contiene valores que tienen formato de
@@ -334,7 +347,11 @@ Las frecuencias son una propuesta; el calendario y RPO/RTO deben aprobarse con e
 | 3 | Roles | Ejecutor: desarrollador/operador autorizado. Aprobador de datos y cambios: responsable del negocio. Validador: otro integrante/equipo. Administrador de secretos/base: rol de operaciones. Asignación nominal pendiente; este plan usa solo roles. |
 | 4 | Prerrequisitos | Docker Engine y plugin Compose; Python 3.12 para alinearse con el Dockerfile; Node.js 22 para alinearse con el Dockerfile frontend; npm compatible; Git; PowerShell. Requiere puertos locales 3307, 8000 y 3000 disponibles, conectividad a paquetes y espacio para imágenes, dependencias y datos. Estimación inicial de desarrollo: 2 CPU, 8 GB RAM y 20 GB libres; no medida ni validada. La ficha técnica de Semana 1 no está en este repositorio: confirmar versiones, capacidad y accesos antes de aceptación. |
 | 5 | Preparación | Confirmar rama/versión, ventana y responsable; leer configuración sin publicar valores; revisar secretos y rotarlos si fueran vigentes; confirmar respaldo probado antes de migrar; verificar origen, volumen y disponibilidad de base. No ejecutar `down -v`, comandos de limpieza ni migraciones sobre datos que deban conservarse. |
+<<<<<<< HEAD
+| 6 | Procedimiento | Pasos locales reproducibles abajo. El arranque integral por Docker queda bloqueado por manifiestos `uv` ausentes que exige `Backend/Dockerfile`; registrar la corrección del Dockerfile/manifiestos como pendiente. |
+=======
 | 6 | Procedimiento | Pasos locales reproducibles abajo. El Dockerfile instala las dependencias desde `Backend/requirements.txt`; el build y el arranque integral deben verificarse en el ambiente antes de aceptarlos. |
+>>>>>>> origin/feat/administrator-management-and-code-corrections
 | 7 | Migración de datos | Seguir exclusivamente la sección 2. No hay dataset de origen ni script de migración identificado; no se ejecutará migración hasta completar inventario, mapeo aprobado y respaldo verificado. |
 | 8 | Verificación | Confirmar estado `healthy` de MySQL, respuesta de `/test-db`, documentación OpenAPI, carga frontend, pruebas backend disponibles y build frontend. La ruta API configurada en `Frontend/src/services/api.js` tiene un prefijo `/api` que debe contrastarse con las rutas observadas en `Backend/main.py`; no asumir integración end-to-end aceptada. |
 | 9 | Rollback | Antes de datos nuevos, detener procesos y volver al artefacto previo preservando volumen. Después de escrituras, congelar, respaldar estado actual y seguir rollback/conciliación de 2.6 y restauración de 3.5. No borrar el volumen `mysql_data`. |
@@ -359,10 +376,17 @@ contraseñas en el historial, documentos ni repositorio.
 | 9 | Verificar API y base | En PowerShell:<br>`Invoke-RestMethod http://127.0.0.1:8000/test-db`<br>`Invoke-WebRequest http://127.0.0.1:8000/docs -UseBasicParsing` | `/test-db` responde la comprobación `SELECT 1`; `/docs` devuelve HTTP exitoso. Si falla, revisar logs de Uvicorn y credenciales de base sin copiarlas a tickets. |
 | 10 | Ejecutar verificaciones de calidad disponibles | Desde la raíz, si `pytest` está instalado:<br>`python -m pytest Backend\\tests -q`<br><br>En otra sesión desde `Frontend`:<br>`npm run build` | Registrar comando, fecha y resultado. `pytest` no figura en `Backend/requirements.txt`; instalarlo en entorno de desarrollo de forma aprobada si falta. El build no prueba integración API. Ninguna de estas pruebas se ejecutó al elaborar este documento. |
 
+<<<<<<< HEAD
+### Procedimiento Docker pendiente de habilitación
+
+Una vez que el equipo alinee `Backend/Dockerfile` con manifiestos que existan y estén
+versionados, el flujo objetivo puede ser:
+=======
 ### Procedimiento Docker (requiere verificación)
 
 El Dockerfile instala las dependencias declaradas en `Backend/requirements.txt`. Para
 construir e iniciar los servicios:
+>>>>>>> origin/feat/administrator-management-and-code-corrections
 
 ```powershell
 docker compose config --quiet
@@ -370,9 +394,15 @@ docker compose up -d --build
 docker compose ps
 ```
 
+<<<<<<< HEAD
+No ejecutar como criterio de aceptación todavía: `pyproject.toml`, `uv.lock` y
+`.python-version` requeridos por el Dockerfile no están presentes en la raíz. No se cambió
+esa configuración en este entregable.
+=======
 Registrar el resultado del build, el estado `healthy` de MySQL y las verificaciones de API
 antes de considerar aceptado el procedimiento. Las dependencias de `requirements.txt` no
 están fijadas exactamente.
+>>>>>>> origin/feat/administrator-management-and-code-corrections
 
 ### Cronograma de una ventana de migración/puesta en marcha
 
@@ -411,7 +441,11 @@ requerir conciliación de las nuevas operaciones y procedimiento de 2.6.
       retención sin borrado automático.
 - [ ] Ejecutar y evidenciar respaldo y restauración de la base del proyecto en una base
       aparte; no se ejecutó ni midió en esta entrega.
+<<<<<<< HEAD
+- [ ] Resolver el Dockerfile/manifiestos de backend y comprobar despliegue integral.
+=======
 - [ ] Comprobar build Docker y despliegue integral en el ambiente autorizado.
+>>>>>>> origin/feat/administrator-management-and-code-corrections
 - [ ] Definir el tratamiento seguro de tarjetas, secretos, archivos persistentes y copias
       fuera del sitio.
 - [ ] Confirmar que rutas API y URL base del frontend son compatibles mediante prueba
