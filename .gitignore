@@ -1,4 +1,4 @@
-﻿# Python / UV
+# Python / UV
 .venv/
 __pycache__/
 *.pyc

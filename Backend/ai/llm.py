@@ -1,14 +1,31 @@
 ﻿import logging
 import os
+from pathlib import Path
 from typing import Any
 
 import httpx
+from dotenv import load_dotenv
 from groq import Groq
+from langchain_openai import ChatOpenAI
 
 from Backend.ai.prompt import PROMPT_BANCARIO
 from .config import settings
 
 logger = logging.getLogger(__name__)
+
+BACKEND_ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
+load_dotenv(BACKEND_ENV_PATH, override=False)
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("LLM_API_KEY")
+if OPENAI_API_KEY:
+    llm = ChatOpenAI(
+        model=os.getenv("LLM_MODEL") or "gpt-4.1-mini",
+        temperature=0.3,
+        api_key=OPENAI_API_KEY,
+        base_url=os.getenv("LLM_BASE_URL") or None,
+    )
+else:
+    llm = None
 
 
 class LLMUnavailableError(RuntimeError):
@@ -134,7 +151,7 @@ async def _request_provider(
         response = await client.post(
             url,
             headers={
-                "Authorization": f"Bearer {api_key}",
+                "Authorization": f"Bearer {api_key.strip()}",
                 "Content-Type": "application/json",
             },
             json={
