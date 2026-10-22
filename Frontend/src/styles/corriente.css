@@ -157,6 +157,123 @@
   color: #f2c94c;
 }
 
+.modal-asistente-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(4, 9, 22, 0.78);
+}
+
+.modal-asistente {
+  position: relative;
+  width: min(100%, 520px);
+  max-height: min(700px, 90vh);
+  padding: 48px 20px 20px;
+  overflow: auto;
+  box-sizing: border-box;
+  border: 1px solid rgba(242, 201, 76, 0.45);
+  border-radius: 16px;
+  background: #131a2c;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+}
+
+.modal-asistente-cerrar {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: #202e50;
+  color: #f5f7ff;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-asistente .chat-container {
+  display: flex;
+  min-height: 420px;
+  max-height: 620px;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #52617f;
+  border-radius: 12px;
+  background: #0b1535;
+  color: #f5f7ff;
+}
+
+.modal-asistente .chat-header {
+  padding: 16px;
+  background: #202e50;
+  color: #f2c94c;
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.modal-asistente .chat-body {
+  display: flex;
+  flex: 1;
+  min-height: 220px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.modal-asistente .chat-body .usuario,
+.modal-asistente .chat-body .ia {
+  max-width: 85%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+
+.modal-asistente .chat-body .usuario {
+  align-self: flex-end;
+  background: #f2c94c;
+  color: #131a2c;
+}
+
+.modal-asistente .chat-body .ia {
+  align-self: flex-start;
+  background: #202e50;
+  color: #f5f7ff;
+}
+
+.modal-asistente .chat-footer {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid #52617f;
+}
+
+.modal-asistente .chat-footer input {
+  min-width: 0;
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #52617f;
+  border-radius: 8px;
+  background: #202e50;
+  color: #f5f7ff;
+}
+
+.modal-asistente .chat-footer button {
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: #f2c94c;
+  color: #131a2c;
+  font-weight: bold;
+  cursor: pointer;
+}
+
 @media (max-width: 600px) {
   .transfer-container {
     padding: 78px 20px 20px;
@@ -165,5 +282,14 @@
   .transfer-container .transfer-card {
     width: 100%;
     padding: 20px;
+  }
+
+  .modal-asistente-overlay {
+    padding: 12px;
+  }
+
+  .modal-asistente {
+    max-height: 94vh;
+    padding: 46px 12px 12px;
   }
 }
