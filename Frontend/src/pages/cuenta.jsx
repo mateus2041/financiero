@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import Chart from "chart.js/auto";
 import { useNavigate, Link } from "react-router-dom";
 import ChatIA from "./ChatIA";
@@ -390,10 +390,10 @@ const Cuenta = () => {
         type="button"
         className={`menu-hamburguesa ${menuAbierto ? "activo" : ""}`}
         onClick={() => setMenuAbierto((actual) => !actual)}
-        aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+        aria-label={menuAbierto ? "Cerrar menÃº" : "Abrir menÃº"}
         aria-expanded={menuAbierto}
       >
-        ☰
+        â˜°
       </button>
 
       <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
@@ -408,7 +408,7 @@ const Cuenta = () => {
               className="active"
             >
 
-              💷 Cuenta
+              ðŸ’· Cuenta
 
             </Link>
 
@@ -422,7 +422,7 @@ const Cuenta = () => {
 
             <Link to="/historial">
 
-              📜 Historial Monetario
+              ðŸ“œ Historial Monetario
 
             </Link>
 
@@ -433,7 +433,7 @@ const Cuenta = () => {
 
             <Link to="/reporte">
 
-              📜 reportes
+              ðŸ“œ reportes
 
             </Link>
 
@@ -456,9 +456,9 @@ const Cuenta = () => {
 
             >
 
-              💳 Otros 
+              ðŸ’³ Otros 
               
-              {openTransfer ? "▲" : "▼"}
+              {openTransfer ? "â–²" : "â–¼"}
 
 
             </div>
@@ -477,7 +477,7 @@ const Cuenta = () => {
 
                   <Link to="/transferencias">
 
-                    ➡ Enviar dinero
+                    âž¡ Enviar dinero
 
                   </Link>
 
@@ -489,7 +489,7 @@ const Cuenta = () => {
 
                   <Link to="/corriente">
 
-                    🧾 Transferir
+                    ðŸ§¾ Transferir
 
                   </Link>
 
@@ -498,7 +498,7 @@ const Cuenta = () => {
                 <li>
 
                   <Link to="/transferencias-scr">
-                    📤 Registrar Llave Bre-B
+                    ðŸ“¤ Registrar Llave Bre-B
                   </Link>
 
                 </li>
@@ -522,7 +522,7 @@ const Cuenta = () => {
               className="sidebar-link"
               to="/certificado"
             >
-              📄 Certificado Bancario
+              ðŸ“„ Certificado Bancario
             </Link>
 
           </li>
@@ -538,7 +538,7 @@ const Cuenta = () => {
               className="btn-nav"
             >
 
-              ⚙️ Ajustes
+              âš™ï¸ Ajustes
 
             </Link>
 
@@ -551,7 +551,7 @@ const Cuenta = () => {
               className="btn-nav"
               
             >
-              🚫 bloque de trajeta 
+              ðŸš« bloque de trajeta 
             </Link>
 
           </li>
@@ -569,7 +569,7 @@ const Cuenta = () => {
               onClick={() => setAsistenteAbierto(true)}
             >
 
-              🤖 Asistente IA
+              ðŸ¤– Asistente IA
 
             </button>
 
@@ -592,7 +592,7 @@ const Cuenta = () => {
 
         >
 
-          🚪 Cerrar sesión
+          ðŸšª Cerrar sesiÃ³n
 
 
         </button>
@@ -673,8 +673,8 @@ const Cuenta = () => {
                 ${saldoCorriente}
               </span>
 
-              <small>Tipo: {tipoCuentaCorriente === "credito" ? "Crédito" : "Débito"}</small>
-              <small>Número de cuenta: {ocultarNumeroCuenta(numeroCuentaCorriente)}</small>
+              <small>Tipo: {tipoCuentaCorriente === "credito" ? "CrÃ©dito" : "DÃ©bito"}</small>
+              <small>NÃºmero de cuenta: {ocultarNumeroCuenta(numeroCuentaCorriente)}</small>
 
 
             </div>
@@ -685,7 +685,7 @@ const Cuenta = () => {
               <h3>Ahorros</h3>
               <small className="cuenta-activa">Cuenta activa</small>
               <span>${saldoAhorro}</span>
-              <small>Número de cuenta: {ocultarNumeroCuenta(numeroCuentaAhorro)}</small>
+              <small>NÃºmero de cuenta: {ocultarNumeroCuenta(numeroCuentaAhorro)}</small>
             </div>
           )}
 
@@ -788,3 +788,4 @@ const Cuenta = () => {
 
 
 export default Cuenta;
+

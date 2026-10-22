@@ -1,4 +1,4 @@
-.cuenta-activa,
+﻿.cuenta-activa,
 .cuenta-inactiva {
   display: block;
   margin: 6px 0;
@@ -13,12 +13,11 @@
   color: #e06b6b;
 }
 
-/* ==============================
-   ESTILO FINANCIERO PREMIUM
+/* =======================   ESTILO FINANCIERO PREMIUM
    FULL SCREEN REAL
    ============================== */
 
-/* 🔥 RESET TOTAL */
+/* ðŸ”¥ RESET TOTAL */
 html, body, #root {
   height: 100%;
   width: 100%;
@@ -42,7 +41,7 @@ body {
   --azul-acento: #1a2238;
 }
 
-/* 🔥 CONTENEDOR PRINCIPAL */
+/* ðŸ”¥ CONTENEDOR PRINCIPAL */
 .panel-financiero {
   display: flex;
   width: 100%;
@@ -291,7 +290,7 @@ body {
   font-size: 12px;
 }
 
-/* ========== GRÁFICA (CORREGIDA) ========== */
+/* ========== GRÃFICA (CORREGIDA) ========== */
 .chart-card {
   background: var(--fondo-tarjeta);
   border-radius: 20px;
@@ -331,7 +330,7 @@ body {
   opacity: 0.7;
 }
 
-/* CONTENEDOR DE LA GRÁFICA */
+/* CONTENEDOR DE LA GRÃFICA */
 .chart-container {
   flex: 1;
   position: relative;
@@ -340,7 +339,7 @@ body {
   height: 100%;
 }
 
-/* 🔥 CANVAS PERFECTAMENTE AJUSTADO */
+/* ðŸ”¥ CANVAS PERFECTAMENTE AJUSTADO */
 .chart-container canvas {
   width: 100% !important;
   height: 100% !important;
