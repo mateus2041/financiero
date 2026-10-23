@@ -132,6 +132,18 @@ body {
   transform: none;
 }
 
+.sidebar button.sidebar-link {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.sidebar button.sidebar-link:hover {
+  background: rgba(242, 201, 76, 0.1);
+}
+
 .certificado-modal-overlay {
   position: fixed;
   inset: 0;
