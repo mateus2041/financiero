@@ -1,19 +1,49 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
+import ChatIA from "./ChatIA";
 import "../styles/corriente.css";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 const HISTORIAL_LOCAL_KEY = "historial_transferencias";
 
 export default function Transferencia() {
+  const location = useLocation();
+  const montoInicial = location.state?.monto;
+  const desdeAsistente = location.state?.desdeAsistente === true;
+  const origenInicial =
+    location.state?.origen === "corriente" ||
+    location.state?.origen === "ahorro"
+      ? location.state.origen
+      : "";
+  const montoInputRef = useRef(null);
+  const origenInputRef = useRef(null);
+
   // =====================================================
   // ESTADOS DEL MENÚ
   // =====================================================
 
   const [openTransfer, setOpenTransfer] = useState(false);
   const [openCertificado, setOpenCertificado] = useState(false);
+  const [asistenteAbierto, setAsistenteAbierto] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
+
+  useEffect(() => {
+    if (!asistenteAbierto) return undefined;
+
+    const overflowAnterior = document.body.style.overflow;
+    const cerrarConEscape = (event) => {
+      if (event.key === "Escape") setAsistenteAbierto(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", cerrarConEscape);
+
+    return () => {
+      document.body.style.overflow = overflowAnterior;
+      document.removeEventListener("keydown", cerrarConEscape);
+    };
+  }, [asistenteAbierto]);
 
   useEffect(() => {
     const actualizarEstadoMenu = () => {
@@ -26,16 +56,54 @@ export default function Transferencia() {
     return () => window.removeEventListener("resize", actualizarEstadoMenu);
   }, []);
 
+  useEffect(() => {
+    if (!desdeAsistente) return;
+
+    setForm((actual) => ({
+      ...actual,
+      origen: origenInicial,
+      destino:
+        origenInicial === "corriente"
+          ? "ahorro"
+          : origenInicial === "ahorro"
+            ? "corriente"
+            : "",
+      monto:
+        Number.isSafeInteger(montoInicial) && montoInicial > 0
+          ? String(montoInicial)
+          : actual.monto,
+    }));
+  }, [desdeAsistente, location.key, montoInicial, origenInicial]);
+
   // =====================================================
   // FORMULARIO
   // =====================================================
 
   const [form, setForm] = useState({
-    origen: "corriente",
-    destino: "ahorro",
-    monto: "",
+    origen: desdeAsistente ? origenInicial : "corriente",
+    destino: desdeAsistente
+      ? origenInicial === "corriente"
+        ? "ahorro"
+        : origenInicial === "ahorro"
+          ? "corriente"
+          : ""
+      : "ahorro",
+    monto:
+      Number.isSafeInteger(montoInicial) && montoInicial > 0
+        ? String(montoInicial)
+        : "",
     descripcion: "",
   });
+
+  useEffect(() => {
+    if (desdeAsistente) {
+      if (form.origen) {
+        montoInputRef.current?.focus();
+      } else {
+        origenInputRef.current?.focus();
+      }
+    }
+  }, [desdeAsistente, form.origen]);
 
   // =====================================================
   // SALDOS
@@ -196,6 +264,12 @@ export default function Transferencia() {
     e.preventDefault();
 
     setMensaje("");
+
+    if (!form.origen) {
+      setMensaje("Seleccione la cuenta de origen.");
+      origenInputRef.current?.focus();
+      return;
+    }
 
     // -----------------------------------------------------
     // VALIDAR MONTO
@@ -472,12 +546,13 @@ export default function Transferencia() {
           {/* ASISTENTE IA */}
 
           <li>
-            <Link
-              to="/ChatIA"
+            <button
+              type="button"
               className="btn-nav"
+              onClick={() => setAsistenteAbierto(true)}
             >
               🤖 Asistente IA
-            </Link>
+            </button>
           </li>
 
         </ul>
@@ -504,18 +579,32 @@ export default function Transferencia() {
             Transferencia entre cuentas
           </h2>
 
+          {desdeAsistente && (
+            <p>
+              {form.origen
+                ? "Cuenta de origen seleccionada. Ingresa el monto que quieres transferir."
+                : "Selecciona primero la cuenta de origen y luego ingresa el monto que quieres transferir."}
+            </p>
+          )}
+
           <form onSubmit={transferir}>
 
             {/* CUENTA ORIGEN */}
 
             <label>
-              Cuenta origen
+              {desdeAsistente
+                ? "¿De qué cuenta quieres transferir?"
+                : "Cuenta origen"}
             </label>
 
             <select
+              ref={origenInputRef}
+              autoFocus={desdeAsistente}
               value={form.origen}
               onChange={cambiarOrigen}
+              required
             >
+              {desdeAsistente && <option value="">Selecciona una cuenta</option>}
               <option value="corriente">
                 Cuenta Corriente -{" "}
                 {formatoMoneda(saldoCorriente)}
@@ -537,7 +626,9 @@ export default function Transferencia() {
               value={form.destino}
               disabled
             >
-              {form.destino === "corriente" ? (
+              {!form.destino ? (
+                <option value="">Se mostrará al elegir el origen</option>
+              ) : form.destino === "corriente" ? (
                 <option value="corriente">
                   Cuenta Corriente -{" "}
                   {formatoMoneda(
@@ -557,12 +648,15 @@ export default function Transferencia() {
             {/* MONTO */}
 
             <label>
-              Monto
+              {desdeAsistente ? "¿De cuánto será el monto?" : "Monto"}
             </label>
 
             <input
+              ref={montoInputRef}
               type="text"
               name="monto"
+              disabled={desdeAsistente && !form.origen}
+              autoFocus={desdeAsistente}
               value={
                 form.monto
                   ? formatoMoneda(
@@ -571,22 +665,28 @@ export default function Transferencia() {
                   : ""
               }
               onChange={cambiarMonto}
-              placeholder="$0"
+              placeholder={desdeAsistente ? "Ingresa el monto en pesos" : "$0"}
               required
             />
 
             {/* SALDO DISPONIBLE */}
 
             <div className="saldo-disponible">
-              Saldo disponible en{" "}
-              {form.origen === "corriente"
-                ? "Cuenta Corriente"
-                : "Cuenta de Ahorros"}
-              :{" "}
-              {formatoMoneda(
-                form.origen === "corriente"
-                  ? saldoCorriente
-                  : saldoAhorro
+              {form.origen ? (
+                <>
+                  Saldo disponible en{" "}
+                  {form.origen === "corriente"
+                    ? "Cuenta Corriente"
+                    : "Cuenta de Ahorros"}
+                  :{" "}
+                  {formatoMoneda(
+                    form.origen === "corriente"
+                      ? saldoCorriente
+                      : saldoAhorro
+                  )}
+                </>
+              ) : (
+                "Selecciona una cuenta de origen para continuar."
               )}
             </div>
 
@@ -669,7 +769,23 @@ export default function Transferencia() {
         </div>
       )}
 
+      {asistenteAbierto && (
+        <div
+          className="asistente-modal-overlay"
+          onClick={() => setAsistenteAbierto(false)}
+        >
+          <div
+            className="asistente-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="asistente-titulo"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <ChatIA onClose={() => setAsistenteAbierto(false)} />
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
-
