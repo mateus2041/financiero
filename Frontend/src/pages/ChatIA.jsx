@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useEffect, useState } from "react";
+=======
+﻿import React, { useState } from "react";
+>>>>>>> 880c6b8915975a7ae343c1dcadae256b482b7ed7
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import "../styles/chatIA.css";

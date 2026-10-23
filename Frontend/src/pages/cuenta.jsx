@@ -41,7 +41,10 @@ const Cuenta = () => {
     () => localStorage.getItem("fotoPerfil") || ""
   );
   const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
+<<<<<<< HEAD
   const [asistenteAbierto, setAsistenteAbierto] = useState(false);
+=======
+>>>>>>> 880c6b8915975a7ae343c1dcadae256b482b7ed7
 
   const mostrarCuentaCorriente = estadoCuentaCorriente === "activa";
   const mostrarCuentaAhorro = estadoCuentaAhorro === "activa";
