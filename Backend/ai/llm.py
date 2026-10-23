@@ -1,6 +1,9 @@
 ﻿import logging
 import os
+<<<<<<< HEAD
 import re
+=======
+>>>>>>> 880c6b8915975a7ae343c1dcadae256b482b7ed7
 from typing import Any
 
 import httpx
@@ -10,13 +13,17 @@ from Backend.ai.prompt import PROMPT_BANCARIO
 from .config import settings
 
 logger = logging.getLogger(__name__)
+<<<<<<< HEAD
 MAX_RESPONSE_LENGTH = 300
+=======
+>>>>>>> 880c6b8915975a7ae343c1dcadae256b482b7ed7
 
 
 class LLMUnavailableError(RuntimeError):
     """Error cuando ningún proveedor de IA puede responder."""
 
 
+<<<<<<< HEAD
 def _limitar_respuesta(texto: str) -> str:
     """Evita respuestas demasiado largas y procura no cortar una frase."""
     texto = texto.strip()
@@ -70,6 +77,43 @@ def _get_groq_api_key() -> str | None:
     if env_key and env_key.strip():
         return env_key.strip()
 
+=======
+def _extract_reply(data: Any) -> str:
+    """Extrae y valida el texto de la respuesta del proveedor."""
+    if not isinstance(data, dict):
+        raise ValueError("La respuesta del proveedor no es un JSON válido.")
+
+    choices = data.get("choices")
+    if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+        raise ValueError("La respuesta no contiene choices válidas.")
+
+    message = choices[0].get("message")
+    if not isinstance(message, dict):
+        raise ValueError("La respuesta no contiene un mensaje válido.")
+
+    content = message.get("content")
+    if isinstance(content, str) and content.strip():
+        return content.strip()
+
+    if isinstance(content, list):
+        text_parts = [
+            item["text"]
+            for item in content
+            if isinstance(item, dict) and isinstance(item.get("text"), str)
+        ]
+        reply = "".join(text_parts).strip()
+        if reply:
+            return reply
+
+    raise ValueError("El proveedor no devolvió texto.")
+
+
+def _get_groq_api_key() -> str | None:
+    env_key = os.getenv("GROQ_API_KEY") or os.getenv("LLM_API_KEY")
+    if env_key and env_key.strip():
+        return env_key.strip()
+
+>>>>>>> 880c6b8915975a7ae343c1dcadae256b482b7ed7
     settings_key = getattr(settings, "primary_api_key", None)
     if settings_key and settings_key.strip():
         return settings_key.strip()
@@ -113,7 +157,11 @@ def consultar_modelo(mensajes):
         "model": "openai/gpt-oss-120b",
         "messages": [{"role": "system", "content": PROMPT_BANCARIO}, *mensajes_validos],
         "temperature": 0.3,
+<<<<<<< HEAD
         "max_completion_tokens": 300,
+=======
+        "max_completion_tokens": 1024,
+>>>>>>> 880c6b8915975a7ae343c1dcadae256b482b7ed7
         "stream": False,
         "reasoning_effort": "medium",
     }
@@ -130,8 +178,12 @@ def consultar_modelo(mensajes):
         ) from exc
 
     try:
+<<<<<<< HEAD
         respuesta = completion.choices[0].message.content or "No pude generar una respuesta."
         return _limitar_respuesta(respuesta)
+=======
+        return completion.choices[0].message.content or "No pude generar una respuesta."
+>>>>>>> 880c6b8915975a7ae343c1dcadae256b482b7ed7
     except Exception:
         return "No pude generar una respuesta."
 
@@ -191,13 +243,20 @@ async def chat_completion(messages: list[dict[str, Any]]) -> str:
     last_error: Exception | None = None
     for provider_name, base_url, api_key, model in providers:
         try:
+<<<<<<< HEAD
             respuesta = await _request_provider(
+=======
+            return await _request_provider(
+>>>>>>> 880c6b8915975a7ae343c1dcadae256b482b7ed7
                 base_url=base_url,
                 api_key=api_key,
                 model=model,
                 messages=messages,
             )
+<<<<<<< HEAD
             return _limitar_respuesta(respuesta)
+=======
+>>>>>>> 880c6b8915975a7ae343c1dcadae256b482b7ed7
         except httpx.HTTPStatusError as exc:
             logger.warning("El proveedor LLM %s respondió con HTTP %s.", provider_name, exc.response.status_code)
             last_error = exc

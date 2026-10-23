@@ -46,6 +46,7 @@ def test_chat_completion_uses_fallback_after_primary_http_error(monkeypatch):
     assert calls == ["primary-key", "fallback-key"]
 
 
+<<<<<<< HEAD
 def test_chat_completion_limits_long_provider_responses(monkeypatch):
     _configure_provider(monkeypatch, "LLM_", "primary-key", "primary-model")
     _configure_provider(monkeypatch, "LLM_FALLBACK_", "", "fallback-model")
@@ -69,6 +70,8 @@ def test_limit_response_cuts_at_word_when_no_sentence_end_is_available():
     assert response.endswith("…")
 
 
+=======
+>>>>>>> 880c6b8915975a7ae343c1dcadae256b482b7ed7
 def test_chat_completion_uses_fallback_when_primary_is_not_configured(monkeypatch):
     _configure_provider(monkeypatch, "LLM_", "", "primary-model")
     _configure_provider(
