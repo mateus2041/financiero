@@ -59,58 +59,19 @@ export default function AsesorBancario() {
 
     const cargarEstadisticas = async () => {
       try {
-        const [usuariosRes, cuentasRes] = await Promise.all([
-          axios.get(`${API_URL}/usuarios`, {
+        const respuesta = await axios.get(
+          `${API_URL}/administradores/estadisticas`,
+          {
             headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${API_URL}/administradores/cuentas`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
-
-        const usuarios = Array.isArray(usuariosRes.data) ? usuariosRes.data : [];
-        const cuentas = Array.isArray(cuentasRes.data?.cuentas)
-          ? cuentasRes.data.cuentas
-          : [];
-
-        const cuentasHabilitadas = cuentas.filter(
-          (cuenta) => String(cuenta.estado || "").toLowerCase() === "activa"
-        ).length;
-
-        const cuentasDeshabilitadas = cuentas.filter(
-          (cuenta) => String(cuenta.estado || "").toLowerCase() === "inactiva"
-        ).length;
-
-        const tarjetasActivas = (
-          await Promise.all(
-            usuarios.map(async (usuario) => {
-              try {
-                const respuesta = await axios.get(
-                  `${API_URL}/usuarios/${usuario.id_usuario}/tarjetas`,
-                  {
-                    headers: { Authorization: `Bearer ${token}` },
-                  }
-                );
-
-                const tarjetas = Array.isArray(respuesta.data)
-                  ? respuesta.data
-                  : [];
-
-                return tarjetas.filter(
-                  (tarjeta) => String(tarjeta.estado || "").toLowerCase() === "activa"
-                ).length;
-              } catch (error) {
-                return 0;
-              }
-            })
-          )
-        ).reduce((total, cantidad) => total + cantidad, 0);
+          }
+        );
+        const datos = respuesta.data;
 
         setEstadisticas({
-          usuariosRegistrados: usuarios.length,
-          cuentasHabilitadas,
-          cuentasDeshabilitadas,
-          tarjetasActivas,
+          usuariosRegistrados: datos.usuarios_registrados,
+          cuentasHabilitadas: datos.cuentas_habilitadas,
+          cuentasDeshabilitadas: datos.cuentas_deshabilitadas,
+          tarjetasActivas: datos.tarjetas_activas,
         });
       } catch (error) {
         if (error.response?.status === 401 || error.response?.status === 403) {

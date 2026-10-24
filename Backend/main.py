@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Query
 from decimal import Decimal
 import secrets
 import os
@@ -11,7 +11,7 @@ import json
 
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import case, func, text
 from pydantic import BaseModel, EmailStr, Field
 from typing import Literal
 
@@ -107,6 +107,7 @@ from Backend.models import (
     Usuario,
     TipoDocumento,
     Administrador,
+    AsesorBanco,
     Cuenta,
     Tarjeta,
     Transaccion,
@@ -1536,11 +1537,14 @@ def perfil(
 @app.get("/usuarios", response_model=list[UsuarioRespuesta])
 def listar_usuarios(
     current_user: int = Depends(administrador_o_asesor_requerido),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    limite: int = Query(default=100, ge=1, le=100),
+    despues_de: int | None = Query(default=None, gt=0),
 ):
-    usuarios = db.query(Usuario).filter(
-        Usuario.rol == "usuario"
-    ).order_by(Usuario.id_usuario).all()
+    consulta = db.query(Usuario).filter(Usuario.rol == "usuario")
+    if despues_de is not None:
+        consulta = consulta.filter(Usuario.id_usuario > despues_de)
+    usuarios = consulta.order_by(Usuario.id_usuario).limit(limite).all()
 
     return [
         {
@@ -1566,9 +1570,11 @@ def listar_usuarios(
 @app.get("/administradores/cuentas", response_model=CuentasAdministradorRespuesta)
 def listar_cuentas_admin(
     current_user: int = Depends(administrador_o_asesor_requerido),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    limite: int = Query(default=100, ge=1, le=100),
+    despues_de: int | None = Query(default=None, gt=0),
 ):
-    cuentas = (
+    consulta = (
         db.query(Cuenta, Usuario)
         .join(Usuario, Usuario.id_usuario == Cuenta.id_usuario)
         .filter(Usuario.rol == "usuario")
@@ -1581,9 +1587,10 @@ def listar_cuentas_admin(
             "WHERE asesor.id_usuario = usuario.id_usuario"
             ")"
         ))
-        .order_by(Cuenta.id_cuenta)
-        .all()
     )
+    if despues_de is not None:
+        consulta = consulta.filter(Cuenta.id_cuenta > despues_de)
+    cuentas = consulta.order_by(Cuenta.id_cuenta).limit(limite).all()
 
     return {
         "cuentas": [
@@ -1607,6 +1614,56 @@ def listar_cuentas_admin(
             }
             for cuenta, usuario in cuentas
         ]
+    }
+
+
+@app.get("/administradores/estadisticas")
+def obtener_estadisticas_usuarios(
+    current_user: int = Depends(administrador_o_asesor_requerido),
+    db: Session = Depends(get_db),
+):
+    usuarios = db.query(
+        func.count(Usuario.id_usuario),
+        func.sum(case((Usuario.estado != "inactivo", 1), else_=0)),
+    ).filter(Usuario.rol == "usuario").one()
+
+    cuentas = db.query(
+        func.sum(case((
+            Cuenta.estado.in_(("bloqueada", "inactiva")),
+            1,
+        ), else_=0)),
+        func.sum(case((Cuenta.estado == "activa", 1), else_=0)),
+        func.sum(case((Cuenta.estado == "inactiva", 1), else_=0)),
+    ).join(Usuario, Usuario.id_usuario == Cuenta.id_usuario).filter(
+        Usuario.rol == "usuario",
+        ~db.query(Administrador.id_administrador).filter(
+            Administrador.id_usuario == Usuario.id_usuario
+        ).exists(),
+        ~db.query(AsesorBanco.id_asesor).filter(
+            AsesorBanco.id_usuario == Usuario.id_usuario
+        ).exists(),
+    ).one()
+
+    tarjetas_activas = db.query(
+        func.count(Tarjeta.id_tarjeta)
+    ).join(
+        Cuenta,
+        Cuenta.id_cuenta == Tarjeta.id_cuenta,
+    ).join(
+        Usuario,
+        Usuario.id_usuario == Cuenta.id_usuario,
+    ).filter(
+        Usuario.rol == "usuario",
+        Tarjeta.estado == "activa",
+    ).scalar()
+
+    return {
+        "usuarios_registrados": usuarios[0] or 0,
+        "usuarios_activos": usuarios[1] or 0,
+        "cuentas_bloqueadas": cuentas[0] or 0,
+        "cuentas_habilitadas": cuentas[1] or 0,
+        "cuentas_deshabilitadas": cuentas[2] or 0,
+        "tarjetas_activas": tarjetas_activas or 0,
     }
 
 
@@ -2552,14 +2609,16 @@ def mis_cuentas(
 @app.get("/asesor-bancario/usuarios")
 def asesor_listar_usuarios(
     asesor: Usuario = Depends(asesor_requerido),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    limite: int = Query(default=100, ge=1, le=100),
+    antes_de: int | None = Query(default=None, gt=0),
 ):
-    usuarios = db.query(Usuario).filter(
-        Usuario.rol == "usuario"
-    ).order_by(
-        Usuario.fecha_creacion.desc(),
+    consulta = db.query(Usuario).filter(Usuario.rol == "usuario")
+    if antes_de is not None:
+        consulta = consulta.filter(Usuario.id_usuario < antes_de)
+    usuarios = consulta.order_by(
         Usuario.id_usuario.desc()
-    ).all()
+    ).limit(limite).all()
 
     return [
         {
