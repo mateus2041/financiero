@@ -446,3 +446,127 @@ INSERT INTO `ubicacionesPorCiudad` (ciudad, localidad, barrios) VALUES
 SELECT ciudad, localidad, barrios
 FROM `ubicacionesPorCiudad`
 ORDER BY ciudad, localidad;
+-- SQLBook: Code
+USE billetera;
+
+START TRANSACTION;
+
+INSERT INTO usuario (
+    nombre,
+    email,
+    `password`,
+    telefono,
+    direccion,
+    codigo_postal,
+    ciudad,
+    localidad,
+    barrio,
+    documento,
+    rol,
+    estado,
+    tope_ahorros,
+    tope_corriente,
+    fecha_creacion,
+    id_tipo_doc
+)
+SELECT
+    CASE n.n
+        WHEN 1 THEN 'Valentina Demo Pardo'
+        WHEN 2 THEN 'Samuel Demo Cardenas'
+        WHEN 3 THEN 'Mariana Demo Salcedo'
+        WHEN 4 THEN 'Nicolas Demo Benitez'
+        ELSE CONCAT('Usuario de prueba ', LPAD(n.n, 4, '0'))
+    END AS nombre,
+
+    CASE n.n
+        WHEN 1 THEN 'luissmate89@gmail.com'
+        WHEN 2 THEN 'luisssmateus802@gmail.com'
+        WHEN 3 THEN 'kirogamateus@gmail.com'
+        WHEN 4 THEN 'gitmateus8@gmail.com'
+        ELSE CONCAT('usuario.prueba.', LPAD(n.n, 4, '0'), '@example.test')
+    END AS email,
+
+    -- Hash Argon2 de demostración; contraseña compartida: DemoTemporal123!
+    '$argon2id$v=19$m=65536,t=3,p=4$UCqFEMI459xbCyFk7N37fw$z8LU6/SePQQJV2UmURv7SOPTbuVBe4DUQPDAsHHsMCI' AS `password`,
+
+    CONCAT('300', LPAD(n.n, 7, '0')) AS telefono,
+    CONCAT('Direccion de prueba ', n.n) AS direccion,
+    LPAD(MOD(n.n, 1000000), 6, '0') AS codigo_postal,
+
+    CASE MOD(n.n, 3)
+        WHEN 0 THEN 'Bogota'
+        WHEN 1 THEN 'Medellin'
+        ELSE 'Cali'
+    END AS ciudad,
+
+    'Zona de prueba' AS localidad,
+    CONCAT('Barrio de prueba ', LPAD(n.n, 4, '0')) AS barrio,
+
+    CASE n.n
+        WHEN 1 THEN 'PRUEBA-731001'
+        WHEN 2 THEN 'PRUEBA-842002'
+        WHEN 3 THEN 'PRUEBA-953003'
+        WHEN 4 THEN 'PRUEBA-164004'
+        ELSE CONCAT('TEST-', LPAD(n.n, 8, '0'))
+    END AS documento,
+
+    'usuario' AS rol,
+    'activo' AS estado,
+    0.00 AS tope_ahorros,
+    0.00 AS tope_corriente,
+    CURRENT_TIMESTAMP AS fecha_creacion,
+    td.id_tipo_doc
+FROM (
+    -- Genera los números del 1 al 1000.
+    SELECT 1 + d0.d + d1.d * 10 + d2.d * 100 AS n
+    FROM
+        (SELECT 0 AS d UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
+         UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7
+         UNION ALL SELECT 8 UNION ALL SELECT 9) AS d0
+    CROSS JOIN
+        (SELECT 0 AS d UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
+         UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7
+         UNION ALL SELECT 8 UNION ALL SELECT 9) AS d1
+    CROSS JOIN
+        (SELECT 0 AS d UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
+         UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7
+         UNION ALL SELECT 8 UNION ALL SELECT 9) AS d2
+) AS n
+CROSS JOIN (
+    -- Usa un ID que ya exista en tipo_documento.
+    SELECT MIN(id_tipo_doc) AS id_tipo_doc
+    FROM tipo_documento
+) AS td
+WHERE td.id_tipo_doc IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1
+      FROM usuario AS existente
+      WHERE existente.email = CASE n.n
+          WHEN 1 THEN 'luissmate89@gmail.com'
+          WHEN 2 THEN 'luisssmateus802@gmail.com'
+          WHEN 3 THEN 'kirogamateus@gmail.com'
+          WHEN 4 THEN 'gitmateus8@gmail.com'
+          ELSE CONCAT('usuario.prueba.', LPAD(n.n, 4, '0'), '@example.test')
+      END
+      OR existente.documento = CASE n.n
+          WHEN 1 THEN 'PRUEBA-731001'
+          WHEN 2 THEN 'PRUEBA-842002'
+          WHEN 3 THEN 'PRUEBA-953003'
+          WHEN 4 THEN 'PRUEBA-164004'
+          ELSE CONCAT('TEST-', LPAD(n.n, 8, '0'))
+      END
+  );
+
+COMMIT;
+
+-- Verifica los cuatro correos proporcionados y los usuarios generados.
+SELECT id_usuario, nombre, email, documento, id_tipo_doc
+FROM usuario
+WHERE email IN (
+    'luissmate89@gmail.com',
+    'luisssmateus802@gmail.com',
+    'kirogamateus@gmail.com',
+    'gitmateus8@gmail.com'
+)
+OR email LIKE 'usuario.prueba.%@example.test'
+ORDER BY id_usuario;

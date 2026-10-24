@@ -155,7 +155,7 @@ class UsuarioRespuesta(SchemaBase):
     id_usuario: int
     nombre: str
     documento: str | None = None
-    correo: EmailStr = Field(validation_alias=AliasChoices("correo", "email"))
+    correo: str = Field(validation_alias=AliasChoices("correo", "email"))
     telefono: str | None = None
     direccion: str | None = None
     codigo_postal: str | None = None
