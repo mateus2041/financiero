@@ -63,6 +63,7 @@ const OPCIONES_TRANSFERENCIA = [
   },
   {
     etiqueta: "A otra persona con Bre-B",
+    tipo: "transferenciaBreB",
     pregunta: "Necesito información para enviar dinero a otra persona usando una llave Bre-B.",
   },
   {
@@ -81,6 +82,8 @@ function ChatIA({ onClose }) {
   const location = useLocation();
   const [pregunta, setPregunta] = useState("");
   const [escrituraDesbloqueada, setEscrituraDesbloqueada] = useState(false);
+  const [esperandoLlaveBreB, setEsperandoLlaveBreB] = useState(false);
+  const [llaveBreBIngresada, setLlaveBreBIngresada] = useState("");
   const preguntaInputRef = useRef(null);
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
   const [mostrarLlaveBreB, setMostrarLlaveBreB] = useState(false);
@@ -142,6 +145,19 @@ function ChatIA({ onClose }) {
     if (!texto || isLoading) return;
 
     setEscrituraDesbloqueada(false);
+
+    if (esperandoLlaveBreB) {
+      setLlaveBreBIngresada(texto);
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto },
+        { tipo: "ia", texto: "¿Desde qué cuenta quieres enviar el dinero?" },
+      ]);
+      setTipoOpciones("cuentaOrigenBreB");
+      setPregunta("");
+      setEsperandoLlaveBreB(false);
+      return;
+    }
 
     const textoNormalizado = texto
       .normalize("NFD")
@@ -308,6 +324,44 @@ function ChatIA({ onClose }) {
       return;
     }
 
+    if (opcion.tipo === "transferenciaBreB") {
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: opcion.etiqueta },
+        { tipo: "ia", texto: "¿Cuál es la llave Bre-B de la persona a quien quieres enviar dinero?" },
+      ]);
+      setTipoOpciones(null);
+      setPregunta("");
+      setEsperandoLlaveBreB(true);
+      setEscrituraDesbloqueada(true);
+      return;
+    }
+
+    if (opcion.tipo === "cuentaOrigen" && tipoOpciones === "cuentaOrigenBreB") {
+      const nombreCuenta =
+        opcion.cuenta === "corriente"
+          ? "Cuenta corriente"
+          : "Cuenta de ahorros";
+
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: nombreCuenta },
+        {
+          tipo: "ia",
+          texto: `Seleccionaste ${nombreCuenta}. Te llevo a la transferencia.`,
+        },
+      ]);
+      setTipoOpciones(null);
+      onClose?.();
+      navigate("/corriente", {
+        state: {
+          llaveInicial: llaveBreBIngresada,
+          origen: opcion.cuenta,
+        },
+      });
+      return;
+    }
+
     if (opcion.tipo === "cuentaOrigen") {
       const nombreCuenta =
         opcion.cuenta === "corriente"
@@ -364,7 +418,7 @@ function ChatIA({ onClose }) {
           <div className="chat-opciones" role="group" aria-label="Opciones de ayuda">
             {(tipoOpciones === "transferencias"
               ? OPCIONES_TRANSFERENCIA
-              : tipoOpciones === "cuentaOrigen"
+              : tipoOpciones === "cuentaOrigen" || tipoOpciones === "cuentaOrigenBreB"
                 ? OPCIONES_CUENTA_ORIGEN
                 : tipoOpciones === "usoAplicacion"
                   ? OPCIONES_USO_APLICACION
@@ -390,21 +444,25 @@ function ChatIA({ onClose }) {
           className="chat-input"
           type="text"
           placeholder={
-            escrituraDesbloqueada
+            esperandoLlaveBreB
+              ? "Escribe la llave Bre-B de la persona..."
+              : escrituraDesbloqueada
               ? "Escribe una pregunta..."
               : "Pulsa «Desbloquear escritura» para escribir..."
           }
           value={pregunta}
-          disabled={!escrituraDesbloqueada || isLoading}
+          disabled={(!escrituraDesbloqueada && !esperandoLlaveBreB) || isLoading}
           ref={preguntaInputRef}
           onChange={(event) => setPregunta(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === "Enter" && escrituraDesbloqueada) {
+            if (event.key === "Enter" && (escrituraDesbloqueada || esperandoLlaveBreB)) {
               enviarPregunta();
             }
           }}
           aria-label={
-            escrituraDesbloqueada
+            esperandoLlaveBreB
+              ? "Escribe la llave Bre-B del destinatario"
+              : escrituraDesbloqueada
               ? "Escribe una pregunta para el asistente"
               : "Escritura bloqueada; pulsa Desbloquear escritura para activarla"
           }
@@ -421,9 +479,9 @@ function ChatIA({ onClose }) {
         <button
           type="button"
           onClick={() => enviarPregunta()}
-          disabled={!escrituraDesbloqueada || isLoading}
+          disabled={(!escrituraDesbloqueada && !esperandoLlaveBreB) || isLoading}
         >
-          Enviar
+          {esperandoLlaveBreB ? "Continuar" : "Enviar"}
         </button>
       </div>
     </div>
