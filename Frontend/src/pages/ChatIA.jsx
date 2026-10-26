@@ -1,10 +1,24 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
+import Historial from "./historial";
+import RegistrarLlaveBreB from "./transferenciascr";
 import "../styles/chatIA.css";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
-const CHAT_STORAGE_KEY = "conversacion_asistente";
+const ULTIMO_MENSAJE_CHAT_KEY = "ultimo_mensaje_asistente";
+const MENSAJE_SEGUIMIENTO = "¿Qué más necesitas de mi asistencia virtual de Financiero?";
+
+const obtenerUltimoMensajeChat = () => {
+  try {
+    const texto = sessionStorage.getItem(ULTIMO_MENSAJE_CHAT_KEY);
+    return texto?.trim() ? { tipo: "ia", texto } : null;
+  } catch (error) {
+    console.error("No fue posible recuperar el último mensaje del asistente:", error);
+    return null;
+  }
+};
+
 const crearMensajeBienvenida = () => {
   const nombreUsuario = localStorage.getItem("nombre_usuario")?.trim();
 
@@ -20,8 +34,26 @@ const OPCIONES_CHAT = [
   { etiqueta: "Historial", pregunta: "Quiero saber cómo consultar mi historial de transacciones." },
   { etiqueta: "Llaves Bre-B", pregunta: "Quiero información sobre las llaves Bre-B." },
   { etiqueta: "Certificados", pregunta: "Quiero saber cómo obtener un certificado bancario." },
-  { etiqueta: "Uso de la aplicación", pregunta: "Necesito ayuda para usar la aplicación." },
+  { etiqueta: "¿Cómo uso la aplicación?", pregunta: "Necesito ayuda para usar la aplicación." },
 ];
+
+const OPCIONES_USO_APLICACION = [
+  { etiqueta: "Transferencias", tipo: "transferencias" },
+  { etiqueta: "Historial", pregunta: "Quiero saber cómo consultar mi historial de transacciones." },
+  { etiqueta: "Llaves Bre-B", pregunta: "Quiero información sobre las llaves Bre-B." },
+  { etiqueta: "Certificados", pregunta: "Quiero saber cómo obtener un certificado bancario." },
+];
+
+const PASOS_NAVEGACION = {
+  Transferencias:
+    "1. Abre el menú lateral y entra en «Otros».\n2. Elige «Enviar dinero» para transferir entre tus cuentas, o «Transferir» para iniciar otro tipo de transferencia.",
+  Historial:
+    "1. Abre el menú lateral.\n2. Selecciona «Historial Monetario» para consultar tus movimientos.",
+  "Llaves Bre-B":
+    "1. Abre el menú lateral y entra en «Otros».\n2. Selecciona «Registrar Llave Bre-B» para gestionar tus llaves.",
+  Certificados:
+    "1. Abre el menú lateral.\n2. Selecciona «Certificado Bancario» para consultar o descargar tu certificado.",
+};
 
 const OPCIONES_TRANSFERENCIA = [
   {
@@ -47,64 +79,100 @@ const OPCIONES_CUENTA_ORIGEN = [
 function ChatIA({ onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [conversacionInicial] = useState(() => {
-    try {
-      const guardada = sessionStorage.getItem(CHAT_STORAGE_KEY);
-      const conversacion = guardada ? JSON.parse(guardada) : null;
-
-      if (
-        Array.isArray(conversacion?.mensajes) &&
-        conversacion.mensajes.every(
-          (mensaje) =>
-            mensaje &&
-            ["ia", "usuario"].includes(mensaje.tipo) &&
-            typeof mensaje.texto === "string"
-        )
-      ) {
-        const saludoAnterior =
-          "¡Hola! Soy el asistente virtual de Financiero. ¿En qué puedo ayudarte hoy?";
-
-        if (conversacion.mensajes[0]?.texto === saludoAnterior) {
-          conversacion.mensajes[0] = crearMensajeBienvenida();
-        }
-
-        return conversacion;
-      }
-    } catch (error) {
-      console.error("No fue posible recuperar la conversación del asistente:", error);
-    }
-
-    return null;
-  });
   const [pregunta, setPregunta] = useState("");
-  const [mensajes, setMensajes] = useState(
-    conversacionInicial?.mensajes || [crearMensajeBienvenida()]
-  );
+  const [escrituraDesbloqueada, setEscrituraDesbloqueada] = useState(false);
+  const preguntaInputRef = useRef(null);
+  const [mostrarHistorial, setMostrarHistorial] = useState(false);
+  const [mostrarLlaveBreB, setMostrarLlaveBreB] = useState(false);
+  const [mensajes, setMensajes] = useState(() => {
+    const estaEnCuenta = location.pathname === "/cuenta";
+    const estaEnTransferencias = location.pathname === "/transferencias";
+    const mensajeGuardado = obtenerUltimoMensajeChat();
+    const ultimoMensaje =
+      estaEnCuenta || mensajeGuardado?.texto === MENSAJE_SEGUIMIENTO
+        ? crearMensajeBienvenida()
+        : mensajeGuardado || crearMensajeBienvenida();
+
+    return estaEnTransferencias
+      ? [
+          ultimoMensaje,
+          { tipo: "ia", texto: MENSAJE_SEGUIMIENTO, esSeguimiento: true },
+        ]
+      : [ultimoMensaje];
+  });
   const [isLoading, setIsLoading] = useState(false);
-  const [tipoOpciones, setTipoOpciones] = useState(
-    conversacionInicial &&
-      Object.prototype.hasOwnProperty.call(conversacionInicial, "tipoOpciones")
-      ? conversacionInicial.tipoOpciones
-      : "inicio"
-  );
+  const [tipoOpciones, setTipoOpciones] = useState("inicio");
+
   useEffect(() => {
+    const ultimoMensaje = [...mensajes]
+      .reverse()
+      .find((mensaje) => mensaje.tipo === "ia" && !mensaje.esSeguimiento);
+
+    if (!ultimoMensaje) return;
+
     try {
-      sessionStorage.setItem(
-        CHAT_STORAGE_KEY,
-        JSON.stringify({ mensajes, tipoOpciones })
-      );
+      sessionStorage.setItem(ULTIMO_MENSAJE_CHAT_KEY, ultimoMensaje.texto);
     } catch (error) {
-      console.error("No fue posible guardar la conversación del asistente:", error);
+      console.error("No fue posible guardar el último mensaje del asistente:", error);
     }
-  }, [mensajes, tipoOpciones]);
+  }, [mensajes]);
+
+  useEffect(() => {
+    if (!mostrarHistorial && !mostrarLlaveBreB) return undefined;
+
+    const cerrarConEscape = (event) => {
+      if (event.key === "Escape") {
+        setMostrarHistorial(false);
+        setMostrarLlaveBreB(false);
+      }
+    };
+
+    document.addEventListener("keydown", cerrarConEscape);
+    return () => document.removeEventListener("keydown", cerrarConEscape);
+  }, [mostrarHistorial, mostrarLlaveBreB]);
+
+  useEffect(() => {
+    if (escrituraDesbloqueada) {
+      preguntaInputRef.current?.focus();
+    }
+  }, [escrituraDesbloqueada]);
 
   const enviarPregunta = async (textoSeleccionado) => {
     const texto = (textoSeleccionado || pregunta).trim();
     if (!texto || isLoading) return;
 
+    setEscrituraDesbloqueada(false);
+
+    const textoNormalizado = texto
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[¿?¡!.,]/g, "")
+      .trim();
+
+    if (
+      textoNormalizado === "necesito ayuda para usar la aplicacion" ||
+      textoNormalizado === "como uso la aplicacion"
+    ) {
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto },
+        { tipo: "ia", texto: "¿Qué necesitas saber?" },
+      ]);
+      setTipoOpciones("usoAplicacion");
+      setPregunta("");
+      return;
+    }
+
     const token = localStorage.getItem("token");
     const historial = mensajes
-      .filter((msg) => msg && typeof msg.texto === "string" && msg.texto.trim())
+      .filter(
+        (msg) =>
+          msg &&
+          !msg.esSeguimiento &&
+          typeof msg.texto === "string" &&
+          msg.texto.trim()
+      )
       .map((msg) => ({
         role: msg.tipo === "usuario" ? "user" : "assistant",
         content: msg.texto.trim(),
@@ -155,6 +223,33 @@ function ChatIA({ onClose }) {
   };
 
   const seleccionarOpcion = (opcion) => {
+    if (opcion.etiqueta === "¿Cómo uso la aplicación?") {
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: opcion.etiqueta },
+        { tipo: "ia", texto: "¿Qué necesitas saber?" },
+      ]);
+      setTipoOpciones("usoAplicacion");
+      return;
+    }
+
+    if (tipoOpciones === "usoAplicacion") {
+      const pasos = PASOS_NAVEGACION[opcion.etiqueta];
+      if (!pasos) return;
+
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: opcion.etiqueta },
+        { tipo: "ia", texto: `Para llegar a ${opcion.etiqueta}:\n${pasos}` },
+      ]);
+      return;
+    }
+
+    if (opcion.etiqueta === "Historial") {
+      setMostrarHistorial(true);
+      return;
+    }
+
     if (opcion.etiqueta === "Cuentas") {
       const mensaje =
         location.pathname === "/cuenta"
@@ -164,28 +259,26 @@ function ChatIA({ onClose }) {
         ...mensajes,
         { tipo: "usuario", texto: opcion.etiqueta },
         { tipo: "ia", texto: mensaje },
-        {
-          tipo: "ia",
-          texto: "¿Qué más necesitas de mi asistencia virtual de Financiero?",
-        },
       ];
 
       setMensajes(mensajesActualizados);
       setTipoOpciones("inicio");
 
-      try {
-        sessionStorage.setItem(
-          CHAT_STORAGE_KEY,
-          JSON.stringify({ mensajes: mensajesActualizados, tipoOpciones: "inicio" })
-        );
-      } catch (error) {
-        console.error("No fue posible guardar la conversación del asistente:", error);
-      }
-
       if (location.pathname !== "/cuenta") {
         onClose?.();
         navigate("/cuenta");
       }
+      return;
+    }
+
+    if (opcion.etiqueta === "Certificados") {
+      onClose?.();
+      navigate("/certificado");
+      return;
+    }
+
+    if (opcion.etiqueta === "Llaves Bre-B") {
+      setMostrarLlaveBreB(true);
       return;
     }
 
@@ -230,14 +323,6 @@ function ChatIA({ onClose }) {
       ];
       setMensajes(mensajesActualizados);
       setTipoOpciones(null);
-      try {
-        sessionStorage.setItem(
-          CHAT_STORAGE_KEY,
-          JSON.stringify({ mensajes: mensajesActualizados, tipoOpciones: null })
-        );
-      } catch (error) {
-        console.error("No fue posible guardar la conversación del asistente:", error);
-      }
       onClose?.();
       navigate("/transferencias", {
         state: { desdeAsistente: true, origen: opcion.cuenta },
@@ -249,6 +334,7 @@ function ChatIA({ onClose }) {
   };
 
   return (
+    <>
     <div className="chat-container">
       <div className="chat-header">
         <span id="asistente-titulo">Asistente IA 🤖</span>
@@ -280,6 +366,8 @@ function ChatIA({ onClose }) {
               ? OPCIONES_TRANSFERENCIA
               : tipoOpciones === "cuentaOrigen"
                 ? OPCIONES_CUENTA_ORIGEN
+                : tipoOpciones === "usoAplicacion"
+                  ? OPCIONES_USO_APLICACION
                 : OPCIONES_CHAT
             ).map((opcion) => (
               <button
@@ -301,20 +389,101 @@ function ChatIA({ onClose }) {
         <input
           className="chat-input"
           type="text"
-          placeholder="Escribe una pregunta..."
+          placeholder={
+            escrituraDesbloqueada
+              ? "Escribe una pregunta..."
+              : "Pulsa «Desbloquear escritura» para escribir..."
+          }
           value={pregunta}
-          onChange={(e) => setPregunta(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
+          disabled={!escrituraDesbloqueada || isLoading}
+          ref={preguntaInputRef}
+          onChange={(event) => setPregunta(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && escrituraDesbloqueada) {
               enviarPregunta();
             }
           }}
+          aria-label={
+            escrituraDesbloqueada
+              ? "Escribe una pregunta para el asistente"
+              : "Escritura bloqueada; pulsa Desbloquear escritura para activarla"
+          }
         />
-        <button onClick={enviarPregunta} disabled={isLoading}>
-          {isLoading ? "Enviando..." : "Enviar"}
+        <button
+          type="button"
+          className="chat-unlock-button"
+          onClick={() => setEscrituraDesbloqueada(true)}
+          disabled={isLoading}
+          aria-pressed={escrituraDesbloqueada}
+        >
+          {escrituraDesbloqueada ? "Escritura habilitada" : "Desbloquear escritura"}
+        </button>
+        <button
+          type="button"
+          onClick={() => enviarPregunta()}
+          disabled={!escrituraDesbloqueada || isLoading}
+        >
+          Enviar
         </button>
       </div>
     </div>
+    {mostrarHistorial && (
+      <div
+        className="historial-asistente-overlay"
+        onClick={() => setMostrarHistorial(false)}
+      >
+        <div
+          className="historial-asistente-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="historial-asistente-titulo"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="historial-asistente-header">
+            <h2 id="historial-asistente-titulo">Historial de transacciones</h2>
+            <button
+              type="button"
+              onClick={() => setMostrarHistorial(false)}
+              aria-label="Cerrar historial"
+            >
+              ×
+            </button>
+          </div>
+          <div className="historial-asistente-body">
+            <Historial isModal />
+          </div>
+        </div>
+      </div>
+    )}
+    {mostrarLlaveBreB && (
+      <div
+        className="historial-asistente-overlay"
+        onClick={() => setMostrarLlaveBreB(false)}
+      >
+        <section
+          className="llave-breb-asistente-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="llave-breb-asistente-titulo"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="historial-asistente-header">
+            <h2 id="llave-breb-asistente-titulo">Registrar llave Bre-B</h2>
+            <button
+              type="button"
+              onClick={() => setMostrarLlaveBreB(false)}
+              aria-label="Cerrar registro de llave Bre-B"
+            >
+              ×
+            </button>
+          </div>
+          <div className="llave-breb-asistente-body">
+            <RegistrarLlaveBreB isModal />
+          </div>
+        </section>
+      </div>
+    )}
+    </>
   );
 }
 

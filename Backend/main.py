@@ -788,6 +788,20 @@ def generar_codigo_verificacion() -> str:
     return f"{secrets.randbelow(10000):04d}"
 
 
+def enviar_correos_acceso(
+    destinatario: str,
+    asunto_codigo: str,
+    mensaje_codigo: str,
+    asunto_notificacion: str,
+    mensaje_notificacion: str,
+) -> bool:
+    if not enviar_correo(destinatario, asunto_codigo, mensaje_codigo):
+        return False
+
+    enviar_correo(destinatario, asunto_notificacion, mensaje_notificacion)
+    return True
+
+
 def generar_numero_cuenta(
     db: Session | None = None,
     usados: set[str] | None = None
@@ -892,11 +906,18 @@ def asesor_login(
             Tu acceso como asesor bancario fue exitoso.
         </p>
         <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+            Este código de verificación vencerá en 10 minutos.
+        </p>
+        <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
             Tu código de verificación es: <strong style="color: #0d6efd;">{codigo_verificacion}</strong>
         </p>
         """
     )
-    enviar_correo(asesor["email"], asunto, mensaje)
+    if not enviar_correo(asesor["email"], asunto, mensaje):
+        raise HTTPException(
+            status_code=503,
+            detail="No se pudo enviar el código de verificación. Inténtalo nuevamente."
+        )
 
     return {
         "message": "Acceso de asesor exitoso",
@@ -915,6 +936,34 @@ def asesor_login(
             "rol": asesor["rol"]
         }
     }
+
+
+def generar_codigo_asesor(db: Session) -> str:
+    digitos = "0123456789"
+    minusculas = "abcdefghijklmnopqrstuvwxyz"
+    mayusculas = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    caracteres_codigo = digitos + minusculas + mayusculas
+    while True:
+        caracteres = [
+            secrets.choice(digitos),
+            secrets.choice(minusculas),
+            secrets.choice(mayusculas),
+            *(
+                secrets.choice(caracteres_codigo)
+                for _ in range(7)
+            ),
+        ]
+        secrets.SystemRandom().shuffle(caracteres)
+        codigo_asesor = "".join(caracteres)
+        codigo_existente = db.execute(
+            text(
+                "SELECT 1 FROM asesores_banco "
+                "WHERE codigo_asesor = :codigo_asesor LIMIT 1"
+            ),
+            {"codigo_asesor": codigo_asesor},
+        ).first()
+        if codigo_existente is None:
+            return codigo_asesor
 
 
 @app.post("/administradores/asesores")
@@ -949,23 +998,7 @@ def registrar_codigo_asesor(
     if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
         raise HTTPException(status_code=400, detail="Ingrese un correo electrónico válido")
 
-    caracteres_codigo = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    codigo_asesor = "".join(
-        secrets.choice(caracteres_codigo)
-        for _ in range(10)
-    )
-
-    while db.execute(
-        text(
-            "SELECT 1 FROM asesores_banco "
-            "WHERE codigo_asesor = :codigo_asesor LIMIT 1"
-        ),
-        {"codigo_asesor": codigo_asesor},
-    ).first() is not None:
-        codigo_asesor = "".join(
-            secrets.choice(caracteres_codigo)
-            for _ in range(10)
-        )
+    codigo_asesor = generar_codigo_asesor(db)
 
     db.execute(
         text(
@@ -1083,6 +1116,49 @@ def eliminar_asesor(
     db.commit()
 
     return {"mensaje": "Asesor eliminado correctamente", "id_asesor": id_asesor}
+
+
+@app.post("/administradores/asesores/{id_asesor}/restablecer-codigo")
+def restablecer_codigo_asesor(
+    id_asesor: int,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    administrador = db.query(Administrador).filter(
+        Administrador.id_usuario == current_user
+    ).first()
+
+    if not administrador:
+        raise HTTPException(
+            status_code=403,
+            detail="Solo un administrador puede restablecer códigos de asesores"
+        )
+
+    asesor = db.execute(
+        text("SELECT id_asesor FROM asesores_banco WHERE id_asesor = :id_asesor"),
+        {"id_asesor": id_asesor}
+    ).mappings().first()
+    if not asesor:
+        raise HTTPException(status_code=404, detail="Asesor no encontrado")
+
+    codigo_asesor = generar_codigo_asesor(db)
+
+    db.execute(
+        text(
+            """
+            UPDATE asesores_banco
+            SET codigo_asesor = :codigo_asesor
+            WHERE id_asesor = :id_asesor
+            """
+        ),
+        {"codigo_asesor": codigo_asesor, "id_asesor": id_asesor}
+    )
+    db.commit()
+
+    return {
+        "mensaje": "Código del asesor restablecido correctamente",
+        "codigo_asesor": codigo_asesor
+    }
 
 
 @app.put("/administradores/asesores/{id_asesor}")
@@ -1259,6 +1335,12 @@ def administrador_login(
             detail="El documento no corresponde al administrador"
         )
 
+    if not usuario.email:
+        raise HTTPException(
+            status_code=400,
+            detail="El administrador no tiene un correo electrónico registrado"
+        )
+
     codigo_verificacion = generar_codigo_verificacion()
     asunto = "Inicio de sesión de administrador - Código de verificación - Financiero"
     mensaje = crear_plantilla_email(
@@ -1270,11 +1352,18 @@ def administrador_login(
             Tu acceso como administrador fue exitoso.
         </p>
         <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+            Este código de verificación vencerá en 10 minutos.
+        </p>
+        <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
             Tu código de verificación es: <strong style="color: #0d6efd;">{codigo_verificacion}</strong>
         </p>
         """
     )
-    enviar_correo(usuario.email, asunto, mensaje)
+    if not enviar_correo(usuario.email, asunto, mensaje):
+        raise HTTPException(
+            status_code=503,
+            detail="No se pudo enviar el código de verificación. Inténtalo nuevamente."
+        )
 
     return {
         "message": "Acceso de administrador exitoso",
@@ -1380,6 +1469,12 @@ def login(
                 detail="Tu registro está pendiente de aprobación por el asesor bancario."
             )
 
+    if not usuario.email:
+        raise HTTPException(
+            status_code=400,
+            detail="No tienes un correo electrónico registrado para recibir el código de verificación"
+        )
+
     token = generate_token(
         usuario.id_usuario
     )
@@ -1398,6 +1493,9 @@ def login(
         </p>
         <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
             Se registró un inicio de sesión en tu cuenta.
+        </p>
+        <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+            Este código de verificación vencerá en 10 minutos.
         </p>
         <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
             Tu código de verificación es: <strong style="color: #0d6efd;">{codigo_verificacion}</strong>
@@ -1426,9 +1524,17 @@ def login(
         """
     )
 
-    if usuario.email:
-        enviar_correo(usuario.email, asunto, mensaje)
-        enviar_correo(usuario.email, asunto_notificacion_ingreso, mensaje_notificacion_ingreso)
+    if not enviar_correos_acceso(
+        usuario.email,
+        asunto,
+        mensaje,
+        asunto_notificacion_ingreso,
+        mensaje_notificacion_ingreso,
+    ):
+        raise HTTPException(
+            status_code=503,
+            detail="No se pudo enviar el código de verificación. Inténtalo nuevamente."
+        )
 
     db.add(
         Notificacion(

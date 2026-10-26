@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import ChatIA from "./ChatIA";
 import "../styles/historial.css";
 
 const HISTORIAL_LOCAL_KEY = "historial_transferencias";
 const HISTORIAL_LEGACY_KEY = "historial";
 
-function Historial() {
+function Historial({ isModal = false }) {
     const [transacciones, setTransacciones] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState("");
@@ -15,6 +16,7 @@ function Historial() {
     const [usuario, setUsuario] = useState("");
     const [openTransfer, setOpenTransfer] = useState(false);
     const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
+    const [asistenteAbierto, setAsistenteAbierto] = useState(false);
 
     useEffect(() => {
         cargarTransacciones();
@@ -31,6 +33,17 @@ function Historial() {
 
         return () => window.removeEventListener("resize", actualizarEstadoMenu);
     }, []);
+
+    useEffect(() => {
+        if (!asistenteAbierto) return undefined;
+
+        const cerrarConEscape = (event) => {
+            if (event.key === "Escape") setAsistenteAbierto(false);
+        };
+
+        document.addEventListener("keydown", cerrarConEscape);
+        return () => document.removeEventListener("keydown", cerrarConEscape);
+    }, [asistenteAbierto]);
 
     const cargarUsuario = async () => {
         try {
@@ -262,18 +275,21 @@ function Historial() {
     };
 
     return (
-        <div className="panel-financiero">
+        <div className={`panel-financiero${isModal ? " historial-modal" : ""}`}>
 
-            <button
-                type="button"
-                className={`menu-hamburguesa ${menuAbierto ? "activo" : ""}`}
-                onClick={() => setMenuAbierto((actual) => !actual)}
-                aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
-                aria-expanded={menuAbierto}
-            >
-                ☰
-            </button>
+            {!isModal && (
+                <button
+                    type="button"
+                    className={`menu-hamburguesa ${menuAbierto ? "activo" : ""}`}
+                    onClick={() => setMenuAbierto((actual) => !actual)}
+                    aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+                    aria-expanded={menuAbierto}
+                >
+                    ☰
+                </button>
+            )}
 
+            {!isModal && (
             <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
                 <ul>
 
@@ -349,12 +365,13 @@ function Historial() {
                     </li>
 
                     <li>
-                        <Link
-                            to="/ChatIA"
+                        <button
+                            type="button"
                             className="btn-nav"
+                            onClick={() => setAsistenteAbierto(true)}
                         >
                             🤖 Asistente IA
-                        </Link>
+                        </button>
                     </li>
 
                 </ul>
@@ -366,23 +383,26 @@ function Historial() {
                     🚪 Cerrar sesión
                 </button>
             </aside>
+            )}
 
             <main className="main">
 
-                <header className="main-header">
+                {!isModal && (
+                    <header className="main-header">
 
-                    <h2>
-                        Bienvenido {usuario}
-                    </h2>
+                        <h2>
+                            Bienvenido {usuario}
+                        </h2>
 
-                    <div className="profile">
-                        <img
-                            src="https://i.pinimg.com/736x/e0/06/16/e00616c1e181f83b35b157f9281bd36e.jpg"
-                            alt="Usuario"
-                        />
-                    </div>
+                        <div className="profile">
+                            <img
+                                src="https://i.pinimg.com/736x/e0/06/16/e00616c1e181f83b35b157f9281bd36e.jpg"
+                                alt="Usuario"
+                            />
+                        </div>
 
-                </header>
+                    </header>
+                )}
 
                 <div className="historial-container">
 
@@ -590,6 +610,23 @@ function Historial() {
                 </div>
 
             </main>
+
+            {asistenteAbierto && (
+                <div
+                    className="asistente-modal-overlay"
+                    onClick={() => setAsistenteAbierto(false)}
+                >
+                    <div
+                        className="asistente-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="asistente-titulo"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <ChatIA onClose={() => setAsistenteAbierto(false)} />
+                    </div>
+                </div>
+            )}
 
         </div>
     );

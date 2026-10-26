@@ -40,11 +40,33 @@
     display: none;
 }
 
+.panel-financiero.historial-modal {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    background: #0b0f16;
+}
+
+.historial-modal .main {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    padding: 0;
+    overflow: visible;
+    background: transparent;
+}
+
 .historial-container {
     width: 100%;
     min-height: 100vh;
     padding: 35px;
     box-sizing: border-box;
+}
+
+.historial-modal .historial-container {
+    min-height: 0;
+    padding: 24px;
 }
 
 /* ENCABEZADO */
