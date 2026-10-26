@@ -30,6 +30,9 @@ export default function Administradores() {
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
   const [guardandoRegistro, setGuardandoRegistro] = useState(false);
   const [actualizandoEstado, setActualizandoEstado] = useState(null);
+  const [restableciendoCodigo, setRestableciendoCodigo] = useState(false);
+  const [confirmacionRestablecerAbierta, setConfirmacionRestablecerAbierta] =
+    useState(false);
 
   useEffect(() => {
     cargarDatos();
@@ -287,6 +290,55 @@ export default function Administradores() {
       setError(formatearError(error, "No se pudo actualizar el asesor."));
     } finally {
       setGuardandoEdicion(false);
+    }
+  };
+
+  const restablecerCodigoAsesor = async () => {
+    if (!asesorEditando || guardandoEdicion || restableciendoCodigo) {
+      return;
+    }
+
+    try {
+      setError("");
+      setMensaje("");
+      setConfirmacionRestablecerAbierta(false);
+      setRestableciendoCodigo(true);
+
+      const token = localStorage.getItem("token");
+      const respuesta = await axios.post(
+        `${API_URL}/administradores/asesores/${asesorEditando.id_asesor}/restablecer-codigo`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const codigoActualizado = respuesta.data?.codigo_asesor;
+      if (typeof codigoActualizado !== "string" || !codigoActualizado) {
+        throw new Error("No se recibió el nuevo código del asesor.");
+      }
+
+      setFormularioEdicion((actual) => ({
+        ...actual,
+        codigo_asesor: codigoActualizado,
+      }));
+      setAsesorEditando((actual) =>
+        actual ? { ...actual, codigo_asesor: codigoActualizado } : actual
+      );
+      setAsesores((actuales) =>
+        actuales.map((asesor) =>
+          asesor.id_asesor === asesorEditando.id_asesor
+            ? { ...asesor, codigo_asesor: codigoActualizado }
+            : asesor
+        )
+      );
+      setMensaje(respuesta.data?.mensaje || "Código del asesor restablecido correctamente.");
+    } catch (error) {
+      console.error(error);
+      setError(formatearError(error, "No se pudo restablecer el código del asesor."));
+    } finally {
+      setRestableciendoCodigo(false);
     }
   };
 
@@ -801,9 +853,12 @@ export default function Administradores() {
                         maxLength={100}
                       />
                     </label>
-                    <label>
-                      Código del asesor
+                    <div className="campo-codigo-asesor">
+                      <label htmlFor="codigo-asesor-edicion">
+                        Código del asesor
+                      </label>
                       <input
+                        id="codigo-asesor-edicion"
                         name="codigo_asesor"
                         type="text"
                         value={formularioEdicion.codigo_asesor || ""}
@@ -811,7 +866,29 @@ export default function Administradores() {
                         maxLength={30}
                         required
                       />
-                    </label>
+                      <button
+                        type="button"
+                        className="boton-restablecer-codigo"
+                        onClick={() => setConfirmacionRestablecerAbierta(true)}
+                        disabled={
+                          guardandoEdicion ||
+                          restableciendoCodigo ||
+                          confirmacionRestablecerAbierta
+                        }
+                      >
+                        {restableciendoCodigo ? "Restableciendo..." : "Restablecer código"}
+                      </button>
+                      {error && (
+                        <span className="mensaje-codigo-asesor error" role="alert">
+                          {error}
+                        </span>
+                      )}
+                      {mensaje && (
+                        <span className="mensaje-codigo-asesor" role="status">
+                          {mensaje}
+                        </span>
+                      )}
+                    </div>
                     <label>
                       Estado
                       <select
@@ -840,10 +917,50 @@ export default function Administradores() {
                     </div>
                   </div>
 
-                  <button type="submit" disabled={guardandoEdicion}>
+                  <button
+                    type="submit"
+                    disabled={guardandoEdicion || restableciendoCodigo}
+                  >
                     {guardandoEdicion ? "Guardando..." : "Guardar cambios"}
                   </button>
                 </form>
+                {confirmacionRestablecerAbierta && (
+                  <div
+                    className="confirmacion-codigo-overlay"
+                    onClick={() => setConfirmacionRestablecerAbierta(false)}
+                    role="presentation"
+                  >
+                    <section
+                      className="confirmacion-codigo-modal"
+                      onClick={(evento) => evento.stopPropagation()}
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="titulo-confirmacion-codigo"
+                    >
+                      <h2 id="titulo-confirmacion-codigo">Restablecer código</h2>
+                      <p>
+                        Se generará un nuevo código para este asesor. ¿Desea continuar?
+                      </p>
+                      <div className="acciones-confirmacion-codigo">
+                        <button
+                          type="button"
+                          className="boton-cancelar-codigo"
+                          onClick={() => setConfirmacionRestablecerAbierta(false)}
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          className="boton-confirmar-codigo"
+                          onClick={restablecerCodigoAsesor}
+                          disabled={restableciendoCodigo}
+                        >
+                          Confirmar
+                        </button>
+                      </div>
+                    </section>
+                  </div>
+                )}
               </section>
             </div>
           )}

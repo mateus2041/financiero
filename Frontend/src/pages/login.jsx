@@ -49,6 +49,7 @@ function Login({ isModal = false }) {
 
   const [intentos, setIntentos] = useState(0);
   const [bloqueado, setBloqueado] = useState(false);
+  const [iniciandoSesion, setIniciandoSesion] = useState(false);
 
   // Estados para verificación
   const [loginExitoso, setLoginExitoso] = useState(false);
@@ -123,6 +124,7 @@ function Login({ isModal = false }) {
     }
 
     try {
+      setIniciandoSesion(true);
       const esAsesor = rol === "asesor";
       const esAdministrador = rol === "administrador";
       const res = await fetch(
@@ -147,10 +149,13 @@ function Login({ isModal = false }) {
       const data = await res.json();
 
       if (!res.ok) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("usuario_id");
-        localStorage.removeItem("documento");
-        localStorage.removeItem("rol");
+        if (res.status === 503) {
+          setMensaje(
+            data.detail ||
+              "No se pudo enviar el código de verificación. Inténtalo nuevamente."
+          );
+          return;
+        }
 
         const nuevosIntentos = intentos + 1;
         setIntentos(nuevosIntentos);
@@ -227,16 +232,18 @@ function Login({ isModal = false }) {
           ? "❌ El servidor devolvió una respuesta inválida"
           : "❌ Error conectando con el servidor"
       );
+    } finally {
+      setIniciandoSesion(false);
     }
   };
 
   return (
     <div className={isModal ? "container login-modal-container" : "container"}>
       <form className="form-box" onSubmit={manejarSubmit}>
-        <h1>Inicio de Sesión</h1>
-
-        {!loginExitoso ? (
+        {!loginExitoso && (
           <>
+            <h1>Inicio de Sesión</h1>
+
             {rol === "asesor" ? (
               <>
                 <label htmlFor="email-asesor">Correo electrónico del asesor</label>
@@ -245,7 +252,7 @@ function Login({ isModal = false }) {
                   type="email"
                   value={emailAsesor}
                   onChange={(e) => setEmailAsesor(e.target.value)}
-                  disabled={bloqueado}
+                  disabled={bloqueado || iniciandoSesion}
                   placeholder="Ingresa tu correo electrónico"
                   autoComplete="email"
                 />
@@ -255,7 +262,7 @@ function Login({ isModal = false }) {
                   type="password"
                   value={codigoAsesor}
                   onChange={(e) => setCodigoAsesor(e.target.value)}
-                  disabled={bloqueado}
+                  disabled={bloqueado || iniciandoSesion}
                   placeholder="Ingresa tu código de asesor"
                   autoComplete="off"
                 />
@@ -268,7 +275,7 @@ function Login({ isModal = false }) {
                   type="text"
                   value={documentoAdministrador}
                   onChange={(e) => setDocumentoAdministrador(e.target.value)}
-                  disabled={bloqueado}
+                  disabled={bloqueado || iniciandoSesion}
                   placeholder="Ingresa tu número de documento"
                   autoComplete="username"
                 />
@@ -278,7 +285,7 @@ function Login({ isModal = false }) {
                   type="password"
                   value={codigoAdministrador}
                   onChange={(e) => setCodigoAdministrador(e.target.value)}
-                  disabled={bloqueado}
+                  disabled={bloqueado || iniciandoSesion}
                   placeholder="Ingresa tu código de administrador"
                   autoComplete="off"
                 />
@@ -292,7 +299,7 @@ function Login({ isModal = false }) {
                     type="text"
                     value={documento}
                     onChange={(e) => setDocumento(e.target.value)}
-                    disabled={bloqueado}
+                    disabled={bloqueado || iniciandoSesion}
                     placeholder="Ingresa tu documento"
                   />
                 </div>
@@ -304,7 +311,7 @@ function Login({ isModal = false }) {
                     type={mostrarPass ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    disabled={bloqueado}
+                    disabled={bloqueado || iniciandoSesion}
                     placeholder="Ingresa tu contraseña"
                   />
 
@@ -312,7 +319,7 @@ function Login({ isModal = false }) {
                     type="button"
                     className="eye-btn"
                     onClick={() => setMostrarPass(!mostrarPass)}
-                    disabled={bloqueado}
+                    disabled={bloqueado || iniciandoSesion}
                   >
                     {mostrarPass ? "🙈" : "👁️"}
                   </button>
@@ -325,7 +332,7 @@ function Login({ isModal = false }) {
               id="rol"
               value={rol}
               onChange={(e) => setRol(e.target.value)}
-              disabled={bloqueado}
+              disabled={bloqueado || iniciandoSesion}
             >
               <option value="usuario">Usuario</option>
               <option value="asesor">Asesor bancario</option>
@@ -364,9 +371,13 @@ function Login({ isModal = false }) {
             <button
               type="submit"
               className="btn"
-              disabled={bloqueado}
+              disabled={bloqueado || iniciandoSesion}
             >
-              {bloqueado ? "Bloqueado" : "Acceder"}
+              {bloqueado
+                ? "Bloqueado"
+                : iniciandoSesion
+                  ? "Enviando código..."
+                  : "Acceder"}
             </button>
 
             <p className="login">
@@ -395,19 +406,42 @@ function Login({ isModal = false }) {
               </a>
             </p>
           </>
-        ) : (
-          <>
-            <div className="login-success">
-              <h2>✅ Bienvenido, {localStorage.getItem("nombre_usuario")}</h2>
+        )}
 
-              <p>
-                Has iniciado sesión como {textosAcceso.etiqueta}.
-              </p>
+        {!loginExitoso && (
+          <div className="footer">
+            <p>
+              © {new Date().getFullYear()} Financiero. Todos los derechos
+              reservados.
+            </p>
+          </div>
+        )}
+      </form>
 
-              <p>{textosAcceso.instruccion}</p>
+      {loginExitoso && (
+        <div className="login-verification-overlay" role="presentation">
+          <section
+            className="login-verification-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="login-verification-title"
+          >
+            <h2 id="login-verification-title">Verificación de acceso</h2>
+            <p>✅ Bienvenido, {localStorage.getItem("nombre_usuario")}</p>
+            <p>Has iniciado sesión como {textosAcceso.etiqueta}.</p>
+            <p>{textosAcceso.instruccion}</p>
 
-              <label>Código de verificación</label>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                validarCodigoCuenta();
+              }}
+            >
+              <label htmlFor="codigo-verificacion-login">
+                Código de verificación
+              </label>
               <input
+                id="codigo-verificacion-login"
                 type="text"
                 value={codigoVerificacionInput}
                 onChange={(e) =>
@@ -417,6 +451,7 @@ function Login({ isModal = false }) {
                 }
                 maxLength={4}
                 inputMode="numeric"
+                autoFocus
                 style={{ textAlign: "center", letterSpacing: "0.5rem" }}
               />
 
@@ -433,35 +468,26 @@ function Login({ isModal = false }) {
               )}
 
               <button
-                type="button"
+                type="submit"
                 className="btn"
-                onClick={validarCodigoCuenta}
                 disabled={verificandoCodigo}
               >
                 {verificandoCodigo ? "Validando..." : textosAcceso.boton}
               </button>
+            </form>
 
-              {rolActual === "usuario" && (
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={solicitarVerificacion}
-                  style={{ marginTop: "10px" }}
-                >
-                  🪪 Solicitar verificación de identidad
-                </button>
-              )}
-            </div>
-          </>
-        )}
-
-        <div className="footer">
-          <p>
-            © {new Date().getFullYear()} Financiero. Todos los derechos
-            reservados.
-          </p>
+            {rolActual === "usuario" && (
+              <button
+                type="button"
+                className="btn"
+                onClick={solicitarVerificacion}
+              >
+                🪪 Solicitar verificación de identidad
+              </button>
+            )}
+          </section>
         </div>
-      </form>
+      )}
 
       {mostrarRecuperacion && (
         <div

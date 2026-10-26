@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { Navigate, Routes, Route, useLocation } from "react-router-dom";
 
 import Inicio from "./pages/inicio";
@@ -27,26 +27,16 @@ import ListaAsesores from "./pages/Listaasesores";
 
 function App() {
   const location = useLocation();
-  const rutaAnterior = useRef(location.pathname);
 
-  useLayoutEffect(() => {
-    if (rutaAnterior.current !== location.pathname) {
-      const vieneDelAsistente =
-        (location.pathname === "/transferencias" &&
-          location.state?.desdeAsistente === true) ||
-        (location.pathname === "/cuenta" &&
-          sessionStorage.getItem("conversacion_asistente") !== null);
+  useEffect(() => {
+    if (location.pathname !== "/cuenta") return;
 
-      if (!vieneDelAsistente) {
-        try {
-          sessionStorage.removeItem("conversacion_asistente");
-        } catch (error) {
-          console.error("No fue posible borrar la conversación del asistente:", error);
-        }
-      }
-      rutaAnterior.current = location.pathname;
+    try {
+      sessionStorage.removeItem("ultimo_mensaje_asistente");
+    } catch (error) {
+      console.error("No fue posible reiniciar la conversación del asistente:", error);
     }
-  }, [location.pathname, location.state]);
+  }, [location.pathname]);
 
   return (
     <Routes>
