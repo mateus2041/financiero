@@ -43,7 +43,7 @@ services:
       - billetera_net
 
 
-  backend:
+  migrate:
 
     build:
 
@@ -51,9 +51,7 @@ services:
 
       dockerfile: Backend/Dockerfile
 
-    container_name: backend_billetera
-
-    restart: always
+    restart: "no"
 
     depends_on:
 
@@ -73,7 +71,57 @@ services:
 
       DB_NAME: ${DB_NAME:-billetera}
 
-      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      ASESOR_REGISTRATION_CODE: ${ASESOR_REGISTRATION_CODE:-}
+
+      PYTHONPATH: /app
+
+    volumes:
+
+      - .:/app
+      - backend_venv:/app/.venv
+
+    working_dir: /app
+
+    command: uv run alembic -c Backend/alembic.ini upgrade head
+
+    networks:
+
+      - billetera_net
+
+
+  backend:
+
+    build:
+
+      context: .
+
+      dockerfile: Backend/Dockerfile
+
+    container_name: backend_billetera
+
+    restart: always
+
+    depends_on:
+
+      db:
+
+        condition: service_healthy
+
+      migrate:
+
+        condition: service_completed_successfully
+
+    environment:
+
+      DB_USER: ${MYSQL_APP_USER:-app_user}
+
+      DB_PASSWORD: ${MYSQL_APP_PASSWORD:?Define MYSQL_APP_PASSWORD en .env}
+
+      DB_HOST: db
+
+      DB_PORT: 3306
+
+      DB_NAME: ${DB_NAME:-billetera}
 
       ASESOR_REGISTRATION_CODE: ${ASESOR_REGISTRATION_CODE:-}
 
