@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import ChatIA from "./ChatIA";
 import "../styles/ajustes.css";
 
 function AjustesPerfil() {
@@ -28,6 +29,7 @@ function AjustesPerfil() {
   const [openTransfer, setOpenTransfer] = useState(false);
   const [openCertificado, setOpenCertificado] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
+  const [asistenteAbierto, setAsistenteAbierto] = useState(false);
 
   useEffect(() => {
     const actualizarEstadoMenu = () => {
@@ -39,6 +41,17 @@ function AjustesPerfil() {
 
     return () => window.removeEventListener("resize", actualizarEstadoMenu);
   }, []);
+
+  useEffect(() => {
+    if (!asistenteAbierto) return undefined;
+
+    const cerrarConEscape = (event) => {
+      if (event.key === "Escape") setAsistenteAbierto(false);
+    };
+
+    document.addEventListener("keydown", cerrarConEscape);
+    return () => document.removeEventListener("keydown", cerrarConEscape);
+  }, [asistenteAbierto]);
 
   // =====================================================
   // CAMBIAR FOTO DE PERFIL
@@ -441,12 +454,13 @@ function AjustesPerfil() {
           </li>
 
           <li>
-            <Link
-              to="/ChatIA"
+            <button
+              type="button"
               className="btn-nav"
+              onClick={() => setAsistenteAbierto(true)}
             >
               🤖 Asistente IA
-            </Link>
+            </button>
           </li>
 
         </ul>
@@ -769,6 +783,23 @@ function AjustesPerfil() {
 
           </div>
 
+        </div>
+      )}
+
+      {asistenteAbierto && (
+        <div
+          className="asistente-modal-overlay"
+          onClick={() => setAsistenteAbierto(false)}
+        >
+          <div
+            className="asistente-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="asistente-titulo"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <ChatIA onClose={() => setAsistenteAbierto(false)} />
+          </div>
         </div>
       )}
 

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Query
 from decimal import Decimal
 import secrets
 import os
@@ -11,7 +11,7 @@ import json
 
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import case, func, text
 from pydantic import BaseModel, EmailStr, Field
 from typing import Literal
 
@@ -107,6 +107,7 @@ from Backend.models import (
     Usuario,
     TipoDocumento,
     Administrador,
+    AsesorBanco,
     Cuenta,
     Tarjeta,
     Transaccion,
@@ -787,6 +788,20 @@ def generar_codigo_verificacion() -> str:
     return f"{secrets.randbelow(10000):04d}"
 
 
+def enviar_correos_acceso(
+    destinatario: str,
+    asunto_codigo: str,
+    mensaje_codigo: str,
+    asunto_notificacion: str,
+    mensaje_notificacion: str,
+) -> bool:
+    if not enviar_correo(destinatario, asunto_codigo, mensaje_codigo):
+        return False
+
+    enviar_correo(destinatario, asunto_notificacion, mensaje_notificacion)
+    return True
+
+
 def generar_numero_cuenta(
     db: Session | None = None,
     usados: set[str] | None = None
@@ -891,11 +906,18 @@ def asesor_login(
             Tu acceso como asesor bancario fue exitoso.
         </p>
         <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+            Este código de verificación vencerá en 10 minutos.
+        </p>
+        <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
             Tu código de verificación es: <strong style="color: #0d6efd;">{codigo_verificacion}</strong>
         </p>
         """
     )
-    enviar_correo(asesor["email"], asunto, mensaje)
+    if not enviar_correo(asesor["email"], asunto, mensaje):
+        raise HTTPException(
+            status_code=503,
+            detail="No se pudo enviar el código de verificación. Inténtalo nuevamente."
+        )
 
     return {
         "message": "Acceso de asesor exitoso",
@@ -914,6 +936,34 @@ def asesor_login(
             "rol": asesor["rol"]
         }
     }
+
+
+def generar_codigo_asesor(db: Session) -> str:
+    digitos = "0123456789"
+    minusculas = "abcdefghijklmnopqrstuvwxyz"
+    mayusculas = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    caracteres_codigo = digitos + minusculas + mayusculas
+    while True:
+        caracteres = [
+            secrets.choice(digitos),
+            secrets.choice(minusculas),
+            secrets.choice(mayusculas),
+            *(
+                secrets.choice(caracteres_codigo)
+                for _ in range(7)
+            ),
+        ]
+        secrets.SystemRandom().shuffle(caracteres)
+        codigo_asesor = "".join(caracteres)
+        codigo_existente = db.execute(
+            text(
+                "SELECT 1 FROM asesores_banco "
+                "WHERE codigo_asesor = :codigo_asesor LIMIT 1"
+            ),
+            {"codigo_asesor": codigo_asesor},
+        ).first()
+        if codigo_existente is None:
+            return codigo_asesor
 
 
 @app.post("/administradores/asesores")
@@ -948,23 +998,7 @@ def registrar_codigo_asesor(
     if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
         raise HTTPException(status_code=400, detail="Ingrese un correo electrónico válido")
 
-    caracteres_codigo = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    codigo_asesor = "".join(
-        secrets.choice(caracteres_codigo)
-        for _ in range(10)
-    )
-
-    while db.execute(
-        text(
-            "SELECT 1 FROM asesores_banco "
-            "WHERE codigo_asesor = :codigo_asesor LIMIT 1"
-        ),
-        {"codigo_asesor": codigo_asesor},
-    ).first() is not None:
-        codigo_asesor = "".join(
-            secrets.choice(caracteres_codigo)
-            for _ in range(10)
-        )
+    codigo_asesor = generar_codigo_asesor(db)
 
     db.execute(
         text(
@@ -1082,6 +1116,49 @@ def eliminar_asesor(
     db.commit()
 
     return {"mensaje": "Asesor eliminado correctamente", "id_asesor": id_asesor}
+
+
+@app.post("/administradores/asesores/{id_asesor}/restablecer-codigo")
+def restablecer_codigo_asesor(
+    id_asesor: int,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    administrador = db.query(Administrador).filter(
+        Administrador.id_usuario == current_user
+    ).first()
+
+    if not administrador:
+        raise HTTPException(
+            status_code=403,
+            detail="Solo un administrador puede restablecer códigos de asesores"
+        )
+
+    asesor = db.execute(
+        text("SELECT id_asesor FROM asesores_banco WHERE id_asesor = :id_asesor"),
+        {"id_asesor": id_asesor}
+    ).mappings().first()
+    if not asesor:
+        raise HTTPException(status_code=404, detail="Asesor no encontrado")
+
+    codigo_asesor = generar_codigo_asesor(db)
+
+    db.execute(
+        text(
+            """
+            UPDATE asesores_banco
+            SET codigo_asesor = :codigo_asesor
+            WHERE id_asesor = :id_asesor
+            """
+        ),
+        {"codigo_asesor": codigo_asesor, "id_asesor": id_asesor}
+    )
+    db.commit()
+
+    return {
+        "mensaje": "Código del asesor restablecido correctamente",
+        "codigo_asesor": codigo_asesor
+    }
 
 
 @app.put("/administradores/asesores/{id_asesor}")
@@ -1258,6 +1335,12 @@ def administrador_login(
             detail="El documento no corresponde al administrador"
         )
 
+    if not usuario.email:
+        raise HTTPException(
+            status_code=400,
+            detail="El administrador no tiene un correo electrónico registrado"
+        )
+
     codigo_verificacion = generar_codigo_verificacion()
     asunto = "Inicio de sesión de administrador - Código de verificación - Financiero"
     mensaje = crear_plantilla_email(
@@ -1269,11 +1352,18 @@ def administrador_login(
             Tu acceso como administrador fue exitoso.
         </p>
         <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+            Este código de verificación vencerá en 10 minutos.
+        </p>
+        <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
             Tu código de verificación es: <strong style="color: #0d6efd;">{codigo_verificacion}</strong>
         </p>
         """
     )
-    enviar_correo(usuario.email, asunto, mensaje)
+    if not enviar_correo(usuario.email, asunto, mensaje):
+        raise HTTPException(
+            status_code=503,
+            detail="No se pudo enviar el código de verificación. Inténtalo nuevamente."
+        )
 
     return {
         "message": "Acceso de administrador exitoso",
@@ -1379,6 +1469,12 @@ def login(
                 detail="Tu registro está pendiente de aprobación por el asesor bancario."
             )
 
+    if not usuario.email:
+        raise HTTPException(
+            status_code=400,
+            detail="No tienes un correo electrónico registrado para recibir el código de verificación"
+        )
+
     token = generate_token(
         usuario.id_usuario
     )
@@ -1397,6 +1493,9 @@ def login(
         </p>
         <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
             Se registró un inicio de sesión en tu cuenta.
+        </p>
+        <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
+            Este código de verificación vencerá en 10 minutos.
         </p>
         <p style="margin: 0 0 14px; font-size: 14px; color: #1f1f1f;">
             Tu código de verificación es: <strong style="color: #0d6efd;">{codigo_verificacion}</strong>
@@ -1425,9 +1524,17 @@ def login(
         """
     )
 
-    if usuario.email:
-        enviar_correo(usuario.email, asunto, mensaje)
-        enviar_correo(usuario.email, asunto_notificacion_ingreso, mensaje_notificacion_ingreso)
+    if not enviar_correos_acceso(
+        usuario.email,
+        asunto,
+        mensaje,
+        asunto_notificacion_ingreso,
+        mensaje_notificacion_ingreso,
+    ):
+        raise HTTPException(
+            status_code=503,
+            detail="No se pudo enviar el código de verificación. Inténtalo nuevamente."
+        )
 
     db.add(
         Notificacion(
@@ -1536,11 +1643,14 @@ def perfil(
 @app.get("/usuarios", response_model=list[UsuarioRespuesta])
 def listar_usuarios(
     current_user: int = Depends(administrador_o_asesor_requerido),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    limite: int = Query(default=100, ge=1, le=100),
+    despues_de: int | None = Query(default=None, gt=0),
 ):
-    usuarios = db.query(Usuario).filter(
-        Usuario.rol == "usuario"
-    ).order_by(Usuario.id_usuario).all()
+    consulta = db.query(Usuario).filter(Usuario.rol == "usuario")
+    if despues_de is not None:
+        consulta = consulta.filter(Usuario.id_usuario > despues_de)
+    usuarios = consulta.order_by(Usuario.id_usuario).limit(limite).all()
 
     return [
         {
@@ -1566,9 +1676,11 @@ def listar_usuarios(
 @app.get("/administradores/cuentas", response_model=CuentasAdministradorRespuesta)
 def listar_cuentas_admin(
     current_user: int = Depends(administrador_o_asesor_requerido),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    limite: int = Query(default=100, ge=1, le=100),
+    despues_de: int | None = Query(default=None, gt=0),
 ):
-    cuentas = (
+    consulta = (
         db.query(Cuenta, Usuario)
         .join(Usuario, Usuario.id_usuario == Cuenta.id_usuario)
         .filter(Usuario.rol == "usuario")
@@ -1581,9 +1693,10 @@ def listar_cuentas_admin(
             "WHERE asesor.id_usuario = usuario.id_usuario"
             ")"
         ))
-        .order_by(Cuenta.id_cuenta)
-        .all()
     )
+    if despues_de is not None:
+        consulta = consulta.filter(Cuenta.id_cuenta > despues_de)
+    cuentas = consulta.order_by(Cuenta.id_cuenta).limit(limite).all()
 
     return {
         "cuentas": [
@@ -1607,6 +1720,56 @@ def listar_cuentas_admin(
             }
             for cuenta, usuario in cuentas
         ]
+    }
+
+
+@app.get("/administradores/estadisticas")
+def obtener_estadisticas_usuarios(
+    current_user: int = Depends(administrador_o_asesor_requerido),
+    db: Session = Depends(get_db),
+):
+    usuarios = db.query(
+        func.count(Usuario.id_usuario),
+        func.sum(case((Usuario.estado != "inactivo", 1), else_=0)),
+    ).filter(Usuario.rol == "usuario").one()
+
+    cuentas = db.query(
+        func.sum(case((
+            Cuenta.estado.in_(("bloqueada", "inactiva")),
+            1,
+        ), else_=0)),
+        func.sum(case((Cuenta.estado == "activa", 1), else_=0)),
+        func.sum(case((Cuenta.estado == "inactiva", 1), else_=0)),
+    ).join(Usuario, Usuario.id_usuario == Cuenta.id_usuario).filter(
+        Usuario.rol == "usuario",
+        ~db.query(Administrador.id_administrador).filter(
+            Administrador.id_usuario == Usuario.id_usuario
+        ).exists(),
+        ~db.query(AsesorBanco.id_asesor).filter(
+            AsesorBanco.id_usuario == Usuario.id_usuario
+        ).exists(),
+    ).one()
+
+    tarjetas_activas = db.query(
+        func.count(Tarjeta.id_tarjeta)
+    ).join(
+        Cuenta,
+        Cuenta.id_cuenta == Tarjeta.id_cuenta,
+    ).join(
+        Usuario,
+        Usuario.id_usuario == Cuenta.id_usuario,
+    ).filter(
+        Usuario.rol == "usuario",
+        Tarjeta.estado == "activa",
+    ).scalar()
+
+    return {
+        "usuarios_registrados": usuarios[0] or 0,
+        "usuarios_activos": usuarios[1] or 0,
+        "cuentas_bloqueadas": cuentas[0] or 0,
+        "cuentas_habilitadas": cuentas[1] or 0,
+        "cuentas_deshabilitadas": cuentas[2] or 0,
+        "tarjetas_activas": tarjetas_activas or 0,
     }
 
 
@@ -2552,14 +2715,16 @@ def mis_cuentas(
 @app.get("/asesor-bancario/usuarios")
 def asesor_listar_usuarios(
     asesor: Usuario = Depends(asesor_requerido),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    limite: int = Query(default=100, ge=1, le=100),
+    antes_de: int | None = Query(default=None, gt=0),
 ):
-    usuarios = db.query(Usuario).filter(
-        Usuario.rol == "usuario"
-    ).order_by(
-        Usuario.fecha_creacion.desc(),
+    consulta = db.query(Usuario).filter(Usuario.rol == "usuario")
+    if antes_de is not None:
+        consulta = consulta.filter(Usuario.id_usuario < antes_de)
+    usuarios = consulta.order_by(
         Usuario.id_usuario.desc()
-    ).all()
+    ).limit(limite).all()
 
     return [
         {

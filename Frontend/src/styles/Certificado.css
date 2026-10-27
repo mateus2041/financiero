@@ -236,3 +236,127 @@
     padding: 14px 20px;
   }
 }
+
+.certificado-editar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(10, 24, 48, 0.65);
+}
+
+.certificado-editar-modal {
+  box-sizing: border-box;
+  width: min(100%, 760px);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 28px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 20px 55px rgba(0, 0, 0, 0.25);
+}
+
+.certificado-editar-encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.certificado-editar-encabezado h2 {
+  margin: 0;
+  color: #0a2a66;
+}
+
+.certificado-editar-cerrar {
+  border: 0;
+  background: transparent;
+  color: #526174;
+  cursor: pointer;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.certificado-editar-campos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.certificado-editar-campos label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #26364d;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.certificado-editar-campos input,
+.certificado-editar-campos select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #c7d2e1;
+  border-radius: 7px;
+  background: #fff;
+  color: #222;
+  font: inherit;
+}
+
+.certificado-editar-campos input:focus,
+.certificado-editar-campos select:focus {
+  border-color: #1546a0;
+  outline: 2px solid rgba(21, 70, 160, 0.15);
+}
+
+.certificado-editar-mensaje {
+  margin: 16px 0 0;
+  color: #9a3412;
+  font-size: 14px;
+}
+
+.certificado-editar-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.certificado-editar-acciones .descargar-btn {
+  width: auto;
+}
+
+.certificado-editar-cancelar {
+  padding: 12px 20px;
+  border: 1px solid #b8c8e2;
+  border-radius: 10px;
+  background: #e8eef8;
+  color: #0a2a66;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .certificado-editar-modal {
+    padding: 22px 18px;
+  }
+
+  .certificado-editar-campos {
+    grid-template-columns: 1fr;
+  }
+
+  .certificado-editar-acciones {
+    flex-direction: column-reverse;
+  }
+
+  .certificado-editar-acciones button {
+    width: 100%;
+    justify-content: center;
+  }
+}

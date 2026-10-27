@@ -1,5 +1,6 @@
 ﻿import logging
 import os
+import re
 from typing import Any
 
 import httpx
@@ -9,10 +10,29 @@ from Backend.ai.prompt import PROMPT_BANCARIO
 from .config import settings
 
 logger = logging.getLogger(__name__)
+MAX_RESPONSE_LENGTH = 300
 
 
 class LLMUnavailableError(RuntimeError):
     """Error cuando ningún proveedor de IA puede responder."""
+
+
+def _limitar_respuesta(texto: str) -> str:
+    """Evita respuestas demasiado largas y procura no cortar una frase."""
+    texto = texto.strip()
+    if len(texto) <= MAX_RESPONSE_LENGTH:
+        return texto
+
+    fragmento = texto[:MAX_RESPONSE_LENGTH]
+    finales = list(re.finditer(r"[.!?](?=\s|$)", fragmento))
+    finales_utiles = [
+        final for final in finales if final.end() >= MAX_RESPONSE_LENGTH // 2
+    ]
+    if finales_utiles:
+        return fragmento[:finales_utiles[-1].end()].strip()
+
+    fragmento = texto[: MAX_RESPONSE_LENGTH - 1].rsplit(" ", 1)[0].rstrip(" ,;:")
+    return f"{fragmento}…"
 
 
 def _extract_reply(data: Any) -> str:
@@ -93,7 +113,7 @@ def consultar_modelo(mensajes):
         "model": "openai/gpt-oss-120b",
         "messages": [{"role": "system", "content": PROMPT_BANCARIO}, *mensajes_validos],
         "temperature": 0.3,
-        "max_completion_tokens": 1024,
+        "max_completion_tokens": 300,
         "stream": False,
         "reasoning_effort": "medium",
     }
@@ -110,7 +130,8 @@ def consultar_modelo(mensajes):
         ) from exc
 
     try:
-        return completion.choices[0].message.content or "No pude generar una respuesta."
+        respuesta = completion.choices[0].message.content or "No pude generar una respuesta."
+        return _limitar_respuesta(respuesta)
     except Exception:
         return "No pude generar una respuesta."
 
@@ -163,19 +184,20 @@ async def chat_completion(messages: list[dict[str, Any]]) -> str:
 
     if not providers:
         raise LLMUnavailableError(
-            "No hay proveedores LLM configurados. Configura la clave y el modelo "
+            "No hay ningún proveedor LLM configurado. Verifica la configuración de la clave API y el modelo "
             "de al menos un proveedor en el archivo .env."
         )
 
     last_error: Exception | None = None
     for provider_name, base_url, api_key, model in providers:
         try:
-            return await _request_provider(
+            respuesta = await _request_provider(
                 base_url=base_url,
                 api_key=api_key,
                 model=model,
                 messages=messages,
             )
+            return _limitar_respuesta(respuesta)
         except httpx.HTTPStatusError as exc:
             logger.warning("El proveedor LLM %s respondió con HTTP %s.", provider_name, exc.response.status_code)
             last_error = exc

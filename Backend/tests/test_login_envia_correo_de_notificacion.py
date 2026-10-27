@@ -3,9 +3,30 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from Backend.database.database import Base
-from Backend.main import login
+from Backend.main import enviar_correos_acceso, login
 from Backend.models import Cuenta, Usuario
 from Backend.security import hash_password
+
+
+def test_notificacion_no_se_envia_si_falla_el_codigo(monkeypatch):
+    asuntos_enviados = []
+
+    def fake_enviar_correo(destinatario, asunto, mensaje_html):
+        asuntos_enviados.append(asunto)
+        return False
+
+    monkeypatch.setattr("Backend.main.enviar_correo", fake_enviar_correo)
+
+    enviado = enviar_correos_acceso(
+        "ana@test.com",
+        "Código de verificación",
+        "código",
+        "Notificación de ingreso",
+        "ingreso",
+    )
+
+    assert enviado is False
+    assert asuntos_enviados == ["Código de verificación"]
 
 
 def test_email_service_lee_credenciales_desde_backend_env(monkeypatch, tmp_path):
@@ -88,20 +109,35 @@ def test_login_envia_correo_de_notificacion(monkeypatch):
 
     monkeypatch.setattr("Backend.main.enviar_correo", fake_enviar_correo)
 
-    resultado = login({"documento": "1000000000", "password": "Segura123", "rol": "usuario"}, db)
+    resultado = login(
+        {"documento": "1000000000", "password": "Segura123", "rol": "usuario"},
+        db=db,
+    )
 
     assert resultado["message"] == "Login exitoso"
     assert resultado["codigo_verificacion"].isdigit()
     assert len(resultado["codigo_verificacion"]) == 4
     assert len(llamadas) == 2
-    assert llamadas[0]["destinatario"] == "ana@test.com"
-    assert "Inicio de sesión" in llamadas[0]["asunto"]
-    assert "Ana Gómez" in llamadas[0]["mensaje_html"]
-    assert "Estimado cliente" in llamadas[0]["mensaje_html"]
-    assert resultado["codigo_verificacion"] in llamadas[0]["mensaje_html"]
-    assert "fecha y hora" in llamadas[1]["asunto"].lower()
-    assert "inicio de sesión" in llamadas[1]["mensaje_html"].lower()
-    assert "fecha" in llamadas[1]["mensaje_html"].lower()
-    assert "hora" in llamadas[1]["mensaje_html"].lower()
+    assert "Código de verificación" in llamadas[0]["asunto"]
+    assert "Fecha y hora" in llamadas[1]["asunto"]
+    correo_codigo = next(
+        llamada for llamada in llamadas
+        if "Código de verificación" in llamada["asunto"]
+    )
+    correo_notificacion = next(
+        llamada for llamada in llamadas
+        if "Fecha y hora" in llamada["asunto"]
+    )
+    assert correo_codigo["destinatario"] == "ana@test.com"
+    assert "Ana Gómez" in correo_codigo["mensaje_html"]
+    assert "Estimado cliente" in correo_codigo["mensaje_html"]
+    assert resultado["codigo_verificacion"] in correo_codigo["mensaje_html"]
+    assert "Este código de verificación vencerá en 10 minutos." in correo_codigo["mensaje_html"]
+    assert correo_codigo["mensaje_html"].index(
+        "Este código de verificación vencerá en 10 minutos."
+    ) < correo_codigo["mensaje_html"].index("Tu código de verificación es:")
+    assert "ingreso a tu cuenta" in correo_notificacion["mensaje_html"].lower()
+    assert "fecha" in correo_notificacion["mensaje_html"].lower()
+    assert "hora" in correo_notificacion["mensaje_html"].lower()
 
     db.close()

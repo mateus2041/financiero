@@ -1,5 +1,5 @@
-import React from "react";
-import { Navigate, Routes, Route } from "react-router-dom";
+import React, { useEffect } from "react";
+import { Navigate, Routes, Route, useLocation } from "react-router-dom";
 
 import Inicio from "./pages/inicio";
 import Login from "./pages/login";
@@ -26,6 +26,18 @@ import TarjetasUsuario from "./pages/trageta";
 import ListaAsesores from "./pages/Listaasesores";
 
 function App() {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.pathname !== "/cuenta") return;
+
+    try {
+      sessionStorage.removeItem("ultimo_mensaje_asistente");
+    } catch (error) {
+      console.error("No fue posible reiniciar la conversación del asistente:", error);
+    }
+  }, [location.pathname]);
+
   return (
     <Routes>
       <Route path="/" element={<Inicio />} />

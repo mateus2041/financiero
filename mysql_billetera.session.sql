@@ -446,3 +446,266 @@ INSERT INTO `ubicacionesPorCiudad` (ciudad, localidad, barrios) VALUES
 SELECT ciudad, localidad, barrios
 FROM `ubicacionesPorCiudad`
 ORDER BY ciudad, localidad;
+-- SQLBook: Code
+USE billetera;
+
+START TRANSACTION;
+
+INSERT INTO usuario (
+    nombre,
+    email,
+    `password`,
+    telefono,
+    direccion,
+    codigo_postal,
+    ciudad,
+    localidad,
+    barrio,
+    documento,
+    rol,
+    estado,
+    fecha_creacion,
+    id_tipo_doc
+)
+SELECT
+    CASE n.n
+        WHEN 1 THEN 'Valentina Demo Pardo'
+        WHEN 2 THEN 'Samuel Demo Cardenas'
+        WHEN 3 THEN 'Mariana Demo Salcedo'
+        WHEN 4 THEN 'Nicolas Demo Benitez'
+        ELSE CONCAT('Usuario de prueba ', LPAD(n.n, 4, '0'))
+    END AS nombre,
+
+    CASE n.n
+        WHEN 1 THEN 'luissmate89@gmail.com'
+        WHEN 2 THEN 'luisssmateus802@gmail.com'
+        WHEN 3 THEN 'kirogamateus@gmail.com'
+        WHEN 4 THEN 'gitmateus8@gmail.com'
+        ELSE CONCAT('usuario.prueba.', LPAD(n.n, 4, '0'), '@example.test')
+    END AS email,
+
+    -- Hash Argon2 de demostración; contraseña compartida: DemoTemporal123!
+    '$argon2id$v=19$m=65536,t=3,p=4$UCqFEMI459xbCyFk7N37fw$z8LU6/SePQQJV2UmURv7SOPTbuVBe4DUQPDAsHHsMCI' AS `password`,
+
+    CONCAT('300', LPAD(n.n, 7, '0')) AS telefono,
+    CONCAT('Direccion de prueba ', n.n) AS direccion,
+    LPAD(MOD(n.n, 1000000), 6, '0') AS codigo_postal,
+
+    CASE MOD(n.n, 3)
+        WHEN 0 THEN 'Bogota'
+        WHEN 1 THEN 'Medellin'
+        ELSE 'Cali'
+    END AS ciudad,
+
+    'Zona de prueba' AS localidad,
+    CONCAT('Barrio de prueba ', LPAD(n.n, 4, '0')) AS barrio,
+
+    CASE n.n
+        WHEN 1 THEN 'PRUEBA-731001'
+        WHEN 2 THEN 'PRUEBA-842002'
+        WHEN 3 THEN 'PRUEBA-953003'
+        WHEN 4 THEN 'PRUEBA-164004'
+        ELSE CONCAT('TEST-', LPAD(n.n, 8, '0'))
+    END AS documento,
+
+    CASE
+        WHEN MOD(n.n, 100) = 0 THEN 'asesor'
+        ELSE 'usuario'
+    END AS rol,
+    'activo' AS estado,
+    CURRENT_TIMESTAMP AS fecha_creacion,
+    td.id_tipo_doc
+FROM (
+    -- Genera los números del 1 al 1000.
+    SELECT 1 + d0.d + d1.d * 10 + d2.d * 100 AS n
+    FROM
+        (SELECT 0 AS d UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
+         UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7
+         UNION ALL SELECT 8 UNION ALL SELECT 9) AS d0
+    CROSS JOIN
+        (SELECT 0 AS d UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
+         UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7
+         UNION ALL SELECT 8 UNION ALL SELECT 9) AS d1
+    CROSS JOIN
+        (SELECT 0 AS d UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
+         UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7
+         UNION ALL SELECT 8 UNION ALL SELECT 9) AS d2
+) AS n
+CROSS JOIN (
+    -- Usa un ID que ya exista en tipo_documento.
+    SELECT MIN(id_tipo_doc) AS id_tipo_doc
+    FROM tipo_documento
+) AS td
+WHERE td.id_tipo_doc IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1
+      FROM usuario AS existente
+      WHERE existente.email = CASE n.n
+          WHEN 1 THEN 'luissmate89@gmail.com'
+          WHEN 2 THEN 'luisssmateus802@gmail.com'
+          WHEN 3 THEN 'kirogamateus@gmail.com'
+          WHEN 4 THEN 'gitmateus8@gmail.com'
+          ELSE CONCAT('usuario.prueba.', LPAD(n.n, 4, '0'), '@example.test')
+      END
+      OR existente.documento = CASE n.n
+          WHEN 1 THEN 'PRUEBA-731001'
+          WHEN 2 THEN 'PRUEBA-842002'
+          WHEN 3 THEN 'PRUEBA-953003'
+          WHEN 4 THEN 'PRUEBA-164004'
+          ELSE CONCAT('TEST-', LPAD(n.n, 8, '0'))
+      END
+  );
+
+-- Registra los 10 usuarios seleccionados como asesores para permitir su acceso.
+-- También corrige el rol si esos usuarios ya se habían insertado antes.
+UPDATE usuario
+SET rol = 'asesor'
+WHERE email LIKE 'usuario.prueba.%@example.test'
+  AND documento LIKE 'TEST-%'
+  AND RIGHT(documento, 2) = '00';
+
+INSERT INTO asesores_banco (
+    id_usuario,
+    nombre,
+    documento,
+    email,
+    codigo_asesor,
+    especialidad,
+    estado
+)
+SELECT
+    u.id_usuario,
+    u.nombre,
+    u.documento,
+    u.email,
+    CONCAT('ASESOR-', LPAD(u.id_usuario, 6, '0')),
+    'Asesoría bancaria',
+    'activo'
+FROM usuario AS u
+WHERE u.rol = 'asesor'
+  AND u.email LIKE 'usuario.prueba.%@example.test'
+  AND u.documento LIKE 'TEST-%'
+  AND RIGHT(u.documento, 2) = '00'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM asesores_banco AS a
+      WHERE a.id_usuario = u.id_usuario
+  );
+
+COMMIT;
+
+-- Verifica los cuatro correos proporcionados y los usuarios generados.
+SELECT
+    u.id_usuario,
+    u.nombre,
+    u.email,
+    u.documento,
+    u.rol,
+    u.id_tipo_doc,
+    a.codigo_asesor
+FROM usuario AS u
+LEFT JOIN asesores_banco AS a
+    ON a.id_usuario = u.id_usuario
+WHERE u.email IN (
+    'luissmate89@gmail.com',
+    'luisssmateus802@gmail.com',
+    'kirogamateus@gmail.com',
+    'gitmateus8@gmail.com'
+)
+OR u.email LIKE 'usuario.prueba.%@example.test'
+ORDER BY u.id_usuario;
+-- SQLBook: Code
+USE billetera;
+
+START TRANSACTION;
+
+-- Cambia el rol únicamente a los usuarios seleccionados.
+UPDATE usuario
+SET rol = 'asesor'
+WHERE rol = 'usuario'
+  AND documento IN (
+      'TEST-00000100',
+      'TEST-00000200',
+      'TEST-00000300',
+      'TEST-00000400'
+  );
+
+-- Actualiza los datos del asesor, pero conserva su código generado.
+UPDATE asesores_banco AS a
+INNER JOIN usuario AS u
+    ON u.id_usuario = a.id_usuario
+SET
+    a.nombre = u.nombre,
+    a.documento = u.documento,
+    a.email = u.email,
+    a.especialidad = 'Asesoria bancaria',
+    a.estado = 'activo'
+WHERE u.rol = 'asesor'
+  AND u.documento IN (
+      'TEST-00000100',
+      'TEST-00000200',
+      'TEST-00000300',
+      'TEST-00000400'
+  );
+
+COMMIT;
+
+-- Verifica el rol, el código existente y si falta el registro de asesor.
+SELECT
+    u.nombre,
+    u.documento,
+    u.rol,
+    a.codigo_asesor,
+    a.estado
+FROM usuario AS u
+LEFT JOIN asesores_banco AS a
+    ON a.id_usuario = u.id_usuario
+WHERE u.documento IN (
+    'TEST-00000100',
+    'TEST-00000200',
+    'TEST-00000300',
+    'TEST-00000400'
+)
+ORDER BY u.documento;
+-- SQLBook: Code
+USE billetera;
+
+-- Comprueba cuántos asesores están registrados.
+SELECT COUNT(*) AS total_asesores
+FROM asesores_banco;
+
+START TRANSACTION;
+
+-- Activa los asesores que aparecen como inactivos.
+UPDATE asesores_banco
+SET estado = 'activo'
+WHERE estado = 'inactivo';
+
+COMMIT;
+
+-- Consulta el correo y el código automático de cada asesor.
+SELECT
+    id_asesor,
+    nombre,
+    email,
+    codigo_asesor,
+    estado
+FROM asesores_banco
+ORDER BY id_asesor;
+-- SQLBook: Code
+UPDATE usuario
+SET rol = 'usuario'
+WHERE id_usuario = 2
+  AND rol = 'asesor';
+
+SELECT id_usuario, nombre, rol
+FROM usuario
+WHERE id_usuario = 2;
+-- SQLBook: Code
+UPDATE usuario
+SET email = 'kirogamateus@gmail.com'
+WHERE id_usuario = 6;
+
+SELECT id_usuario, nombre, email
+FROM usuario
+WHERE id_usuario = 6;

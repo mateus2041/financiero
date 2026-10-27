@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
+import ChatIA from "./ChatIA";
 import "../styles/transferencias.css";
 
 const API_URL = "http://127.0.0.1:8000";
 
-export default function RegistrarLlaveBreB() {
+export default function RegistrarLlaveBreB({ isModal = false }) {
     const navigate = useNavigate();
     const [llave, setLlave] = useState("");
     const [cuentas, setCuentas] = useState([]);
@@ -17,7 +18,25 @@ export default function RegistrarLlaveBreB() {
 
     const [openTransfer, setOpenTransfer] = useState(false);
     const [openCertificado, setOpenCertificado] = useState(false);
+    const [asistenteAbierto, setAsistenteAbierto] = useState(false);
     const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
+
+    useEffect(() => {
+        if (!asistenteAbierto) return undefined;
+
+        const overflowAnterior = document.body.style.overflow;
+        const cerrarConEscape = (event) => {
+            if (event.key === "Escape") setAsistenteAbierto(false);
+        };
+
+        document.body.style.overflow = "hidden";
+        document.addEventListener("keydown", cerrarConEscape);
+
+        return () => {
+            document.body.style.overflow = overflowAnterior;
+            document.removeEventListener("keydown", cerrarConEscape);
+        };
+    }, [asistenteAbierto]);
 
     useEffect(() => {
         const actualizarEstadoMenu = () => {
@@ -136,6 +155,82 @@ export default function RegistrarLlaveBreB() {
         }
     };
 
+    const formularioLlave = (
+        <section className="breb-card">
+            <h2>Registrar tu llave Bre-B</h2>
+            <p className="breb-intro">
+                Selecciona la cuenta que quieres asociar a tu llave.
+            </p>
+
+            {cargandoCuentas ? (
+                <p className="breb-state">Cargando tus cuentas...</p>
+            ) : cuentas.length === 0 ? (
+                <p className="breb-state breb-error">
+                    No tienes cuentas activas disponibles.
+                </p>
+            ) : (
+                <form onSubmit={registrarLlave}>
+                    <div className="breb-cuentas">
+                        <h3>Tus cuentas</h3>
+                        {cuentas.map((cuenta) => (
+                            <label
+                                className={`breb-cuenta ${String(cuentaSeleccionada) === String(cuenta.id_cuenta) ? "seleccionada" : ""}`}
+                                key={cuenta.id_cuenta}
+                            >
+                                <input
+                                    type="radio"
+                                    name="cuenta-breb"
+                                    value={cuenta.id_cuenta}
+                                    checked={String(cuentaSeleccionada) === String(cuenta.id_cuenta)}
+                                    onChange={(e) => setCuentaSeleccionada(e.target.value)}
+                                />
+                                <span>
+                                    <strong>{cuenta.tipo_cuenta}</strong>
+                                    <small>Cuenta {cuenta.numero_cuenta || cuenta.id_cuenta}</small>
+                                </span>
+                                <b>${Number(cuenta.saldo || 0).toLocaleString("es-CO")}</b>
+                            </label>
+                        ))}
+                    </div>
+
+                    <label className="breb-label" htmlFor="llave-breb">
+                        Llave Bre-B
+                    </label>
+                    <div className="breb-llave-fields">
+                        <span className="breb-prefijo">@financiero</span>
+                        <input
+                            id="llave-breb"
+                            className="breb-input"
+                            type="tel"
+                            inputMode="numeric"
+                            value={llave}
+                            onChange={(e) => setLlave(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                            placeholder="3001234567"
+                            minLength={10}
+                            maxLength={10}
+                            disabled={cargando}
+                        />
+                    </div>
+
+                    <button className="breb-button" type="submit" disabled={cargando}>
+                        {cargando ? "Registrando..." : "Registrar llave"}
+                    </button>
+                </form>
+            )}
+
+            {mensaje && <p className="breb-state breb-success">{mensaje}</p>}
+            {error && <p className="breb-state breb-error">{error}</p>}
+        </section>
+    );
+
+    if (isModal) {
+        return (
+            <div className="llave-breb-modal-contenido">
+                {formularioLlave}
+            </div>
+        );
+    }
+
     return (
         <div className="panel-financiero">
 
@@ -232,10 +327,8 @@ export default function RegistrarLlaveBreB() {
                         <li>
                             <button
                                 type="button"
-                                className="sidebar-link"
-                                onClick={() =>
-                                    alert("Asistente IA")
-                                }
+                                className="sidebar-link asistente-trigger"
+                                onClick={() => setAsistenteAbierto(true)}
                             >
                                 🤖 Asistente IA
                             </button>
@@ -255,71 +348,7 @@ export default function RegistrarLlaveBreB() {
 
             <main className="contenido-principal">
 
-                <section className="breb-card">
-                    <h2>Registrar tu llave Bre-B</h2>
-                    <p className="breb-intro">
-                        Selecciona la cuenta que quieres asociar a tu llave.
-                    </p>
-
-                    {cargandoCuentas ? (
-                        <p className="breb-state">Cargando tus cuentas...</p>
-                    ) : cuentas.length === 0 ? (
-                        <p className="breb-state breb-error">
-                            No tienes cuentas activas disponibles.
-                        </p>
-                    ) : (
-                        <form onSubmit={registrarLlave}>
-                            <div className="breb-cuentas">
-                                <h3>Tus cuentas</h3>
-                                {cuentas.map((cuenta) => (
-                                    <label
-                                        className={`breb-cuenta ${String(cuentaSeleccionada) === String(cuenta.id_cuenta) ? "seleccionada" : ""}`}
-                                        key={cuenta.id_cuenta}
-                                    >
-                                        <input
-                                            type="radio"
-                                            name="cuenta-breb"
-                                            value={cuenta.id_cuenta}
-                                            checked={String(cuentaSeleccionada) === String(cuenta.id_cuenta)}
-                                            onChange={(e) => setCuentaSeleccionada(e.target.value)}
-                                        />
-                                        <span>
-                                            <strong>{cuenta.tipo_cuenta}</strong>
-                                            <small>Cuenta {cuenta.numero_cuenta || cuenta.id_cuenta}</small>
-                                        </span>
-                                        <b>${Number(cuenta.saldo || 0).toLocaleString("es-CO")}</b>
-                                    </label>
-                                ))}
-                            </div>
-
-                            <label className="breb-label" htmlFor="llave-breb">
-                                Llave Bre-B
-                            </label>
-                            <div className="breb-llave-fields">
-                                <span className="breb-prefijo">@financiero</span>
-                                <input
-                                    id="llave-breb"
-                                    className="breb-input"
-                                    type="tel"
-                                    inputMode="numeric"
-                                    value={llave}
-                                    onChange={(e) => setLlave(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                                    placeholder="3001234567"
-                                    minLength={10}
-                                    maxLength={10}
-                                    disabled={cargando}
-                                />
-                            </div>
-
-                            <button className="breb-button" type="submit" disabled={cargando}>
-                                {cargando ? "Registrando..." : "Registrar llave"}
-                            </button>
-                        </form>
-                    )}
-
-                    {mensaje && <p className="breb-state breb-success">{mensaje}</p>}
-                    {error && <p className="breb-state breb-error">{error}</p>}
-                </section>
+                {formularioLlave}
 
             </main>
 
@@ -372,6 +401,23 @@ export default function RegistrarLlaveBreB() {
                             </button>
                         </div>
                     </section>
+                </div>
+            )}
+
+            {asistenteAbierto && (
+                <div
+                    className="asistente-modal-overlay"
+                    onClick={() => setAsistenteAbierto(false)}
+                >
+                    <div
+                        className="asistente-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="asistente-titulo"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <ChatIA onClose={() => setAsistenteAbierto(false)} />
+                    </div>
                 </div>
             )}
 
