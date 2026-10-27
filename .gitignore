@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 ﻿# Python / UV
+=======
+# Python / UV
+>>>>>>> origin/main
 .venv/
 __pycache__/
 *.pyc

@@ -7,8 +7,9 @@ WORKDIR /app
 ENV PYTHONPATH=/app \
     UV_LINK_MODE=copy
 
-COPY Backend/requirements.txt ./requirements.txt
-RUN uv pip install --system -r requirements.txt
+COPY Backend/requirements.txt ./Backend/requirements.txt
+RUN uv venv .venv \
+    && uv pip install --python .venv/bin/python -r Backend/requirements.txt
 
 COPY . .
 
