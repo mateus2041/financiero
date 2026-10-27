@@ -41,6 +41,8 @@ export default function ListaUsuarios() {
   const esAsesor = rol === "asesor";
 
   const [usuarios, setUsuarios] = useState([]);
+  const [hayMasUsuarios, setHayMasUsuarios] = useState(false);
+  const [cargandoMasUsuarios, setCargandoMasUsuarios] = useState(false);
   const [busquedaUsuario, setBusquedaUsuario] = useState("");
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
@@ -192,20 +194,33 @@ export default function ListaUsuarios() {
     ].some((valor) => normalizarTexto(valor).includes(textoBusqueda));
   });
 
-  const cargarUsuarios = async () => {
+  const cargarUsuarios = async (cargarMas = false) => {
     try {
-      setCargando(true);
+      if (cargarMas) {
+        setCargandoMasUsuarios(true);
+      } else {
+        setCargando(true);
+      }
       setError("");
 
       const token = localStorage.getItem("token");
+      const despuesDe = cargarMas && usuarios.length
+        ? usuarios[usuarios.length - 1].id_usuario
+        : undefined;
 
       const respuesta = await axios.get(`${API_URL}/usuarios`, {
+        params: {
+          limite: 100,
+          despues_de: despuesDe,
+        },
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      setUsuarios(Array.isArray(respuesta.data) ? respuesta.data : []);
+      const pagina = Array.isArray(respuesta.data) ? respuesta.data : [];
+      setUsuarios((actuales) => cargarMas ? [...actuales, ...pagina] : pagina);
+      setHayMasUsuarios(pagina.length === 100);
     } catch (error) {
       console.error("Error al cargar usuarios:", error);
 
@@ -215,6 +230,7 @@ export default function ListaUsuarios() {
         setError("No se pudo conectar con el servidor");
       }
     } finally {
+      setCargandoMasUsuarios(false);
       setCargando(false);
     }
   };
@@ -808,6 +824,17 @@ export default function ListaUsuarios() {
                 </table>
               </div>
             )}
+
+          {!cargando && !error && hayMasUsuarios && (
+            <button
+              type="button"
+              className="boton-registrar-usuario"
+              onClick={() => cargarUsuarios(true)}
+              disabled={cargandoMasUsuarios}
+            >
+              {cargandoMasUsuarios ? "Cargando..." : "Cargar más usuarios"}
+            </button>
+          )}
 
           <div className="acciones-lista-usuarios">
 

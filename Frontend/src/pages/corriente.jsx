@@ -1,15 +1,22 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
+import ChatIA from "./ChatIA";
 import "../styles/corriente.css";
 
 const API_BASE_URL = "http://localhost:8000";
 const HISTORIAL_LOCAL_KEY = "historial_transferencias";
 
 export default function Transferencia() {
+  const location = useLocation();
+  const llaveInputRef = useRef(null);
+
   const [form, setForm] = useState({
-    origen: "corriente",
-    llave: "",
+    origen: location.state?.origen === "ahorro" ? "ahorro" : "corriente",
+    llave:
+      typeof location.state?.llaveInicial === "string"
+        ? location.state.llaveInicial.trim()
+        : "",
     monto: "",
     descripcion: "",
   });
@@ -24,7 +31,25 @@ export default function Transferencia() {
 
   const [openTransfer, setOpenTransfer] = useState(false);
   const [openCertificado, setOpenCertificado] = useState(false);
+  const [asistenteAbierto, setAsistenteAbierto] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
+
+  useEffect(() => {
+    if (!asistenteAbierto) return undefined;
+
+    const overflowAnterior = document.body.style.overflow;
+    const cerrarConEscape = (event) => {
+      if (event.key === "Escape") setAsistenteAbierto(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", cerrarConEscape);
+
+    return () => {
+      document.body.style.overflow = overflowAnterior;
+      document.removeEventListener("keydown", cerrarConEscape);
+    };
+  }, [asistenteAbierto]);
 
   useEffect(() => {
     const actualizarEstadoMenu = () => {
@@ -36,6 +61,15 @@ export default function Transferencia() {
 
     return () => window.removeEventListener("resize", actualizarEstadoMenu);
   }, []);
+
+  useEffect(() => {
+    if (
+      typeof location.state?.llaveInicial === "string" &&
+      location.state.llaveInicial.trim()
+    ) {
+      llaveInputRef.current?.focus();
+    }
+  }, [location.state]);
 
   // =====================================================
   // GUARDAR EN HISTORIAL LOCAL
@@ -493,15 +527,14 @@ export default function Transferencia() {
             </Link>
           </li>
 
-          {/* BOTON NUEVO CHAT IA */}
-
           <li>
-            <Link
-              to="/ChatIA"
+            <button
+              type="button"
               className="btn-nav"
+              onClick={() => setAsistenteAbierto(true)}
             >
               🤖 Asistente IA
-            </Link>
+            </button>
           </li>
 
         </ul>
@@ -556,6 +589,7 @@ export default function Transferencia() {
             </label>
 
             <input
+              ref={llaveInputRef}
               type="text"
               name="llave"
               value={form.llave}
@@ -687,6 +721,23 @@ export default function Transferencia() {
 
           </div>
 
+        </div>
+      )}
+
+      {asistenteAbierto && (
+        <div
+          className="asistente-modal-overlay"
+          onClick={() => setAsistenteAbierto(false)}
+        >
+          <div
+            className="asistente-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="asistente-titulo"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <ChatIA onClose={() => setAsistenteAbierto(false)} />
+          </div>
         </div>
       )}
 

@@ -12,6 +12,11 @@ export default function Administradores() {
   const [asesores, setAsesores] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
   const [cuentas, setCuentas] = useState([]);
+  const [estadisticas, setEstadisticas] = useState({
+    usuarios_registrados: 0,
+    usuarios_activos: 0,
+    cuentas_bloqueadas: 0,
+  });
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
@@ -160,11 +165,23 @@ export default function Administradores() {
         },
       };
 
-      const [respuestaAsesores, respuestaUsuarios, respuestaCuentas] =
+      const [
+        respuestaAsesores,
+        respuestaUsuarios,
+        respuestaCuentas,
+        respuestaEstadisticas,
+      ] =
         await Promise.all([
           axios.get(`${API_URL}/administradores/asesores`, config),
-          axios.get(`${API_URL}/usuarios`, config),
-          axios.get(`${API_URL}/administradores/cuentas`, config),
+          axios.get(`${API_URL}/usuarios`, {
+            ...config,
+            params: { limite: 100 },
+          }),
+          axios.get(`${API_URL}/administradores/cuentas`, {
+            ...config,
+            params: { limite: 100 },
+          }),
+          axios.get(`${API_URL}/administradores/estadisticas`, config),
         ]);
 
       const asesoresObtenidos = respuestaAsesores.data?.asesores || [];
@@ -176,6 +193,7 @@ export default function Administradores() {
       setAsesores(asesoresObtenidos);
       setUsuarios(usuariosObtenidos);
       setCuentas(cuentasObtenidas);
+      setEstadisticas(respuestaEstadisticas.data);
     } catch (error) {
       console.error(error);
       setError(formatearError(error, "No se pudieron cargar los datos."));
@@ -262,15 +280,9 @@ export default function Administradores() {
   };
 
   const totalAsesores = asesores.length;
-  const totalUsuariosRegistrados = usuarios.length;
-  const totalUsuariosActivos = usuarios.filter(
-    (usuario) => String(usuario.estado || "activo").toLowerCase() !== "inactivo"
-  ).length;
-  const totalCuentasBloqueadas = cuentas.filter((cuenta) =>
-    ["bloqueada", "bloqueado", "inactivo"].includes(
-      String(cuenta.estado || "").toLowerCase()
-    )
-  ).length;
+  const totalUsuariosRegistrados = estadisticas.usuarios_registrados;
+  const totalUsuariosActivos = estadisticas.usuarios_activos;
+  const totalCuentasBloqueadas = estadisticas.cuentas_bloqueadas;
 
   const datosGrafica = [
     { label: "Asesores", valor: totalAsesores },

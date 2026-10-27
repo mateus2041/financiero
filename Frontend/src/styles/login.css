@@ -210,3 +210,34 @@ input::placeholder {
   color: white;
   text-align: center;
 }
+
+.login-verification-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(3, 8, 24, 0.78);
+  overflow-y: auto;
+}
+
+.login-verification-modal {
+  width: min(100%, 420px);
+  padding: 24px;
+  box-sizing: border-box;
+  border: 1px solid #29476a;
+  border-radius: 15px;
+  background: #102748;
+  color: white;
+}
+
+.login-verification-modal h2 {
+  margin-top: 0;
+  color: #f5c542;
+}
+
+.login-verification-modal .btn {
+  margin-top: 14px;
+}

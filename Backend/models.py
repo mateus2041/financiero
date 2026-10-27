@@ -53,6 +53,7 @@ class Usuario(Base):
     __tablename__ = "usuario"
     __table_args__ = (
         Index("codigo_registro", "codigo_registro", unique=True),
+        Index("ix_usuario_rol_id_usuario", "rol", "id_usuario"),
     )
 
     id_usuario = Column(
@@ -733,6 +734,5 @@ class ControlTopeBreb(Base):
     usuario = relationship(
         "Usuario"
     )
-
 
 
