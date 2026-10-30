@@ -11,7 +11,7 @@ import json
 
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import case, func, text
+from sqlalchemy import case, func, or_, text
 from pydantic import BaseModel, EmailStr, Field
 from typing import Literal
 
@@ -1407,11 +1407,19 @@ def login(
             detail="Tipo de acceso inválido"
         )
 
-    usuario = db.query(Usuario).filter(
-
-        Usuario.documento == data["documento"]
-
-    ).first()
+    identificador = data["documento"].strip()
+    usuario = (
+        db.query(Usuario)
+        .outerjoin(Cuenta, Cuenta.id_usuario == Usuario.id_usuario)
+        .filter(
+            or_(
+                func.trim(Usuario.documento) == identificador,
+                func.lower(func.trim(Usuario.email)) == identificador.lower(),
+                func.trim(Cuenta.numero_cuenta) == identificador,
+            )
+        )
+        .first()
+    )
 
     if not usuario:
 
@@ -1420,10 +1428,28 @@ def login(
             detail="Usuario no encontrado"
         )
 
-    if not check_password(
+    password_valida = check_password(
         data["password"],
         usuario.password
+    )
+
+    password_es_hash = usuario.password.startswith(
+        ("$argon2", "$2a$", "$2b$", "$2y$")
+    )
+
+    if (
+        not password_valida
+        and not password_es_hash
+        and hmac.compare_digest(
+            data["password"].encode("utf-8"),
+            usuario.password.encode("utf-8")
+        )
     ):
+        usuario.password = hash_password(data["password"])
+        db.commit()
+        password_valida = True
+
+    if not password_valida:
 
         raise HTTPException(
             status_code=401,
