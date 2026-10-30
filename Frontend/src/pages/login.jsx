@@ -149,6 +149,13 @@ function Login({ isModal = false }) {
       const data = await res.json();
 
       if (!res.ok) {
+        if (!esAsesor && !esAdministrador && data.detail === "Usuario no encontrado") {
+          setMensaje(
+            "No hay una cuenta registrada con ese documento. Regístrate primero."
+          );
+          return;
+        }
+
         if (res.status === 503) {
           setMensaje(
             data.detail ||

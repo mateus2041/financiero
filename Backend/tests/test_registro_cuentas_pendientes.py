@@ -1,3 +1,5 @@
+import pytest
+from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -45,4 +47,43 @@ def test_registrar_usuario_crea_cuentas_pendientes_de_aprobacion(monkeypatch):
     assert usuario.codigo_postal == "110111"
     assert usuario.id_tipo_doc is not None
 
+    db.close()
+
+
+def test_registrar_usuario_rechaza_correo_duplicado_con_conflicto():
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(bind=engine)
+    SessionLocal = sessionmaker(bind=engine)
+    db = SessionLocal()
+    db.add(
+        Usuario(
+            nombre="Ana Gómez",
+            email="ana@test.com",
+            documento="1000000000",
+            password="hash",
+        )
+    )
+    db.commit()
+
+    with pytest.raises(HTTPException) as error:
+        registrar_usuario(
+            {
+                "nombre": "Otra persona",
+                "email": "ANA@test.com",
+                "documento": "2000000000",
+                "password": "Segura123",
+                "telefono": "3001234567",
+                "tipo_documento": "cc",
+                "ciudad": "Bogotá",
+                "direccion": "Calle 12 # 34-56",
+                "localidad": "La Candelaria",
+                "barrio": "La Candelaria",
+                "codigo_correspondencia": "110111",
+            },
+            db,
+            "usuario",
+        )
+
+    assert error.value.status_code == 409
+    assert error.value.detail == "El correo electrónico ya está registrado"
     db.close()

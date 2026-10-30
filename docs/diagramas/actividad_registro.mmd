@@ -1,0 +1,17 @@
+flowchart TD
+  I([Inicio]) --> D[Recibir datos de registro]
+  D --> V{¿Esquema válido?}
+  V -- No --> E[Responder error de validación]
+  V -- Sí --> U{¿Email/documento disponibles?}
+  U -- No --> E2[Responder conflicto]
+  U -- Sí --> G[Validar ubicación con Nominatim]
+  G --> R{¿Ubicación válida?}
+  R -- No --> E3[Rechazar registro]
+  R -- Sí --> H[Hashear contraseña y crear usuario]
+  H --> C[Crear cuenta corriente inactiva]
+  C --> N[Guardar notificación y enviar correo]
+  N --> F[Devolver código y solicitud pendiente]
+  E --> Z([Fin])
+  E2 --> Z
+  E3 --> Z
+  F --> Z
