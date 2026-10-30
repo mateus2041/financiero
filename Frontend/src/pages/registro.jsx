@@ -51,6 +51,7 @@ function Registro({ isModal = false, onClose }) {
   const [ubicacionesPorCiudad, setUbicacionesPorCiudad] = useState({});
   const [cargandoUbicaciones, setCargandoUbicaciones] = useState(true);
   const [errorUbicaciones, setErrorUbicaciones] = useState("");
+  const [registrando, setRegistrando] = useState(false);
 
   useEffect(() => {
     const cargarUbicaciones = async () => {
@@ -116,6 +117,7 @@ function Registro({ isModal = false, onClose }) {
     }
 
     try {
+      setRegistrando(true);
       const res = await fetch("http://127.0.0.1:8000/register", {
         method: "POST",
         headers: {
@@ -136,10 +138,27 @@ function Registro({ isModal = false, onClose }) {
         }),
       });
 
-      const data = await res.json();
+      const respuesta = await res.text();
+      let data;
+      try {
+        data = respuesta ? JSON.parse(respuesta) : {};
+      } catch {
+        setMensaje(
+          `El servidor devolvió una respuesta inválida (HTTP ${res.status}).`
+        );
+        return;
+      }
 
       if (!res.ok) {
-        setMensaje(obtenerMensajeError(data.detail));
+        const detalle =
+          data && typeof data === "object"
+            ? data.detail || data.message
+            : null;
+        setMensaje(
+          detalle
+            ? obtenerMensajeError(detalle)
+            : `No se pudo completar el registro (HTTP ${res.status}).`
+        );
         return;
       }
 
@@ -150,7 +169,9 @@ function Registro({ isModal = false, onClose }) {
       setMostrarOpciones(true);
     } catch (error) {
       console.error(error);
-      setMensaje("Error conectando con el servidor");
+      setMensaje("No se pudo conectar con el servidor. Inténtalo nuevamente.");
+    } finally {
+      setRegistrando(false);
     }
   };
 
@@ -342,8 +363,9 @@ function Registro({ isModal = false, onClose }) {
               <button
                 className="btn"
                 onClick={registrar}
+                disabled={registrando}
               >
-                Registrar
+                {registrando ? "Registrando..." : "Registrar"}
               </button>
             </div>
           </>

@@ -1,0 +1,86 @@
+classDiagram
+  class TipoDocumento {
+    +int id_tipo_doc PK
+    +string nombre_doc
+  }
+  class Usuario {
+    +int id_usuario PK
+    +string nombre
+    +string email UK
+    +string documento UK
+    +string rol
+    +decimal tope_ahorros
+    +decimal tope_corriente
+    +int id_tipo_doc FK
+  }
+  class Administrador {
+    +int id_administrador PK
+    +int id_usuario FK UK
+    +string codigo_administrador UK
+  }
+  class AsesorBanco {
+    +int id_asesor PK
+    +int id_usuario nullable UK sin FK
+    +string codigo_asesor UK
+    +string estado
+  }
+  class Cuenta {
+    +int id_cuenta PK
+    +int id_usuario FK
+    +string numero_cuenta UK
+    +decimal saldo
+    +string estado
+  }
+  class Transaccion {
+    +int id_transaccion PK
+    +int id_cuenta FK
+    +decimal monto
+    +string tipo
+    +datetime fecha
+  }
+  class Notificacion {
+    +int id_notificacion PK
+    +int id_usuario FK
+    +text mensaje
+    +boolean leido
+  }
+  class Tarjeta {
+    +int id_tarjeta PK
+    +int id_cuenta FK
+    +char numero_tarjeta UK
+    +string estado
+  }
+  class LlaveBreb {
+    +int id_llave PK
+    +int id_usuario FK
+    +int id_cuenta FK
+    +string llave UK
+  }
+  class TransferenciaBreb {
+    +int id_transferencia PK
+    +int id_transaccion FK UK
+    +int id_cuenta_origen FK
+    +int id_cuenta_destino FK
+    +int id_llave_destino FK
+    +decimal monto
+  }
+  class ControlTopeBreb {
+    +int id_control PK
+    +int id_usuario FK
+    +decimal total_enviado
+    +int cantidad_operaciones
+  }
+  TipoDocumento "1" --> "0..*" Usuario : id_tipo_doc
+  Usuario "1" --> "0..*" Cuenta : id_usuario
+  Usuario "1" --> "0..*" Notificacion : id_usuario
+  Usuario "1" --> "0..*" LlaveBreb : id_usuario
+  Usuario "1" --> "0..*" ControlTopeBreb : id_usuario
+  Usuario "0..1" --> "0..1" Administrador : id_usuario UNIQUE
+  Cuenta "1" --> "0..*" Transaccion : id_cuenta
+  Cuenta "1" --> "0..*" Tarjeta : id_cuenta
+  Cuenta "1" --> "0..*" LlaveBreb : id_cuenta
+  Transaccion "1" --> "0..1" TransferenciaBreb : id_transaccion UNIQUE
+  Cuenta "1" --> "0..*" TransferenciaBreb : cuenta_origen
+  Cuenta "1" --> "0..*" TransferenciaBreb : cuenta_destino
+  LlaveBreb "1" --> "0..*" TransferenciaBreb : id_llave_destino
+  note for AsesorBanco "id_usuario es único y nullable, pero no tiene FK declarada."

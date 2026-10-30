@@ -12,6 +12,7 @@ import json
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import case, func, text
+from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel, EmailStr, Field
 from typing import Literal
 
@@ -584,6 +585,17 @@ def registrar_usuario(
     rol: str
 ):
 
+    email = str(data["email"]).strip()
+    usuario_existente_por_correo = db.query(Usuario).filter(
+        func.lower(Usuario.email) == email.lower()
+    ).first()
+
+    if usuario_existente_por_correo:
+        raise HTTPException(
+            status_code=409,
+            detail="El correo electrónico ya está registrado"
+        )
+
     usuario_existente = db.query(Usuario).filter(
         Usuario.documento == data["documento"]
     ).first()
@@ -673,7 +685,28 @@ def registrar_usuario(
 
     db.add(nuevo_usuario)
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+
+        if db.query(Usuario.id_usuario).filter(
+            func.lower(Usuario.email) == email.lower()
+        ).first():
+            raise HTTPException(
+                status_code=409,
+                detail="El correo electrónico ya está registrado"
+            )
+
+        if db.query(Usuario.id_usuario).filter(
+            Usuario.documento == data["documento"]
+        ).first():
+            raise HTTPException(
+                status_code=409,
+                detail="Usuario ya existe"
+            )
+
+        raise
 
     db.refresh(nuevo_usuario)
 

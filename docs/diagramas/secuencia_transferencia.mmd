@@ -1,0 +1,19 @@
+sequenceDiagram
+  actor U as Usuario
+  participant F as Frontend React
+  participant A as FastAPI /transferencias/entre-cuentas
+  participant S as SQLAlchemy
+  participant D as MySQL billetera
+  U->>F: Selecciona origen, destino y monto
+  F->>A: POST con Bearer JWT y datos
+  A->>A: Valida identidad, tipos y monto > 0
+  A->>S: Consulta cuentas y bloquea filas
+  S->>D: SELECT ... FOR UPDATE
+  D-->>S: Cuentas activas y saldos
+  S-->>A: Cuentas origen/destino
+  A->>A: Verifica saldo; debita y acredita
+  A->>S: Registra movimientos
+  S->>D: INSERT transacciones y COMMIT
+  D-->>A: Confirmación
+  A-->>F: Saldos resultantes
+  F-->>U: Presenta resultado
