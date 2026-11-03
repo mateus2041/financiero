@@ -702,10 +702,19 @@ SELECT id_usuario, nombre, rol
 FROM usuario
 WHERE id_usuario = 2;
 -- SQLBook: Code
-UPDATE usuario
-SET email = 'kirogamateus@gmail.com'
-WHERE id_usuario = 6;
+ALTER TABLE usuario DROP COLUMN email;
+-- SQLBook: Code
+USE billetera;
 
-SELECT id_usuario, nombre, email
-FROM usuario
-WHERE id_usuario = 6;
+ALTER TABLE usuario
+ADD COLUMN email VARCHAR(100) NULL;
+
+CREATE UNIQUE INDEX ix_usuario_email
+ON usuario (email);
+-- SQLBook: Code
+SELECT DATABASE();
+SHOW COLUMNS FROM billetera.usuario LIKE 'email';
+-- SQLBook: Code
+ALTER TABLE billetera.usuario
+MODIFY COLUMN email VARCHAR(100) NULL
+AFTER id_usuario;
