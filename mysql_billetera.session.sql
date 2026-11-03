@@ -451,174 +451,6 @@ USE billetera;
 
 START TRANSACTION;
 
-INSERT INTO usuario (
-    nombre,
-    email,
-    `password`,
-    telefono,
-    direccion,
-    codigo_postal,
-    ciudad,
-    localidad,
-    barrio,
-    documento,
-    rol,
-    estado,
-    fecha_creacion,
-    id_tipo_doc
-)
-SELECT
-    CASE n.n
-        WHEN 1 THEN 'Valentina Demo Pardo'
-        WHEN 2 THEN 'Samuel Demo Cardenas'
-        WHEN 3 THEN 'Mariana Demo Salcedo'
-        WHEN 4 THEN 'Nicolas Demo Benitez'
-        ELSE CONCAT('Usuario de prueba ', LPAD(n.n, 4, '0'))
-    END AS nombre,
-
-    CASE n.n
-        WHEN 1 THEN 'luissmate89@gmail.com'
-        WHEN 2 THEN 'luisssmateus802@gmail.com'
-        WHEN 3 THEN 'kirogamateus@gmail.com'
-        WHEN 4 THEN 'gitmateus8@gmail.com'
-        ELSE CONCAT('usuario.prueba.', LPAD(n.n, 4, '0'), '@example.test')
-    END AS email,
-
-    -- Hash Argon2 de demostración; contraseña compartida: DemoTemporal123!
-    '$argon2id$v=19$m=65536,t=3,p=4$UCqFEMI459xbCyFk7N37fw$z8LU6/SePQQJV2UmURv7SOPTbuVBe4DUQPDAsHHsMCI' AS `password`,
-
-    CONCAT('300', LPAD(n.n, 7, '0')) AS telefono,
-    CONCAT('Direccion de prueba ', n.n) AS direccion,
-    LPAD(MOD(n.n, 1000000), 6, '0') AS codigo_postal,
-
-    CASE MOD(n.n, 3)
-        WHEN 0 THEN 'Bogota'
-        WHEN 1 THEN 'Medellin'
-        ELSE 'Cali'
-    END AS ciudad,
-
-    'Zona de prueba' AS localidad,
-    CONCAT('Barrio de prueba ', LPAD(n.n, 4, '0')) AS barrio,
-
-    CASE n.n
-        WHEN 1 THEN 'PRUEBA-731001'
-        WHEN 2 THEN 'PRUEBA-842002'
-        WHEN 3 THEN 'PRUEBA-953003'
-        WHEN 4 THEN 'PRUEBA-164004'
-        ELSE CONCAT('TEST-', LPAD(n.n, 8, '0'))
-    END AS documento,
-
-    CASE
-        WHEN MOD(n.n, 100) = 0 THEN 'asesor'
-        ELSE 'usuario'
-    END AS rol,
-    'activo' AS estado,
-    CURRENT_TIMESTAMP AS fecha_creacion,
-    td.id_tipo_doc
-FROM (
-    -- Genera los números del 1 al 1000.
-    SELECT 1 + d0.d + d1.d * 10 + d2.d * 100 AS n
-    FROM
-        (SELECT 0 AS d UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
-         UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7
-         UNION ALL SELECT 8 UNION ALL SELECT 9) AS d0
-    CROSS JOIN
-        (SELECT 0 AS d UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
-         UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7
-         UNION ALL SELECT 8 UNION ALL SELECT 9) AS d1
-    CROSS JOIN
-        (SELECT 0 AS d UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
-         UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7
-         UNION ALL SELECT 8 UNION ALL SELECT 9) AS d2
-) AS n
-CROSS JOIN (
-    -- Usa un ID que ya exista en tipo_documento.
-    SELECT MIN(id_tipo_doc) AS id_tipo_doc
-    FROM tipo_documento
-) AS td
-WHERE td.id_tipo_doc IS NOT NULL
-  AND NOT EXISTS (
-      SELECT 1
-      FROM usuario AS existente
-      WHERE existente.email = CASE n.n
-          WHEN 1 THEN 'luissmate89@gmail.com'
-          WHEN 2 THEN 'luisssmateus802@gmail.com'
-          WHEN 3 THEN 'kirogamateus@gmail.com'
-          WHEN 4 THEN 'gitmateus8@gmail.com'
-          ELSE CONCAT('usuario.prueba.', LPAD(n.n, 4, '0'), '@example.test')
-      END
-      OR existente.documento = CASE n.n
-          WHEN 1 THEN 'PRUEBA-731001'
-          WHEN 2 THEN 'PRUEBA-842002'
-          WHEN 3 THEN 'PRUEBA-953003'
-          WHEN 4 THEN 'PRUEBA-164004'
-          ELSE CONCAT('TEST-', LPAD(n.n, 8, '0'))
-      END
-  );
-
--- Registra los 10 usuarios seleccionados como asesores para permitir su acceso.
--- También corrige el rol si esos usuarios ya se habían insertado antes.
-UPDATE usuario
-SET rol = 'asesor'
-WHERE email LIKE 'usuario.prueba.%@example.test'
-  AND documento LIKE 'TEST-%'
-  AND RIGHT(documento, 2) = '00';
-
-INSERT INTO asesores_banco (
-    id_usuario,
-    nombre,
-    documento,
-    email,
-    codigo_asesor,
-    especialidad,
-    estado
-)
-SELECT
-    u.id_usuario,
-    u.nombre,
-    u.documento,
-    u.email,
-    CONCAT('ASESOR-', LPAD(u.id_usuario, 6, '0')),
-    'Asesoría bancaria',
-    'activo'
-FROM usuario AS u
-WHERE u.rol = 'asesor'
-  AND u.email LIKE 'usuario.prueba.%@example.test'
-  AND u.documento LIKE 'TEST-%'
-  AND RIGHT(u.documento, 2) = '00'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM asesores_banco AS a
-      WHERE a.id_usuario = u.id_usuario
-  );
-
-COMMIT;
-
--- Verifica los cuatro correos proporcionados y los usuarios generados.
-SELECT
-    u.id_usuario,
-    u.nombre,
-    u.email,
-    u.documento,
-    u.rol,
-    u.id_tipo_doc,
-    a.codigo_asesor
-FROM usuario AS u
-LEFT JOIN asesores_banco AS a
-    ON a.id_usuario = u.id_usuario
-WHERE u.email IN (
-    'luissmate89@gmail.com',
-    'luisssmateus802@gmail.com',
-    'kirogamateus@gmail.com',
-    'gitmateus8@gmail.com'
-)
-OR u.email LIKE 'usuario.prueba.%@example.test'
-ORDER BY u.id_usuario;
--- SQLBook: Code
-USE billetera;
-
-START TRANSACTION;
-
 -- Cambia el rol únicamente a los usuarios seleccionados.
 UPDATE usuario
 SET rol = 'asesor'
@@ -709,3 +541,130 @@ WHERE id_usuario = 6;
 SELECT id_usuario, nombre, email
 FROM usuario
 WHERE id_usuario = 6;
+-- SQLBook: Code
+USE billetera;
+
+DELETE FROM usuario
+WHERE id_usuario BETWEEN 701 AND 1004;
+
+-- SQLBook: Code
+
+USE billetera;
+
+SELECT id_usuario, nombre, email, documento
+FROM usuario
+WHERE email = 'luissmate89@gmail.com'
+   OR documento = '1234567890';
+-- SQLBook: Code
+INSERT INTO usuario (
+    nombre, email, `password`, telefono, direccion, documento,
+    rol, tope_ahorros, tope_corriente
+)
+VALUES (
+    'Nombre completo',
+    'luissmate89@gmail.com',
+    'mateus20452@',
+    '3000000000',
+    'calle 87 sur 91-85',
+    '1234567890',
+    'usuario',
+    0,
+    0
+);
+
+SET @id_usuario_nuevo = LAST_INSERT_ID();
+SET @numero_cuenta_nuevo = CONCAT(
+    LPAD(FLOOR(RAND() * 1000000000), 9, '0'),
+    LPAD(FLOOR(RAND() * 10000000), 7, '0')
+);
+
+INSERT INTO cuentas (
+    numero_cuenta, id_usuario, tipo_cuenta, tipo_operacion, saldo, estado
+)
+VALUES (
+    @numero_cuenta_nuevo,
+    @id_usuario_nuevo,
+    'ahorros',
+    'debito',
+    0,
+    'activa'
+);
+
+SELECT id_usuario, nombre, email
+FROM usuario
+WHERE id_usuario = @id_usuario_nuevo;
+
+SELECT id_cuenta, numero_cuenta, id_usuario, tipo_cuenta, saldo, estado
+FROM cuentas
+WHERE id_usuario = @id_usuario_nuevo;
+-- SQLBook: Code
+USE billetera;
+
+START TRANSACTION;
+
+DELETE FROM transferencias_breb
+WHERE id_cuenta_origen IN (
+    SELECT id_cuenta FROM cuentas
+    WHERE id_usuario BETWEEN 701 AND 1004
+)
+OR id_cuenta_destino IN (
+    SELECT id_cuenta FROM cuentas
+    WHERE id_usuario BETWEEN 701 AND 1004
+)
+OR id_llave_destino IN (
+    SELECT id_llave FROM llaves_breb
+    WHERE id_usuario BETWEEN 701 AND 1004
+)
+OR id_transaccion IN (
+    SELECT t.id_transaccion
+    FROM transacciones AS t
+    INNER JOIN cuentas AS c ON c.id_cuenta = t.id_cuenta
+    WHERE c.id_usuario BETWEEN 701 AND 1004
+);
+
+DELETE FROM tarjetas
+WHERE id_cuenta IN (
+    SELECT id_cuenta FROM cuentas
+    WHERE id_usuario BETWEEN 701 AND 1004
+);
+
+DELETE FROM llaves_breb
+WHERE id_usuario BETWEEN 701 AND 1004
+   OR id_cuenta IN (
+       SELECT id_cuenta FROM cuentas
+       WHERE id_usuario BETWEEN 701 AND 1004
+   );
+
+DELETE FROM transacciones
+WHERE id_cuenta IN (
+    SELECT id_cuenta FROM cuentas
+    WHERE id_usuario BETWEEN 701 AND 1004
+);
+
+DELETE FROM notificaciones
+WHERE id_usuario BETWEEN 701 AND 1004;
+
+DELETE FROM control_topes_breb
+WHERE id_usuario BETWEEN 701 AND 1004;
+
+DELETE FROM administradores
+WHERE id_usuario BETWEEN 701 AND 1004;
+
+DELETE FROM asesores_banco
+WHERE id_usuario BETWEEN 701 AND 1004;
+
+DELETE FROM cuentas
+WHERE id_usuario BETWEEN 701 AND 1004;
+
+DELETE FROM usuario
+WHERE id_usuario BETWEEN 701 AND 1004;
+
+COMMIT;
+-- SQLBook: Code
+DELETE FROM asesores_banco
+WHERE id_asesor BETWEEN 2 AND 20;
+-- SQLBook: Code
+USE billetera;
+
+DELETE FROM usuario
+WHERE id_usuario = 1005;
