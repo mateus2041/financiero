@@ -110,7 +110,7 @@ def test_login_envia_correo_de_notificacion(monkeypatch):
     monkeypatch.setattr("Backend.main.enviar_correo", fake_enviar_correo)
 
     resultado = login(
-        {"documento": "1000000000", "password": "Segura123", "rol": "usuario"},
+        {"email": "ana@test.com", "password": "Segura123", "rol": "usuario"},
         db=db,
     )
 

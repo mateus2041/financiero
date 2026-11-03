@@ -31,7 +31,7 @@ class UsuarioRegistroSchema(SchemaBase):
 
 
 class UsuarioLoginSchema(SchemaBase):
-    documento: str = Field(min_length=1, max_length=50)
+    email: EmailStr
     password: str = Field(min_length=1, max_length=128)
     rol: Literal["usuario", "asesor"] = "usuario"
 
