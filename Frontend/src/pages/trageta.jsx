@@ -8,6 +8,9 @@ const API_URL = "http://localhost:8000";
 const generarUltimosDigitos = () =>
   String(Math.floor(Math.random() * 1000)).padStart(3, "0");
 
+const generarCVV = () =>
+  String(Math.floor(Math.random() * 10000)).padStart(4, "0");
+
 const generarPrimerosDigitos = () =>
   String(Math.floor(Math.random() * 10 ** 13)).padStart(13, "0");
 
@@ -36,11 +39,12 @@ export default function TarjetasUsuario({
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [mostrarMensajeAdmin, setMostrarMensajeAdmin] = useState(false);
   const [esMovil, setEsMovil] = useState(false);
+  const [mostrarCVV, setMostrarCVV] = useState(false);
 
   const [formulario, setFormulario] = useState({
     tipo_tarjeta: "debito",
     fecha_vencimiento: generarFechaVencimiento(),
-    cvv: "",
+    cvv: generarCVV(),
     primeros_digitos: generarPrimerosDigitos(),
     ultimos_digitos: generarUltimosDigitos(),
   });
@@ -158,13 +162,8 @@ export default function TarjetasUsuario({
       return;
     }
 
-    if (!tarjetaEditando && !formulario.cvv) {
-      setMensaje("El CVV es obligatorio");
-      return;
-    }
-
-    if (formulario.cvv && !/^\d{3,4}$/.test(formulario.cvv)) {
-      setMensaje("El CVV debe tener entre 3 y 4 dígitos");
+    if (!tarjetaEditando && !/^\d{4}$/.test(formulario.cvv)) {
+      setMensaje("El CVV debe tener exactamente 4 dígitos");
       return;
     }
 
@@ -176,7 +175,6 @@ export default function TarjetasUsuario({
           `${API_URL}/tarjetas/${tarjetaEditando.id_tarjeta}`,
           {
             fecha_vencimiento: formulario.fecha_vencimiento,
-            cvv: formulario.cvv,
           },
           {
             headers: {
@@ -227,7 +225,7 @@ export default function TarjetasUsuario({
       setFormulario({
         tipo_tarjeta: "debito",
         fecha_vencimiento: generarFechaVencimiento(),
-        cvv: "",
+        cvv: generarCVV(),
         primeros_digitos: generarPrimerosDigitos(),
         ultimos_digitos: generarUltimosDigitos(),
       });
@@ -252,11 +250,12 @@ export default function TarjetasUsuario({
   const abrirModalTarjeta = (usuario) => {
     setTarjetaEditando(null);
     setUsuarioSeleccionado(usuario);
+    setMostrarCVV(false);
 
     setFormulario({
       tipo_tarjeta: "debito",
       fecha_vencimiento: generarFechaVencimiento(),
-      cvv: "",
+      cvv: generarCVV(),
       primeros_digitos: generarPrimerosDigitos(),
       ultimos_digitos: generarUltimosDigitos(),
     });
@@ -281,6 +280,7 @@ export default function TarjetasUsuario({
 
     setTarjetaEditando(tarjeta);
     setUsuarioSeleccionado(usuario);
+    setMostrarCVV(false);
     setFormulario({
       tipo_tarjeta: tarjeta.tipo_tarjeta || "debito",
       fecha_vencimiento: mes && anio
@@ -296,11 +296,12 @@ export default function TarjetasUsuario({
   const cerrarModalTarjeta = () => {
     setUsuarioSeleccionado(null);
     setTarjetaEditando(null);
+    setMostrarCVV(false);
 
     setFormulario({
       tipo_tarjeta: "debito",
       fecha_vencimiento: generarFechaVencimiento(),
-      cvv: "",
+      cvv: generarCVV(),
       primeros_digitos: generarPrimerosDigitos(),
       ultimos_digitos: generarUltimosDigitos(),
     });
@@ -663,16 +664,33 @@ export default function TarjetasUsuario({
               <div>
                 <label htmlFor="cvv">CVV</label>
 
-                <input
-                  id="cvv"
-                  type="password"
-                  name="cvv"
-                  value={formulario.cvv}
-                  onChange={manejarCambio}
-                  maxLength={4}
-                  inputMode="numeric"
-                  pattern="[0-9]{3,4}"
-                />
+                <div className="campo-cvv">
+                  <input
+                    id="cvv"
+                    type={mostrarCVV ? "text" : "password"}
+                    name="cvv"
+                    value={formulario.cvv}
+                    maxLength={4}
+                    inputMode="numeric"
+                    pattern="[0-9]{4}"
+                    readOnly
+                    placeholder={tarjetaEditando ? "No editable" : undefined}
+                    aria-label="CVV de 4 dígitos, generado automáticamente y no editable"
+                  />
+                  <button
+                    type="button"
+                    className="boton-mostrar-cvv"
+                    onClick={() => setMostrarCVV(!mostrarCVV)}
+                    aria-label={mostrarCVV ? "Ocultar CVV" : "Mostrar CVV"}
+                    title={mostrarCVV ? "Ocultar CVV" : "Mostrar CVV"}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z" />
+                      <circle cx="12" cy="12" r="3" />
+                      {!mostrarCVV && <path d="M3 3l18 18" />}
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               <button type="submit">

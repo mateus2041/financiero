@@ -5,6 +5,29 @@ import "../styles/login.css";
 
 const Registro = React.lazy(() => import("./registro"));
 
+const obtenerMensajeError = (detalle) => {
+  if (typeof detalle === "string") {
+    return detalle;
+  }
+
+  if (Array.isArray(detalle)) {
+    return detalle
+      .map((error) => {
+        const campo = Array.isArray(error.loc)
+          ? error.loc.filter((parte) => parte !== "body").join(".")
+          : "";
+        const mensajeError = error.msg || error.message;
+        return campo && mensajeError
+          ? `${campo}: ${mensajeError}`
+          : mensajeError || "";
+      })
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  return "El servidor rechazó los datos enviados.";
+};
+
 function Login({ isModal = false }) {
   const navigate = useNavigate();
   const rolActual = localStorage.getItem("rol") || "usuario";
@@ -160,6 +183,13 @@ function Login({ isModal = false }) {
           setMensaje(
             data.detail ||
               "No se pudo enviar el código de verificación. Inténtalo nuevamente."
+          );
+          return;
+        }
+
+        if (res.status === 422) {
+          setMensaje(
+            `No se pudieron validar los datos: ${obtenerMensajeError(data.detail)}`
           );
           return;
         }
