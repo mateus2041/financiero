@@ -144,6 +144,50 @@ body {
   text-align: center;
 }
 
+.campo-cvv {
+  position: relative;
+}
+
+.campo-cvv input {
+  padding-right: 44px;
+}
+
+.boton-mostrar-cvv {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  transform: translateY(-50%);
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #a8b3cf;
+  cursor: pointer;
+}
+
+.boton-mostrar-cvv:hover,
+.boton-mostrar-cvv:focus-visible {
+  color: #eab94b;
+}
+
+.boton-mostrar-cvv:focus-visible {
+  outline: 2px solid rgba(234, 185, 75, 0.6);
+}
+
+.boton-mostrar-cvv svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
 .ayuda-numero-tarjeta {
   display: block;
   margin-top: 6px;

@@ -11,12 +11,8 @@ import json
 
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-<<<<<<< HEAD
-from sqlalchemy import case, func, text
-from sqlalchemy.exc import IntegrityError
-=======
 from sqlalchemy import case, func, or_, text
->>>>>>> 8c692e6603bf0d6549378dc2f89a2690957923ee
+from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel, EmailStr, Field
 from typing import Literal
 

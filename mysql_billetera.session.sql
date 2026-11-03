@@ -542,12 +542,6 @@ SELECT id_usuario, nombre, email
 FROM usuario
 WHERE id_usuario = 6;
 -- SQLBook: Code
-USE billetera;
-
-DELETE FROM usuario
-WHERE id_usuario BETWEEN 701 AND 1004;
-
--- SQLBook: Code
 
 USE billetera;
 
@@ -598,73 +592,37 @@ SELECT id_cuenta, numero_cuenta, id_usuario, tipo_cuenta, saldo, estado
 FROM cuentas
 WHERE id_usuario = @id_usuario_nuevo;
 -- SQLBook: Code
-USE billetera;
-
-START TRANSACTION;
-
-DELETE FROM transferencias_breb
-WHERE id_cuenta_origen IN (
-    SELECT id_cuenta FROM cuentas
-    WHERE id_usuario BETWEEN 701 AND 1004
-)
-OR id_cuenta_destino IN (
-    SELECT id_cuenta FROM cuentas
-    WHERE id_usuario BETWEEN 701 AND 1004
-)
-OR id_llave_destino IN (
-    SELECT id_llave FROM llaves_breb
-    WHERE id_usuario BETWEEN 701 AND 1004
-)
-OR id_transaccion IN (
-    SELECT t.id_transaccion
-    FROM transacciones AS t
-    INNER JOIN cuentas AS c ON c.id_cuenta = t.id_cuenta
-    WHERE c.id_usuario BETWEEN 701 AND 1004
-);
-
-DELETE FROM tarjetas
-WHERE id_cuenta IN (
-    SELECT id_cuenta FROM cuentas
-    WHERE id_usuario BETWEEN 701 AND 1004
-);
-
-DELETE FROM llaves_breb
-WHERE id_usuario BETWEEN 701 AND 1004
-   OR id_cuenta IN (
-       SELECT id_cuenta FROM cuentas
-       WHERE id_usuario BETWEEN 701 AND 1004
-   );
-
-DELETE FROM transacciones
-WHERE id_cuenta IN (
-    SELECT id_cuenta FROM cuentas
-    WHERE id_usuario BETWEEN 701 AND 1004
-);
-
-DELETE FROM notificaciones
-WHERE id_usuario BETWEEN 701 AND 1004;
-
-DELETE FROM control_topes_breb
-WHERE id_usuario BETWEEN 701 AND 1004;
-
-DELETE FROM administradores
-WHERE id_usuario BETWEEN 701 AND 1004;
-
-DELETE FROM asesores_banco
-WHERE id_usuario BETWEEN 701 AND 1004;
-
-DELETE FROM cuentas
-WHERE id_usuario BETWEEN 701 AND 1004;
-
-DELETE FROM usuario
-WHERE id_usuario BETWEEN 701 AND 1004;
-
-COMMIT;
--- SQLBook: Code
 DELETE FROM asesores_banco
 WHERE id_asesor BETWEEN 2 AND 20;
 -- SQLBook: Code
 USE billetera;
 
+START TRANSACTION;
+
+-- 1. Eliminar las notificaciones del usuario
+DELETE FROM notificaciones
+WHERE id_usuario = 5;
+
+-- 2. Eliminar el usuario
 DELETE FROM usuario
-WHERE id_usuario = 1005;
+WHERE id_usuario = 5;
+
+COMMIT;
+-- SQLBook: Code
+USE billetera;
+
+START TRANSACTION;
+
+-- 1. Eliminar notificaciones
+DELETE FROM notificaciones
+WHERE id_usuario = 5;
+
+-- 2. Eliminar cuentas
+DELETE FROM cuentas
+WHERE id_usuario = 5;
+
+-- 3. Eliminar usuario
+DELETE FROM usuario
+WHERE id_usuario = 5;
+
+COMMIT;
