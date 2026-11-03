@@ -299,7 +299,7 @@ function Login({ isModal = false }) {
               </>
             ) : (
               <>
-                <label>Documento</label>
+                <label>Documento, correo o número de cuenta</label>
 
                 <div className="input-icon">
                   <input
@@ -307,7 +307,7 @@ function Login({ isModal = false }) {
                     value={documento}
                     onChange={(e) => setDocumento(e.target.value)}
                     disabled={bloqueado || iniciandoSesion}
-                    placeholder="Ingresa tu documento"
+                    placeholder="Ingresa tu documento, correo o número de cuenta"
                   />
                 </div>
 

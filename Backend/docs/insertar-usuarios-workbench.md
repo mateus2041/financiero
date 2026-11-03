@@ -257,6 +257,12 @@ VALUES (
 );
 ```
 
+El inicio de sesión acepta el número de `documento`, el `email` o el número de
+una cuenta asociada, y requiere que el usuario tenga una cuenta con estado
+`activa`. Si un registro antiguo tiene la contraseña en texto plano, el backend
+la convierte a hash al iniciar sesión correctamente; para nuevos registros,
+guarde siempre el hash desde el principio.
+
 Los datos y la contraseña anteriores son solo para pruebas locales; no los use
 en cuentas reales. Ejecute la sección de carga de usuarios una sola vez; si la
 ejecuta de nuevo, las restricciones únicas de `email` y `documento` rechazarán
