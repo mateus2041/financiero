@@ -398,6 +398,14 @@ const CertificadoBancario = () => {
               ⚙️ Ajustes
             </Link>
           </li>
+          <li>
+            <Link
+              to="/desbloquear-cuenta"
+              className="btn-nav"
+            >
+              🚫 bloque de trajeta 
+            </Link>
+          </li>
 
           {/* BOTÓN NUEVO CHAT IA */}
           <li>

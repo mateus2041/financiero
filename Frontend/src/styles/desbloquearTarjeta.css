@@ -343,8 +343,15 @@
     border-radius: 9px;
     background: #111827;
     color: #ffffff;
-    font-size: 14px;
+    font-size: 16px;
+    line-height: 1.4;
     outline: none;
+    caret-color: #f5c542;
+    -webkit-text-fill-color: #ffffff;
+}
+
+.formulario-bloqueo input::placeholder {
+    color: rgba(239, 246, 255, 0.7);
 }
 
 .formulario-bloqueo input:focus {
