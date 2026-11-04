@@ -232,12 +232,8 @@ class Administrador(Base):
 class AsesorBanco(Base):
 
     __tablename__ = "asesores_banco"
-    __table_args__ = (
-        Index("id_usuario", "id_usuario", unique=True),
-    )
 
     id_asesor = Column(Integer, primary_key=True)
-    id_usuario = Column(Integer, nullable=True)
     nombre = Column(String(100), nullable=True)
     documento = Column(String(50), nullable=True)
     tipo_documento = Column(String(50), nullable=True)
@@ -734,5 +730,4 @@ class ControlTopeBreb(Base):
     usuario = relationship(
         "Usuario"
     )
-
 

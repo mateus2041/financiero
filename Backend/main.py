@@ -682,13 +682,19 @@ def registrar_usuario(
             text(
                 """
                 INSERT INTO asesores_banco (
-                    id_usuario,
+                    nombre,
+                    documento,
+                    email,
+                    tipo_documento,
                     codigo_asesor,
                     especialidad,
                     estado
                 )
                 VALUES (
-                    :id_usuario,
+                    :nombre,
+                    :documento,
+                    :email,
+                    :tipo_documento,
                     :codigo_asesor,
                     :especialidad,
                     'activo'
@@ -696,7 +702,10 @@ def registrar_usuario(
                 """
             ),
             {
-                "id_usuario": nuevo_usuario.id_usuario,
+                "nombre": nuevo_usuario.nombre,
+                "documento": nuevo_usuario.documento,
+                "email": nuevo_usuario.email,
+                "tipo_documento": tipo_documento.nombre_doc,
                 "codigo_asesor": f"ASESOR-{nuevo_usuario.id_usuario:06d}",
                 "especialidad": data.get("especialidad", "Asesoría bancaria"),
             },
@@ -869,7 +878,8 @@ def asesor_login(
                                          COALESCE(a.email, u.email) AS email,
                      COALESCE(u.rol, 'asesor') AS rol
             FROM asesores_banco AS a
-            LEFT JOIN usuario AS u ON u.id_usuario = a.id_usuario
+            LEFT JOIN usuario AS u
+                ON LOWER(TRIM(u.email)) = LOWER(TRIM(a.email))
                         WHERE LOWER(COALESCE(a.email, u.email)) = :email_asesor
               AND a.codigo_asesor = :codigo_asesor
               AND a.estado = 'activo'
@@ -1059,7 +1069,8 @@ def consultar_asesores(
                      a.codigo_asesor,
                      a.estado, a.fecha_ingreso
             FROM asesores_banco AS a
-            LEFT JOIN usuario AS u ON u.id_usuario = a.id_usuario
+            LEFT JOIN usuario AS u
+                ON LOWER(TRIM(u.email)) = LOWER(TRIM(a.email))
             LEFT JOIN tipo_documento AS td ON td.id_tipo_doc = u.id_tipo_doc
             WHERE (:codigo_asesor IS NULL OR a.codigo_asesor = :codigo_asesor)
             ORDER BY a.id_asesor
@@ -1770,9 +1781,6 @@ def obtener_estadisticas_usuarios(
         Usuario.rol == "usuario",
         ~db.query(Administrador.id_administrador).filter(
             Administrador.id_usuario == Usuario.id_usuario
-        ).exists(),
-        ~db.query(AsesorBanco.id_asesor).filter(
-            AsesorBanco.id_usuario == Usuario.id_usuario
         ).exists(),
     ).one()
 

@@ -5,7 +5,8 @@ COPY --from=ghcr.io/astral-sh/uv:0.8.22 /uv /uvx /bin/
 WORKDIR /app
 
 ENV PYTHONPATH=/app \
-    UV_LINK_MODE=copy
+    UV_LINK_MODE=copy \
+    UV_HTTP_TIMEOUT=120
 
 COPY Backend/requirements.txt ./requirements.txt
 RUN uv pip install --system -r requirements.txt
