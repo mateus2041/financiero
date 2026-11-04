@@ -2500,6 +2500,61 @@ def activar_tarjeta_usuario(
     }
 
 
+@app.patch("/tarjetas/{id_tarjeta}/desactivar")
+def desactivar_tarjeta_usuario(
+    id_tarjeta: int,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    tarjeta = db.query(Tarjeta).join(Cuenta).filter(
+        Tarjeta.id_tarjeta == id_tarjeta
+    ).first()
+
+    if not tarjeta:
+        raise HTTPException(status_code=404, detail="Tarjeta no encontrada")
+
+    if current_user != tarjeta.cuenta.id_usuario:
+        administrador_o_asesor_requerido(
+            current_user=current_user,
+            db=db
+        )
+
+    tarjeta.estado = "bloqueada"
+    db.commit()
+    db.refresh(tarjeta)
+
+    return {
+        "mensaje": "Tarjeta desactivada correctamente",
+        "id_tarjeta": tarjeta.id_tarjeta,
+        "estado": tarjeta.estado
+    }
+
+
+@app.get("/administradores/tarjetas")
+def listar_tarjetas_administracion(
+    current_user: int = Depends(administrador_o_asesor_requerido),
+    db: Session = Depends(get_db)
+):
+    tarjetas = db.query(Tarjeta, Cuenta.id_usuario).join(
+        Cuenta,
+        Tarjeta.id_cuenta == Cuenta.id_cuenta
+    ).join(
+        Usuario,
+        Cuenta.id_usuario == Usuario.id_usuario
+    ).filter(
+        Usuario.rol == "usuario"
+    ).order_by(Tarjeta.id_tarjeta).all()
+
+    return [
+        {
+            "id_tarjeta": tarjeta.id_tarjeta,
+            "id_usuario": id_usuario,
+            "estado": tarjeta.estado
+        }
+        for tarjeta, id_usuario in tarjetas
+    ]
+
+
 @app.patch("/tarjetas/{id_tarjeta}")
 def editar_tarjeta_usuario(
     id_tarjeta: int,

@@ -30,6 +30,10 @@ export default function TarjetasUsuario({
   const esAdministrador = rol === "administrador";
 
   const [tarjetas, setTarjetas] = useState([]);
+  const [tarjetasPorUsuario, setTarjetasPorUsuario] = useState({});
+  const [cargandoTarjetas, setCargandoTarjetas] = useState(true);
+  const [errorTarjetas, setErrorTarjetas] = useState(false);
+  const [tarjetaActualizando, setTarjetaActualizando] = useState(null);
   const [usuarios, setUsuarios] = useState([]);
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
   const [tarjetaEditando, setTarjetaEditando] = useState(null);
@@ -110,6 +114,45 @@ export default function TarjetasUsuario({
         error.response?.data?.detail ||
           "No se pudieron obtener los usuarios"
       );
+      setCargandoTarjetas(false);
+      return;
+    }
+
+    setCargandoTarjetas(true);
+    setErrorTarjetas(false);
+    setTarjetasPorUsuario({});
+
+    try {
+      const token = localStorage.getItem("token");
+      const respuesta = await axios.get(
+        `${API_URL}/administradores/tarjetas`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const tarjetasAgrupadas = {};
+
+      (Array.isArray(respuesta.data) ? respuesta.data : []).forEach(
+        (tarjeta) => {
+          if (!tarjetasAgrupadas[tarjeta.id_usuario]) {
+            tarjetasAgrupadas[tarjeta.id_usuario] = [];
+          }
+          tarjetasAgrupadas[tarjeta.id_usuario].push(tarjeta);
+        }
+      );
+
+      setTarjetasPorUsuario(tarjetasAgrupadas);
+    } catch (error) {
+      console.error("Error al obtener estados de tarjetas:", error);
+      setErrorTarjetas(true);
+      setMensaje(
+        error.response?.data?.detail ||
+          "No se pudieron obtener los estados de las tarjetas"
+      );
+    } finally {
+      setCargandoTarjetas(false);
     }
   };
 
@@ -355,6 +398,53 @@ export default function TarjetasUsuario({
     }
   };
 
+  const cambiarEstadoTarjeta = async (usuario) => {
+    const tarjeta = tarjetasPorUsuario[usuario.id_usuario]?.[0];
+    if (!tarjeta) {
+      return;
+    }
+
+    const activar = tarjeta.estado !== "activa";
+    const accion = activar ? "activar" : "desactivar";
+
+    try {
+      setTarjetaActualizando(tarjeta.id_tarjeta);
+      const token = localStorage.getItem("token");
+
+      const respuesta = await axios.patch(
+        `${API_URL}/tarjetas/${tarjeta.id_tarjeta}/${accion}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setTarjetasPorUsuario((actuales) => ({
+        ...actuales,
+        [usuario.id_usuario]: actuales[usuario.id_usuario].map((item) =>
+          item.id_tarjeta === tarjeta.id_tarjeta
+            ? { ...item, estado: respuesta.data.estado }
+            : item
+        ),
+      }));
+      setMensaje(
+        activar
+          ? "Tarjeta habilitada correctamente"
+          : "Tarjeta inhabilitada correctamente"
+      );
+    } catch (error) {
+      console.error("Error al cambiar el estado de la tarjeta:", error);
+      setMensaje(
+        error.response?.data?.detail ||
+          "No se pudo cambiar el estado de la tarjeta"
+      );
+    } finally {
+      setTarjetaActualizando(null);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("rol");
@@ -545,6 +635,37 @@ export default function TarjetasUsuario({
                     >
                       Editar tarjeta
                     </button>
+                    {cargandoTarjetas ? (
+                      <button
+                        type="button"
+                        className="boton-anadir-tarjeta"
+                        disabled
+                      >
+                        Consultando tarjeta...
+                      </button>
+                    ) : errorTarjetas ? (
+                      <span>Estado no disponible</span>
+                    ) : tarjetasPorUsuario[usuario.id_usuario]?.[0] ? (
+                      <button
+                        type="button"
+                        className="boton-anadir-tarjeta"
+                        onClick={() => cambiarEstadoTarjeta(usuario)}
+                        disabled={
+                          tarjetaActualizando ===
+                          tarjetasPorUsuario[usuario.id_usuario][0].id_tarjeta
+                        }
+                      >
+                        {tarjetaActualizando ===
+                        tarjetasPorUsuario[usuario.id_usuario][0].id_tarjeta
+                          ? "Actualizando..."
+                          : tarjetasPorUsuario[usuario.id_usuario][0].estado ===
+                            "activa"
+                          ? "Inhabilitar tarjeta"
+                          : "Habilitar tarjeta"}
+                      </button>
+                    ) : (
+                      <span>Sin tarjeta</span>
+                    )}
                   </td>
                 </tr>
               ))}
