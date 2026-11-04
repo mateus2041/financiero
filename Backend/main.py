@@ -1724,12 +1724,14 @@ def listar_cuentas_admin(
         .filter(~Usuario.id_usuario.in_(
             db.query(Administrador.id_usuario)
         ))
-        .filter(text(
-            "NOT EXISTS ("
-            "SELECT 1 FROM asesores_banco asesor "
-            "WHERE asesor.id_usuario = usuario.id_usuario"
-            ")"
-        ))
+        .filter(
+            ~db.query(AsesorBanco.id_asesor)
+            .filter(
+                func.lower(func.trim(AsesorBanco.documento))
+                == func.lower(func.trim(Usuario.documento))
+            )
+            .exists()
+        )
     )
     if despues_de is not None:
         consulta = consulta.filter(Cuenta.id_cuenta > despues_de)
@@ -1841,12 +1843,12 @@ def crear_cuenta_usuario(
         Usuario.id_usuario == id_usuario,
         Usuario.rol == "usuario",
         ~Usuario.id_usuario.in_(db.query(Administrador.id_usuario)),
-        text(
-            "NOT EXISTS ("
-            "SELECT 1 FROM asesores_banco asesor "
-            "WHERE asesor.id_usuario = usuario.id_usuario"
-            ")"
+        ~db.query(AsesorBanco.id_asesor)
+        .filter(
+            func.lower(func.trim(AsesorBanco.documento))
+            == func.lower(func.trim(Usuario.documento))
         )
+        .exists()
     ).first()
 
     if not usuario:
@@ -1917,12 +1919,12 @@ def listar_cuentas_usuario(
         ~Usuario.id_usuario.in_(
             db.query(Administrador.id_usuario)
         ),
-        text(
-            "NOT EXISTS ("
-            "SELECT 1 FROM asesores_banco asesor "
-            "WHERE asesor.id_usuario = usuario.id_usuario"
-            ")"
+        ~db.query(AsesorBanco.id_asesor)
+        .filter(
+            func.lower(func.trim(AsesorBanco.documento))
+            == func.lower(func.trim(Usuario.documento))
         )
+        .exists()
     ).first()
 
     if not usuario:
@@ -1962,12 +1964,12 @@ def actualizar_perfil_usuario(
         Usuario.id_usuario == id_usuario,
         Usuario.rol == "usuario",
         ~Usuario.id_usuario.in_(db.query(Administrador.id_usuario)),
-        text(
-            "NOT EXISTS ("
-            "SELECT 1 FROM asesores_banco asesor "
-            "WHERE asesor.id_usuario = usuario.id_usuario"
-            ")"
+        ~db.query(AsesorBanco.id_asesor)
+        .filter(
+            func.lower(func.trim(AsesorBanco.documento))
+            == func.lower(func.trim(Usuario.documento))
         )
+        .exists()
     ).first()
 
     if not usuario:
@@ -2349,12 +2351,12 @@ def listar_tarjetas_cuenta(
         Cuenta.id_cuenta == id_cuenta,
         Usuario.rol == "usuario",
         ~Usuario.id_usuario.in_(db.query(Administrador.id_usuario)),
-        text(
-            "NOT EXISTS ("
-            "SELECT 1 FROM asesores_banco asesor "
-            "WHERE asesor.id_usuario = usuario.id_usuario"
-            ")"
+        ~db.query(AsesorBanco.id_asesor)
+        .filter(
+            func.lower(func.trim(AsesorBanco.documento))
+            == func.lower(func.trim(Usuario.documento))
         )
+        .exists()
     ).first()
 
     if not cuenta:
