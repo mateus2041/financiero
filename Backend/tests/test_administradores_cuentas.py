@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 
 from Backend import main
 from Backend.database.database import Base
-from Backend.models import Administrador, Cuenta, Usuario
+from Backend.models import Administrador, AsesorBanco, Cuenta, Usuario
 from Backend.security import hash_password
 
 
@@ -49,6 +49,33 @@ def test_administrador_puede_listar_cuentas(monkeypatch):
             numero_cuenta="1234567890123456",
             tipo_cuenta="ahorros",
             saldo=15000,
+            estado="activa",
+        )
+    )
+
+    asesor_como_usuario = Usuario(
+        nombre="Asesor con registro anterior",
+        email="asesor-usuario@test.com",
+        documento="5555555555",
+        password=hash_password("Segura123"),
+        rol="usuario",
+    )
+    db.add(asesor_como_usuario)
+    db.commit()
+    db.refresh(asesor_como_usuario)
+    db.add(
+        AsesorBanco(
+            nombre=asesor_como_usuario.nombre,
+            documento=asesor_como_usuario.documento,
+            codigo_asesor="ASESOR-001",
+        )
+    )
+    db.add(
+        Cuenta(
+            id_usuario=asesor_como_usuario.id_usuario,
+            numero_cuenta="5555555555555555",
+            tipo_cuenta="ahorros",
+            saldo=1000,
             estado="activa",
         )
     )
