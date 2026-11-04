@@ -26,7 +26,6 @@ COMMIT;
 -- SQLBook: Code
 CREATE TABLE IF NOT EXISTS asesores_banco (
     id_asesor INT AUTO_INCREMENT PRIMARY KEY,
-    id_usuario INT NULL,
     nombre VARCHAR(100) NOT NULL,
     documento VARCHAR(50),
     email VARCHAR(100),
@@ -54,14 +53,18 @@ SET rol = 'asesor'
 WHERE id_usuario = 9;
 
 INSERT INTO asesores_banco (
-    id_usuario,
+    nombre,
+    documento,
+    email,
     codigo_asesor,
     especialidad,
     estado,
     fecha_ingreso
 )
 SELECT
-    u.id_usuario,
+    u.nombre,
+    u.documento,
+    u.email,
     'asesores2014',
     'Créditos y ahorro',
     'activo',
@@ -87,7 +90,7 @@ SELECT
     a.estado
 FROM usuario u
 INNER JOIN asesores_banco a
-    ON a.id_usuario = u.id_usuario
+    ON LOWER(TRIM(a.email)) = LOWER(TRIM(u.email))
 WHERE a.codigo_asesor = 'asesores2014';
 -- SQLBook: Code
 SET FOREIGN_KEY_CHECKS = 0;
@@ -105,7 +108,9 @@ DELETE FROM administradores
 WHERE id_usuario = 1;
 
 DELETE FROM asesores_banco
-WHERE id_usuario = 1;
+WHERE documento = (
+    SELECT documento FROM usuario WHERE id_usuario = 1
+);
 
 DELETE FROM cuentas
 WHERE id_usuario = 1;
@@ -159,7 +164,9 @@ COMMIT;
 START TRANSACTION;
 
 DELETE FROM asesores_banco
-WHERE id_usuario = 9; -- cambia 9 por el ID correcto
+WHERE documento = (
+    SELECT documento FROM usuario WHERE id_usuario = 9
+); -- cambia 9 por el ID correcto
 
 COMMIT;
 -- SQLBook: Code
@@ -228,7 +235,9 @@ DELETE FROM administradores
 WHERE id_usuario = @id_usuario;
 
 DELETE FROM asesores_banco
-WHERE id_usuario = @id_usuario;
+WHERE documento = (
+    SELECT documento FROM usuario WHERE id_usuario = @id_usuario
+);
 
 DELETE FROM usuario
 WHERE id_usuario = @id_usuario;
@@ -285,7 +294,9 @@ DELETE FROM administradores
 WHERE id_usuario = @id_usuario;
 
 DELETE FROM asesores_banco
-WHERE id_usuario = @id_usuario;
+WHERE documento = (
+    SELECT documento FROM usuario WHERE id_usuario = @id_usuario
+);
 
 DELETE FROM usuario
 WHERE id_usuario = @id_usuario;
@@ -465,7 +476,7 @@ WHERE rol = 'usuario'
 -- Actualiza los datos del asesor, pero conserva su código generado.
 UPDATE asesores_banco AS a
 INNER JOIN usuario AS u
-    ON u.id_usuario = a.id_usuario
+    ON LOWER(TRIM(u.email)) = LOWER(TRIM(a.email))
 SET
     a.nombre = u.nombre,
     a.documento = u.documento,
@@ -491,7 +502,7 @@ SELECT
     a.estado
 FROM usuario AS u
 LEFT JOIN asesores_banco AS a
-    ON a.id_usuario = u.id_usuario
+    ON LOWER(TRIM(a.email)) = LOWER(TRIM(u.email))
 WHERE u.documento IN (
     'TEST-00000100',
     'TEST-00000200',
@@ -536,11 +547,11 @@ WHERE id_usuario = 2;
 -- SQLBook: Code
 UPDATE usuario
 SET email = 'kirogamateus@gmail.com'
-WHERE id_usuario = 6;
+WHERE id_usuario = 4;
 
 SELECT id_usuario, nombre, email
 FROM usuario
-WHERE id_usuario = 6;
+WHERE id_usuario = 4;
 -- SQLBook: Code
 USE billetera;
 
@@ -664,7 +675,20 @@ COMMIT;
 DELETE FROM asesores_banco
 WHERE id_asesor BETWEEN 2 AND 20;
 -- SQLBook: Code
-USE billetera;
+-- 1. Eliminar notificaciones
+DELETE FROM notificaciones
+WHERE id_usuario = 3;
 
+-- 2. Eliminar cuentas
+DELETE FROM cuentas
+WHERE id_usuario = 3;
+
+-- 3. Eliminar usuario
 DELETE FROM usuario
-WHERE id_usuario = 1005;
+WHERE id_usuario = 3;
+-- SQLBook: Code
+SELECT DATABASE();
+SHOW COLUMNS FROM asesores_banco LIKE 'id_usuario';
+SHOW INDEX FROM asesores_banco;
+-- SQLBook: Code
+ALTER TABLE asesores_banco DROP COLUMN id_usuario;
