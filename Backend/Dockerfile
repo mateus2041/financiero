@@ -11,7 +11,7 @@ COPY Backend/requirements.txt ./Backend/requirements.txt
 RUN uv venv .venv \
     && uv pip install --python .venv/bin/python -r Backend/requirements.txt
 
-COPY . .
+COPY Backend/ ./Backend/
 
 EXPOSE 8000
 
