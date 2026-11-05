@@ -10,7 +10,7 @@ def create_app():
     app = Flask(__name__)
     
     # Habilitar CORS para permitir peticiones desde el frontend
-    CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000"])
+    CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000"], supports_credentials=False)
     
     # Configuración de seguridad y base de datos MySQL
     app.config['SECRET_KEY'] = 'supersecretkey'
