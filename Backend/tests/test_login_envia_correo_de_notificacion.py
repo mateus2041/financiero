@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from Backend.database.database import Base
 from Backend.main import enviar_correos_acceso, login
 from Backend.models import Cuenta, Usuario
-from Backend.security import hash_password
+from Backend.security import check_password, hash_password
 
 
 def test_notificacion_no_se_envia_si_falla_el_codigo(monkeypatch):
@@ -139,5 +139,59 @@ def test_login_envia_correo_de_notificacion(monkeypatch):
     assert "ingreso a tu cuenta" in correo_notificacion["mensaje_html"].lower()
     assert "fecha" in correo_notificacion["mensaje_html"].lower()
     assert "hora" in correo_notificacion["mensaje_html"].lower()
+
+    db.close()
+
+
+def test_login_acepta_identificadores_alternos_y_migra_contrasena_legacy(monkeypatch):
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(bind=engine)
+    SessionLocal = sessionmaker(bind=engine)
+    db = SessionLocal()
+
+    usuario = Usuario(
+        nombre="Luis Mateus",
+        email="luis@test.com",
+        documento="1234567890",
+        password="ClaveTemporal123!",
+        rol="usuario",
+    )
+    db.add(usuario)
+    db.commit()
+    db.refresh(usuario)
+    password_legacy = usuario.password
+
+    db.add(
+        Cuenta(
+            id_usuario=usuario.id_usuario,
+            numero_cuenta="1234567890123456",
+            tipo_cuenta="corriente",
+            saldo=0,
+            estado="activa",
+        )
+    )
+    db.commit()
+    monkeypatch.setattr("Backend.main.enviar_correos_acceso", lambda *args: True)
+
+    resultado = login(
+        {"documento": "1234567890", "password": "ClaveTemporal123!", "rol": "usuario"},
+        db=db,
+    )
+
+    db.refresh(usuario)
+    assert resultado["message"] == "Login exitoso"
+    assert usuario.password != password_legacy
+    assert check_password("ClaveTemporal123!", usuario.password)
+
+    for identificador in ("luis@test.com", "1234567890123456"):
+        resultado = login(
+            {
+                "documento": identificador,
+                "password": "ClaveTemporal123!",
+                "rol": "usuario",
+            },
+            db=db,
+        )
+        assert resultado["message"] == "Login exitoso"
 
     db.close()
