@@ -50,17 +50,10 @@ const Cuenta = () => {
   useEffect(() => {
     if (!asistenteAbierto) return undefined;
 
-<<<<<<< HEAD
     const overflowAnterior = document.body.style.overflow;
     const cerrarConEscape = (event) => {
       if (event.key === "Escape") setAsistenteAbierto(false);
     };
-=======
-    const cerrarConEscape = (event) => {
-      if (event.key === "Escape") setAsistenteAbierto(false);
-    };
-    const overflowAnterior = document.body.style.overflow;
->>>>>>> origin/main
 
     document.body.style.overflow = "hidden";
     document.addEventListener("keydown", cerrarConEscape);
