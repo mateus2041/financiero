@@ -3,7 +3,7 @@ name: revicion
 
 on:
   push:
-    branches: [ main, develop, feat/cabios-mateus ]
+    branches: [ main, develop ]
   pull_request:
     types: [opened, synchronize, reopened]
 
