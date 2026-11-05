@@ -9,6 +9,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 const ULTIMO_MENSAJE_CHAT_KEY = "ultimo_mensaje_asistente";
 const MENSAJE_SEGUIMIENTO = "¿Qué más necesitas de mi asistencia virtual de Financiero?";
 
+<<<<<<< HEAD
 const obtenerUltimoMensajeChat = () => {
   try {
     const texto = sessionStorage.getItem(ULTIMO_MENSAJE_CHAT_KEY);
@@ -80,6 +81,35 @@ const OPCIONES_CUENTA_ORIGEN = [
 function ChatIA({ onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
+=======
+const MENSAJE_SALUDO =
+  "¡Hola, Gabriel! Soy tu asistente financiero. ¿En qué puedo ayudarte hoy?";
+
+const OPCIONES_ASISTENTE = [
+  {
+    titulo: "Mis cuentas y saldos",
+    descripcion: "Consulta tus cuentas y aprende a organizar tu dinero.",
+    pregunta: "¿Cómo puedo consultar y organizar los saldos de mis cuentas?",
+  },
+  {
+    titulo: "Transferencias",
+    descripcion: "Resuelve dudas sobre cómo enviar dinero.",
+    pregunta: "¿Cómo puedo hacer una transferencia entre mis cuentas?",
+  },
+  {
+    titulo: "Movimientos",
+    descripcion: "Entiende y revisa el historial de tus transacciones.",
+    pregunta: "¿Cómo reviso mis movimientos y transacciones recientes?",
+  },
+  {
+    titulo: "Ahorro y presupuesto",
+    descripcion: "Encuentra formas de ahorrar y planificar tus gastos.",
+    pregunta: "¿Cómo puedo crear un presupuesto y ahorrar cada mes?",
+  },
+];
+
+function ChatIA({ compacto = false }) {
+>>>>>>> origin/main
   const [pregunta, setPregunta] = useState("");
   const [escrituraDesbloqueada, setEscrituraDesbloqueada] = useState(false);
   const [esperandoLlaveBreB, setEsperandoLlaveBreB] = useState(false);
@@ -144,6 +174,7 @@ function ChatIA({ onClose }) {
     const texto = (textoSeleccionado || pregunta).trim();
     if (!texto || isLoading) return;
 
+<<<<<<< HEAD
     setEscrituraDesbloqueada(false);
 
     if (esperandoLlaveBreB) {
@@ -176,6 +207,20 @@ function ChatIA({ onClose }) {
         { tipo: "ia", texto: "¿Qué necesitas saber?" },
       ]);
       setTipoOpciones("usoAplicacion");
+=======
+    const preguntaEnviada = texto;
+    const esSaludo =
+      preguntaEnviada
+        .toLocaleLowerCase("es")
+        .replace(/[!¡.,?¿\s]/g, "") === "hola";
+
+    if (esSaludo) {
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: preguntaEnviada },
+        { tipo: "ia", texto: MENSAJE_SALUDO },
+      ]);
+>>>>>>> origin/main
       setPregunta("");
       return;
     }
@@ -238,6 +283,7 @@ function ChatIA({ onClose }) {
     }
   };
 
+<<<<<<< HEAD
   const seleccionarOpcion = (opcion) => {
     if (opcion.etiqueta === "¿Cómo uso la aplicación?") {
       setMensajes((prev) => [
@@ -386,6 +432,23 @@ function ChatIA({ onClose }) {
 
     enviarPregunta(opcion.pregunta);
   };
+=======
+  const opcionesAsistente = (
+    <div className="chat-sugerencias">
+      {OPCIONES_ASISTENTE.map((opcion) => (
+        <button
+          key={opcion.titulo}
+          type="button"
+          className="chat-sugerencia"
+          onClick={() => setPregunta(opcion.pregunta)}
+        >
+          <strong>{opcion.titulo}</strong>
+          <span>{opcion.descripcion}</span>
+        </button>
+      ))}
+    </div>
+  );
+>>>>>>> origin/main
 
   return (
     <>
@@ -405,14 +468,28 @@ function ChatIA({ onClose }) {
       </div>
 
       <div className="chat-body">
-        {mensajes.map((msg, index) => (
-          <div
-            key={index}
-            className={msg.tipo === "usuario" ? "usuario" : "ia"}
-          >
-            {msg.texto}
-          </div>
-        ))}
+        {mensajes.map((msg, index) => {
+          if (compacto && msg.tipo === "ia" && msg.texto === MENSAJE_SALUDO) {
+            return (
+              <div key={index} className="chat-respuesta-asistente">
+                <span className="chat-avatar" aria-hidden="true">🤖</span>
+                <div className="chat-respuesta-contenido">
+                  <div className="chat-burbuja-asistente">{msg.texto}</div>
+                  {opcionesAsistente}
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div
+              key={index}
+              className={msg.tipo === "usuario" ? "usuario" : "ia"}
+            >
+              {msg.texto}
+            </div>
+          );
+        })}
 
         {tipoOpciones && (
           <div className="chat-opciones" role="group" aria-label="Opciones de ayuda">
