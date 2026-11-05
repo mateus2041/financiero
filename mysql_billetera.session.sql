@@ -138,7 +138,7 @@ START TRANSACTION;
 
 UPDATE usuario
 SET rol = 'administrador'
-WHERE id_usuario = 1;
+WHERE id_usuario = 10;
 
 INSERT INTO administradores (
     id_usuario,
@@ -150,7 +150,7 @@ SELECT
     'mateus20452@',
     CURRENT_TIMESTAMP
 FROM usuario AS u
-WHERE u.id_usuario = 1
+WHERE u.id_usuario = 10
 ON DUPLICATE KEY UPDATE
     codigo_administrador = 'mateus20452@';
 
@@ -536,11 +536,11 @@ WHERE id_usuario = 2;
 -- SQLBook: Code
 UPDATE usuario
 SET email = 'kirogamateus@gmail.com'
-WHERE id_usuario = 6;
+WHERE id_usuario = 10;
 
 SELECT id_usuario, nombre, email
 FROM usuario
-WHERE id_usuario = 6;
+WHERE id_usuario = 10;
 -- SQLBook: Code
 
 USE billetera;
@@ -601,11 +601,11 @@ START TRANSACTION;
 
 -- 1. Eliminar las notificaciones del usuario
 DELETE FROM notificaciones
-WHERE id_usuario = 5;
+WHERE id_usuario = 1;
 
 -- 2. Eliminar el usuario
 DELETE FROM usuario
-WHERE id_usuario = 5;
+WHERE id_usuario = 1;
 
 COMMIT;
 -- SQLBook: Code
@@ -615,14 +615,26 @@ START TRANSACTION;
 
 -- 1. Eliminar notificaciones
 DELETE FROM notificaciones
-WHERE id_usuario = 5;
+WHERE id_usuario = 1;
 
 -- 2. Eliminar cuentas
 DELETE FROM cuentas
-WHERE id_usuario = 5;
+WHERE id_usuario = 1;
 
--- 3. Eliminar usuario
+-- 3. Eliminar la relación de administrador antes del usuario
+DELETE FROM administradores
+WHERE id_usuario = 1;
+
+-- 4. Eliminar usuario
 DELETE FROM usuario
-WHERE id_usuario = 5;
+WHERE id_usuario = 1;
 
 COMMIT;
+-- SQLBook: Code
+DELETE FROM administradores WHERE id_usuario = 1;
+DELETE FROM usuario WHERE id_usuario = 1;
+-- SQLBook: Code
+DELETE FROM administradores
+WHERE id_administrador = 1;
+-- SQLBook: Code
+DELETE FROM billetera.asesores_banco WHERE id_asesor = 1;

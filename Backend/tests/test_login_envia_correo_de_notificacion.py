@@ -143,6 +143,48 @@ def test_login_envia_correo_de_notificacion(monkeypatch):
     db.close()
 
 
+def test_login_sigue_con_el_acceso_si_falla_el_envio_del_correo(monkeypatch):
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(bind=engine)
+    SessionLocal = sessionmaker(bind=engine)
+    db = SessionLocal()
+
+    usuario = Usuario(
+        nombre="Sofía Ruiz",
+        email="sofia@test.com",
+        documento="2000000000",
+        password=hash_password("Segura123"),
+        rol="usuario",
+    )
+    db.add(usuario)
+    db.commit()
+    db.refresh(usuario)
+
+    db.add(
+        Cuenta(
+            id_usuario=usuario.id_usuario,
+            numero_cuenta="2000000000000000",
+            tipo_cuenta="ahorros",
+            saldo=0,
+            estado="activa",
+        )
+    )
+    db.commit()
+
+    monkeypatch.setattr("Backend.main.enviar_correos_acceso", lambda *args: False)
+
+    resultado = login(
+        {"documento": "2000000000", "password": "Segura123", "rol": "usuario"},
+        db=db,
+    )
+
+    assert resultado["message"] == "Login exitoso"
+    assert resultado["codigo_verificacion"].isdigit()
+    assert len(resultado["codigo_verificacion"]) == 4
+
+    db.close()
+
+
 def test_login_acepta_identificadores_alternos_y_migra_contrasena_legacy(monkeypatch):
     engine = create_engine("sqlite://")
     Base.metadata.create_all(bind=engine)

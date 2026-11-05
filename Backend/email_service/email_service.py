@@ -31,12 +31,14 @@ _cargar_env_backend()
 def obtener_credenciales_correo():
     remitente = (
         os.getenv("EMAIL_USER")
+        or os.getenv("sEMAIL_USER")
         or os.getenv("MAIL_USER")
         or os.getenv("MAIL_USERNAME")
         or os.getenv("MAIL_USERNSME")
     )
     password = (
         os.getenv("EMAIL_PASS")
+        or os.getenv("sEMAIL_PASS")
         or os.getenv("EMAIL_PASSWORD")
         or os.getenv("MAIL_PASSWORD")
         or os.getenv("MAIL_PASS")
