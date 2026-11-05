@@ -542,6 +542,15 @@ export default function Transferencia() {
               ⚙️ Ajustes
             </Link>
           </li>
+          
+          <li>
+            <Link
+              to="/desbloquear-cuenta"
+              className="btn-nav"
+            >
+              🚫 bloque de trajeta 
+            </Link>
+          </li>
 
           {/* ASISTENTE IA */}
 
