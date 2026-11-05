@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import Chart from "chart.js/auto";
 import { useNavigate, Link } from "react-router-dom";
 import ChatIA from "./ChatIA";
@@ -34,6 +34,7 @@ const Cuenta = () => {
     () => localStorage.getItem("cuenta_corriente_tipo") || "debito"
   );
   const [openTransfer, setOpenTransfer] = useState(false);
+  const [asistenteAbierto, setAsistenteAbierto] = useState(false);
   const [id, setId] = useState("");
   const [actualizando, setActualizando] = useState(false);
   const [actualizacion, setActualizacion] = useState(0);
@@ -49,10 +50,17 @@ const Cuenta = () => {
   useEffect(() => {
     if (!asistenteAbierto) return undefined;
 
+<<<<<<< HEAD
     const overflowAnterior = document.body.style.overflow;
     const cerrarConEscape = (event) => {
       if (event.key === "Escape") setAsistenteAbierto(false);
     };
+=======
+    const cerrarConEscape = (event) => {
+      if (event.key === "Escape") setAsistenteAbierto(false);
+    };
+    const overflowAnterior = document.body.style.overflow;
+>>>>>>> origin/main
 
     document.body.style.overflow = "hidden";
     document.addEventListener("keydown", cerrarConEscape);
@@ -390,10 +398,10 @@ const Cuenta = () => {
         type="button"
         className={`menu-hamburguesa ${menuAbierto ? "activo" : ""}`}
         onClick={() => setMenuAbierto((actual) => !actual)}
-        aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+        aria-label={menuAbierto ? "Cerrar menÃº" : "Abrir menÃº"}
         aria-expanded={menuAbierto}
       >
-        ☰
+        â˜°
       </button>
 
       <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
@@ -408,7 +416,7 @@ const Cuenta = () => {
               className="active"
             >
 
-              💷 Cuenta
+              ðŸ’· Cuenta
 
             </Link>
 
@@ -422,7 +430,7 @@ const Cuenta = () => {
 
             <Link to="/historial">
 
-              📜 Historial Monetario
+              ðŸ“œ Historial Monetario
 
             </Link>
 
@@ -433,7 +441,7 @@ const Cuenta = () => {
 
             <Link to="/reporte">
 
-              📜 reportes
+              ðŸ“œ reportes
 
             </Link>
 
@@ -456,9 +464,9 @@ const Cuenta = () => {
 
             >
 
-              💳 Otros 
+              ðŸ’³ Otros 
               
-              {openTransfer ? "▲" : "▼"}
+              {openTransfer ? "â–²" : "â–¼"}
 
 
             </div>
@@ -477,7 +485,7 @@ const Cuenta = () => {
 
                   <Link to="/transferencias">
 
-                    ➡ Enviar dinero
+                    âž¡ Enviar dinero
 
                   </Link>
 
@@ -489,7 +497,7 @@ const Cuenta = () => {
 
                   <Link to="/corriente">
 
-                    🧾 Transferir
+                    ðŸ§¾ Transferir
 
                   </Link>
 
@@ -498,7 +506,7 @@ const Cuenta = () => {
                 <li>
 
                   <Link to="/transferencias-scr">
-                    📤 Registrar Llave Bre-B
+                    ðŸ“¤ Registrar Llave Bre-B
                   </Link>
 
                 </li>
@@ -522,7 +530,7 @@ const Cuenta = () => {
               className="sidebar-link"
               to="/certificado"
             >
-              📄 Certificado Bancario
+              ðŸ“„ Certificado Bancario
             </Link>
 
           </li>
@@ -538,7 +546,7 @@ const Cuenta = () => {
               className="btn-nav"
             >
 
-              ⚙️ Ajustes
+              âš™ï¸ Ajustes
 
             </Link>
 
@@ -551,7 +559,7 @@ const Cuenta = () => {
               className="btn-nav"
               
             >
-              🚫 bloque de trajeta 
+              ðŸš« bloque de trajeta 
             </Link>
 
           </li>
@@ -560,6 +568,7 @@ const Cuenta = () => {
 
 
           <li>
+<<<<<<< HEAD
             <button
               type="button"
               className="sidebar-link asistente-trigger"
@@ -567,6 +576,20 @@ const Cuenta = () => {
             >
               🤖 Asistente IA
             </button>
+=======
+
+            <button
+              type="button"
+              className="sidebar-link"
+              onClick={() => setAsistenteAbierto(true)}
+            >
+
+              ðŸ¤– Asistente IA
+
+            </button>
+
+
+>>>>>>> origin/main
           </li>
 
 
@@ -585,7 +608,7 @@ const Cuenta = () => {
 
         >
 
-          🚪 Cerrar sesión
+          ðŸšª Cerrar sesiÃ³n
 
 
         </button>
@@ -666,8 +689,8 @@ const Cuenta = () => {
                 ${saldoCorriente}
               </span>
 
-              <small>Tipo: {tipoCuentaCorriente === "credito" ? "Crédito" : "Débito"}</small>
-              <small>Número de cuenta: {ocultarNumeroCuenta(numeroCuentaCorriente)}</small>
+              <small>Tipo: {tipoCuentaCorriente === "credito" ? "CrÃ©dito" : "DÃ©bito"}</small>
+              <small>NÃºmero de cuenta: {ocultarNumeroCuenta(numeroCuentaCorriente)}</small>
 
 
             </div>
@@ -678,7 +701,7 @@ const Cuenta = () => {
               <h3>Ahorros</h3>
               <small className="cuenta-activa">Cuenta activa</small>
               <span>${saldoAhorro}</span>
-              <small>Número de cuenta: {ocultarNumeroCuenta(numeroCuentaAhorro)}</small>
+              <small>NÃºmero de cuenta: {ocultarNumeroCuenta(numeroCuentaAhorro)}</small>
             </div>
           )}
 
@@ -737,6 +760,38 @@ const Cuenta = () => {
 
 
 
+        {asistenteAbierto && (
+          <div
+            className="cuenta-asistente-overlay"
+            onClick={() => setAsistenteAbierto(false)}
+          >
+            <section
+              className="cuenta-asistente-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="cuenta-asistente-titulo"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="cuenta-asistente-header">
+                <div>
+                  <h2 id="cuenta-asistente-titulo">Asistente IA</h2>
+                  <p>Tu apoyo para tomar mejores decisiones financieras.</p>
+                </div>
+                <button
+                  type="button"
+                  className="cuenta-asistente-cerrar"
+                  onClick={() => setAsistenteAbierto(false)}
+                  aria-label="Cerrar asistente"
+                >
+                  &times;
+                </button>
+              </div>
+              <ChatIA compacto />
+            </section>
+          </div>
+        )}
+
+
       </main>
 
       {asistenteAbierto && (
@@ -766,3 +821,4 @@ const Cuenta = () => {
 
 
 export default Cuenta;
+

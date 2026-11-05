@@ -1,16 +1,19 @@
+<<<<<<< HEAD
 ﻿# Python / UV
+=======
+# Python / UV
+>>>>>>> origin/main
 .venv/
 __pycache__/
-*.py[cod]
+*.pyc
 .env
-.env.*
-!.env.example
 .scripts
 .pytest_cache/
 .vscode/
 
-# Dependencias de Node.js
+# Dependencias de Node.js en cualquier nivel del proyecto
 node_modules/
+
 
 # Archivos generados
 /Frontend/dist/
