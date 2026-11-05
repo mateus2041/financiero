@@ -947,9 +947,9 @@ def asesor_login(
         """
     )
     if not enviar_correo(asesor["email"], asunto, mensaje):
-        raise HTTPException(
-            status_code=503,
-            detail="No se pudo enviar el código de verificación. Inténtalo nuevamente."
+        print(
+            "⚠️ No se pudo enviar el código de verificación por correo para el asesor. "
+            "Se continúa con el login sin bloquear el acceso."
         )
 
     return {
@@ -1393,9 +1393,9 @@ def administrador_login(
         """
     )
     if not enviar_correo(usuario.email, asunto, mensaje):
-        raise HTTPException(
-            status_code=503,
-            detail="No se pudo enviar el código de verificación. Inténtalo nuevamente."
+        print(
+            "⚠️ No se pudo enviar el código de verificación por correo para el administrador. "
+            "Se continúa con el login sin bloquear el acceso."
         )
 
     return {
@@ -1590,9 +1590,9 @@ def login(
         asunto_notificacion_ingreso,
         mensaje_notificacion_ingreso,
     ):
-        raise HTTPException(
-            status_code=503,
-            detail="No se pudo enviar el código de verificación. Inténtalo nuevamente."
+        print(
+            "⚠️ No se pudo enviar el código de verificación ni la notificación por correo. "
+            "Se continúa con el login sin bloquear el acceso."
         )
 
     db.add(
