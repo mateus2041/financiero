@@ -282,7 +282,12 @@ function Reporte() {
                     </Link>
   
                   </li>
-  
+
+                  <li>
+                   <Link to="/transferencias-scr">
+                     📤 Registrar Llave Bre-B
+                   </Link> 
+                  </li>
   
   
                   <li>
@@ -319,11 +324,7 @@ function Reporte() {
               </Link>
   
             </li>
-  
-  
-  
-  
-  
+
             <li>
   
               <Link
@@ -335,6 +336,15 @@ function Reporte() {
   
               </Link>
   
+            </li>
+
+            <li>
+              <Link
+                to="/desbloquear-cuenta"
+                className="btn-nav"
+              >
+                🚫 bloque de trajeta 
+              </Link>
             </li>
   
   
