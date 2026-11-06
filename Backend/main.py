@@ -1451,17 +1451,10 @@ def login(
             detail="Tipo de acceso inválido"
         )
 
-    identificador = data["documento"].strip()
+    documento = data["documento"].strip()
     usuario = (
         db.query(Usuario)
-        .outerjoin(Cuenta, Cuenta.id_usuario == Usuario.id_usuario)
-        .filter(
-            or_(
-                func.trim(Usuario.documento) == identificador,
-                func.lower(func.trim(Usuario.email)) == identificador.lower(),
-                func.trim(Cuenta.numero_cuenta) == identificador,
-            )
-        )
+        .filter(func.trim(Usuario.documento) == documento)
         .first()
     )
 
