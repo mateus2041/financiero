@@ -55,15 +55,15 @@ No use `docker compose down -v`: el volumen `mysql_data` contiene la base persis
 
 ## Base de datos preexistente
 
-No se ejecuta `stamp` automÃ¡ticamente. Para la base Docker existente se compararon tablas, columnas, tipos, nulabilidad, Ã­ndices, valores por defecto y claves forÃ¡neas contra `Backend/models.py`; Alembic reportÃ³ cero diferencias. Tras verificar esa coincidencia se marcÃ³ el baseline `e8698959a1e4` y se aplicÃ³ `head` (`f7c2d5b184a0`). El backfill no encontrÃ³ filas pendientes.
+No se ejecuta `stamp` automaticamente. La instancia Docker existente contiene tablas creadas antes de Alembic y su esquema difiere en algunos detalles de nulabilidad e indices; por eso no se debe marcar el baseline sin revisar.
 
-Si la base estÃ¡ vacÃ­a, `docker compose up -d --build` ejecuta ambas revisiones. Si ya contiene tablas sin historial Alembic, el preflight detiene `upgrade` antes de ejecutar DDL; el backend no arrancarÃ¡. Solo si el esquema coincide exactamente con la revisiÃ³n inicial, mÃ¡rquela como aplicada con:
+Si la base esta vacia, `docker compose up -d --build` ejecuta las migraciones. Si ya contiene tablas sin historial Alembic, el preflight detiene `upgrade` antes de ejecutar DDL. La revision `a8c139d27e4f` reconcilia el esquema heredado conocido sin eliminar tablas ni datos; valida las tablas y columnas requeridas, evita correos nulos antes de imponer `NOT NULL`, y verifica duplicados antes de crear el indice unico de asesores. Las tablas adicionales no se eliminan.
+
+Antes de adoptar una base existente, haga una copia de seguridad y confirme que sus tablas corresponden a esta aplicacion. Para esta instancia, marque la revision inicial y luego aplique todas las migraciones:
 
 ```powershell
 docker compose run --rm migrate uv run alembic -c Backend/alembic.ini stamp e8698959a1e4
 docker compose run --rm migrate uv run alembic -c Backend/alembic.ini upgrade head
 ```
 
-La revisiÃ³n posterior normaliza algunos datos heredados; por eso se marca especÃ­ficamente la revisiÃ³n inicial y luego se ejecuta `upgrade head`, en vez de marcar `head`. Si hay diferencias de esquema, cree y revise una revisiÃ³n de adopciÃ³n especÃ­fica; no las oculte con `stamp head`.
-La revisiÃ³n posterior normaliza algunos datos heredados; por eso se marca especÃ­ficamente la revisiÃ³n inicial y luego se ejecuta `upgrade head`, en vez de marcar `head`. Si hay diferencias de esquema, cree y revise una revisiÃ³n de adopciÃ³n especÃ­fica; no las oculte con `stamp head`.
-
+No marque `head` directamente: se omitirian las migraciones de normalizacion y adopcion. Si el preflight o las validaciones de la migracion fallan, detengase y revise el esquema; nunca use `stamp head` para ocultar diferencias.
