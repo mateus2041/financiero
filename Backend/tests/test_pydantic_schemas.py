@@ -51,17 +51,25 @@ def test_esquema_registro_rechaza_correo_y_documento_invalidos():
 
 
 def test_esquemas_login_y_actualizacion_validan_campos():
-    assert UsuarioLoginSchema(email="usuario@example.com", password="12345678").email == "usuario@example.com"
-    assert UsuarioLoginSchema(email="asesor@example.com", password="12345678", rol="asesor").rol == "asesor"
+    assert (
+        UsuarioLoginSchema(documento="1234567890", password="Segura123").documento
+        == "1234567890"
+    )
     assert AsesorLoginSchema(email="asesor@example.com", codigo_asesor="A-123").codigo_asesor == "A-123"
     assert AdministradorLoginSchema(documento="12345", codigo_administrador="ADM-1")
-    assert PerfilActualizacionSchema(password="secreto", correo="nuevo@example.com").email == "nuevo@example.com"
+    assert PerfilActualizacionSchema(
+        password="Segura123",
+        correo="nuevo@example.com",
+    ).email == "nuevo@example.com"
 
     with pytest.raises(ValidationError):
-        UsuarioLoginSchema(email="correo-invalido", password="12345678")
+        UsuarioLoginSchema(email="usuario@example.com", password="Segura123")
 
     with pytest.raises(ValidationError):
-        UsuarioLoginSchema(email="usuario@example.com", password="12345678", rol="administrador")
+        UsuarioLoginSchema(documento="usuario@example.com", password="Segura123")
+
+    with pytest.raises(ValidationError):
+        UsuarioLoginSchema(documento="1234567890", password="Segura123", rol="administrador")
 
 
 def test_esquemas_cuenta_transaccion_y_transferencia_rechazan_montos_invalidos():
