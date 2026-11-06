@@ -42,7 +42,6 @@ const Cuenta = () => {
     () => localStorage.getItem("fotoPerfil") || ""
   );
   const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
-  const [asistenteAbierto, setAsistenteAbierto] = useState(false);
 
   const mostrarCuentaCorriente = estadoCuentaCorriente === "activa";
   const mostrarCuentaAhorro = estadoCuentaAhorro === "activa";
@@ -50,17 +49,10 @@ const Cuenta = () => {
   useEffect(() => {
     if (!asistenteAbierto) return undefined;
 
-<<<<<<< HEAD
     const overflowAnterior = document.body.style.overflow;
     const cerrarConEscape = (event) => {
       if (event.key === "Escape") setAsistenteAbierto(false);
     };
-=======
-    const cerrarConEscape = (event) => {
-      if (event.key === "Escape") setAsistenteAbierto(false);
-    };
-    const overflowAnterior = document.body.style.overflow;
->>>>>>> origin/main
 
     document.body.style.overflow = "hidden";
     document.addEventListener("keydown", cerrarConEscape);
@@ -568,7 +560,6 @@ const Cuenta = () => {
 
 
           <li>
-<<<<<<< HEAD
             <button
               type="button"
               className="sidebar-link asistente-trigger"
@@ -576,20 +567,6 @@ const Cuenta = () => {
             >
               🤖 Asistente IA
             </button>
-=======
-
-            <button
-              type="button"
-              className="sidebar-link"
-              onClick={() => setAsistenteAbierto(true)}
-            >
-
-              ðŸ¤– Asistente IA
-
-            </button>
-
-
->>>>>>> origin/main
           </li>
 
 
@@ -794,23 +771,6 @@ const Cuenta = () => {
 
       </main>
 
-      {asistenteAbierto && (
-        <div
-          className="asistente-modal-overlay"
-          onClick={() => setAsistenteAbierto(false)}
-        >
-          <div
-            className="asistente-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="asistente-titulo"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <ChatIA onClose={() => setAsistenteAbierto(false)} />
-          </div>
-        </div>
-      )}
-
     </div>
 
 
@@ -821,4 +781,3 @@ const Cuenta = () => {
 
 
 export default Cuenta;
-

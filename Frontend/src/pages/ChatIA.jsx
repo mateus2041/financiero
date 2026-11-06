@@ -9,7 +9,6 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 const ULTIMO_MENSAJE_CHAT_KEY = "ultimo_mensaje_asistente";
 const MENSAJE_SEGUIMIENTO = "¿Qué más necesitas de mi asistencia virtual de Financiero?";
 
-<<<<<<< HEAD
 const obtenerUltimoMensajeChat = () => {
   try {
     const texto = sessionStorage.getItem(ULTIMO_MENSAJE_CHAT_KEY);
@@ -78,12 +77,8 @@ const OPCIONES_CUENTA_ORIGEN = [
   { etiqueta: "Cuenta de ahorros", tipo: "cuentaOrigen", cuenta: "ahorro" },
 ];
 
-function ChatIA({ onClose }) {
-  const navigate = useNavigate();
-  const location = useLocation();
-=======
 const MENSAJE_SALUDO =
-  "¡Hola, Gabriel! Soy tu asistente financiero. ¿En qué puedo ayudarte hoy?";
+  "¡Hola! Soy tu asistente financiero. ¿En qué puedo ayudarte hoy?";
 
 const OPCIONES_ASISTENTE = [
   {
@@ -108,8 +103,9 @@ const OPCIONES_ASISTENTE = [
   },
 ];
 
-function ChatIA({ compacto = false }) {
->>>>>>> origin/main
+function ChatIA({ onClose, compacto = false }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [pregunta, setPregunta] = useState("");
   const [escrituraDesbloqueada, setEscrituraDesbloqueada] = useState(false);
   const [esperandoLlaveBreB, setEsperandoLlaveBreB] = useState(false);
@@ -118,6 +114,8 @@ function ChatIA({ compacto = false }) {
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
   const [mostrarLlaveBreB, setMostrarLlaveBreB] = useState(false);
   const [mensajes, setMensajes] = useState(() => {
+    if (compacto) return [{ tipo: "ia", texto: MENSAJE_SALUDO }];
+
     const estaEnCuenta = location.pathname === "/cuenta";
     const estaEnTransferencias = location.pathname === "/transferencias";
     const mensajeGuardado = obtenerUltimoMensajeChat();
@@ -174,7 +172,6 @@ function ChatIA({ compacto = false }) {
     const texto = (textoSeleccionado || pregunta).trim();
     if (!texto || isLoading) return;
 
-<<<<<<< HEAD
     setEscrituraDesbloqueada(false);
 
     if (esperandoLlaveBreB) {
@@ -187,6 +184,22 @@ function ChatIA({ compacto = false }) {
       setTipoOpciones("cuentaOrigenBreB");
       setPregunta("");
       setEsperandoLlaveBreB(false);
+      return;
+    }
+
+    const preguntaEnviada = texto;
+    const esSaludo =
+      preguntaEnviada
+        .toLocaleLowerCase("es")
+        .replace(/[!¡.,?¿\s]/g, "") === "hola";
+
+    if (esSaludo) {
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: preguntaEnviada },
+        { tipo: "ia", texto: MENSAJE_SALUDO },
+      ]);
+      setPregunta("");
       return;
     }
 
@@ -207,20 +220,6 @@ function ChatIA({ compacto = false }) {
         { tipo: "ia", texto: "¿Qué necesitas saber?" },
       ]);
       setTipoOpciones("usoAplicacion");
-=======
-    const preguntaEnviada = texto;
-    const esSaludo =
-      preguntaEnviada
-        .toLocaleLowerCase("es")
-        .replace(/[!¡.,?¿\s]/g, "") === "hola";
-
-    if (esSaludo) {
-      setMensajes((prev) => [
-        ...prev,
-        { tipo: "usuario", texto: preguntaEnviada },
-        { tipo: "ia", texto: MENSAJE_SALUDO },
-      ]);
->>>>>>> origin/main
       setPregunta("");
       return;
     }
@@ -283,7 +282,6 @@ function ChatIA({ compacto = false }) {
     }
   };
 
-<<<<<<< HEAD
   const seleccionarOpcion = (opcion) => {
     if (opcion.etiqueta === "¿Cómo uso la aplicación?") {
       setMensajes((prev) => [
@@ -432,7 +430,7 @@ function ChatIA({ compacto = false }) {
 
     enviarPregunta(opcion.pregunta);
   };
-=======
+
   const opcionesAsistente = (
     <div className="chat-sugerencias">
       {OPCIONES_ASISTENTE.map((opcion) => (
@@ -448,7 +446,6 @@ function ChatIA({ compacto = false }) {
       ))}
     </div>
   );
->>>>>>> origin/main
 
   return (
     <>

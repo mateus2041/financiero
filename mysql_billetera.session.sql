@@ -534,6 +534,7 @@ SELECT id_usuario, nombre, rol
 FROM usuario
 WHERE id_usuario = 2;
 -- SQLBook: Code
+<<<<<<< HEAD
 UPDATE usuario
 SET email = 'kirogamateus@gmail.com'
 WHERE id_usuario = 10;
@@ -638,3 +639,21 @@ DELETE FROM administradores
 WHERE id_administrador = 1;
 -- SQLBook: Code
 DELETE FROM billetera.asesores_banco WHERE id_asesor = 1;
+=======
+ALTER TABLE usuario DROP COLUMN email;
+-- SQLBook: Code
+USE billetera;
+
+ALTER TABLE usuario
+ADD COLUMN email VARCHAR(100) NULL;
+
+CREATE UNIQUE INDEX ix_usuario_email
+ON usuario (email);
+-- SQLBook: Code
+SELECT DATABASE();
+SHOW COLUMNS FROM billetera.usuario LIKE 'email';
+-- SQLBook: Code
+ALTER TABLE billetera.usuario
+MODIFY COLUMN email VARCHAR(100) NULL
+AFTER id_usuario;
+>>>>>>> feat/pulga-correciones
