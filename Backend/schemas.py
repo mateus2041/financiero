@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 
 class SchemaBase(BaseModel):
@@ -31,9 +31,30 @@ class UsuarioRegistroSchema(SchemaBase):
 
 
 class UsuarioLoginSchema(SchemaBase):
-    email: EmailStr
+    documento: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=50,
+        validation_alias=AliasChoices("documento", "email", "correo"),
+    )
+    email: EmailStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("email", "correo"),
+    )
     password: str = Field(min_length=1, max_length=128)
     rol: Literal["usuario", "asesor"] = "usuario"
+
+    @property
+    def identificador(self) -> str:
+        return (self.documento or self.email or "").strip()
+
+    @model_validator(mode="after")
+    def validar_identificador(self):
+        if not self.identificador:
+            raise ValueError("Debe enviar un documento o un email válido")
+        if self.documento is None and self.email is not None:
+            self.documento = str(self.email)
+        return self
 
 
 class AsesorLoginSchema(SchemaBase):

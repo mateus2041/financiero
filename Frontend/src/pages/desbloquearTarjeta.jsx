@@ -13,7 +13,12 @@ function DesbloquearTarjeta() {
     const [mensaje, setMensaje] = useState("");
     const [error, setError] = useState("");
     const [vistaTarjeta, setVistaTarjeta] = useState("frontal");
-    const [datosSeguridad, setDatosSeguridad] = useState({});
+    const [datosSeguridad, setDatosSeguridad] = useState({
+        numeroTarjeta: "0000000000000000",
+        ultimosTres: "000",
+        vencimiento: "--/--",
+        codigoSeguridad: "000"
+    });
 
     const [openTransfer, setOpenTransfer] = useState(false);
     const [openCertificado, setOpenCertificado] = useState(false);
@@ -122,7 +127,7 @@ function DesbloquearTarjeta() {
 
             setMensaje(datos.mensaje || "Tu tarjeta fue bloqueada correctamente.");
             setTarjeta((tarjetaAnterior) => ({
-                ...tarjetaAnterior,
+                ...(tarjetaAnterior ?? { estado: "bloqueada" }),
                 estado: "bloqueada"
             }));
             setPasswordBloqueo("");
@@ -143,6 +148,14 @@ function DesbloquearTarjeta() {
         localStorage.removeItem("fotoPerfil");
 
         window.location.href = "/login";
+    };
+
+    const tarjetaActual = tarjeta ?? {
+        estado: "bloqueada",
+        numero_tarjeta: "0000000000000000",
+        ultimos_tres: "000",
+        fecha_expiracion: "--/--",
+        codigo_seguridad: "000"
     };
 
     if (cargando) {
@@ -312,126 +325,123 @@ function DesbloquearTarjeta() {
                         </div>
                     )}
 
-                    {tarjeta && (
-                        <>
+                    <>
 
-                            {vistaTarjeta === "frontal" ? (
-                                <div
-                                    className="tarjeta-visual tarjeta-clickable"
-                                    onClick={() => setVistaTarjeta("trasera")}
-                                    role="button"
-                                    tabIndex={0}
-                                    onKeyDown={(evento) => {
-                                        if (evento.key === "Enter" || evento.key === " ") {
-                                            evento.preventDefault();
-                                            setVistaTarjeta("trasera");
-                                        }
-                                    }}
-                                >
-
-                                    <div className="tarjeta-marca">BILLETERA</div>
-
-                                    <div className="tarjeta-chip">▦</div>
-
-                                    <div className="tarjeta-numero">
-                                        {(datosSeguridad.numeroTarjeta || "0000000000000000")
-                                            .replace(/(.{4})/g, "$1 ")
-                                            .trim()}
-                                    </div>
-
-                                    <div className="tarjeta-tipo">
-                                        BILLETERA DIGITAL
-                                    </div>
-
-                                </div>
-                            ) : (
-                                <div
-                                    className="tarjeta-visual tarjeta-trasera tarjeta-clickable"
-                                    onClick={() => setVistaTarjeta("frontal")}
-                                    role="button"
-                                    tabIndex={0}
-                                    onKeyDown={(evento) => {
-                                        if (evento.key === "Enter" || evento.key === " ") {
-                                            evento.preventDefault();
-                                            setVistaTarjeta("frontal");
-                                        }
-                                    }}
-                                >
-                                    <div className="tarjeta-trasera-header">
-                                        FIRMA AUTORIZADA
-                                    </div>
-
-                                    <div className="tarjeta-trasera-licencia">
-                                        <div className="tarjeta-trasera-firma-box" />
-                                        <div className="tarjeta-trasera-codigo-box">
-                                            {datosSeguridad.codigoSeguridad || "---"}
-                                        </div>
-                                    </div>
-
-                                    <div className="tarjeta-trasera-mensaje">
-                                        Las operaciones de uso de esta tarjeta y la responsabilidad en su manejo son responsabilidad del cliente.
-                                    </div>
-
-                                    <div className="tarjeta-trasera-footer">
-                                        <div className="tarjeta-trasera-campo">
-                                            <strong>{datosSeguridad.ultimosTres || "---"}</strong>
-                                        </div>
-                                        <div className="tarjeta-trasera-campo">
-                                            <strong>{datosSeguridad.vencimiento || "--/--"}</strong>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="tarjeta-estado">
-
-                                <span>
-                                    Estado actual:
-                                </span>
-
-                                <strong
-                                    className={
-                                        String(tarjeta.estado)
-                                            .toLowerCase() === "activa"
-                                            ? "activa"
-                                            : "bloqueada"
+                        {vistaTarjeta === "frontal" ? (
+                            <div
+                                className="tarjeta-visual tarjeta-clickable"
+                                onClick={() => setVistaTarjeta("trasera")}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(evento) => {
+                                    if (evento.key === "Enter" || evento.key === " ") {
+                                        evento.preventDefault();
+                                        setVistaTarjeta("trasera");
                                     }
-                                >
-                                    {tarjeta.estado || "Bloqueada"}
-                                </strong>
+                                }}
+                            >
+
+                                <div className="tarjeta-marca">BILLETERA</div>
+
+                                <div className="tarjeta-chip">▦</div>
+
+                                <div className="tarjeta-numero">
+                                    {(datosSeguridad.numeroTarjeta || "0000000000000000")
+                                        .replace(/(.{4})/g, "$1 ")
+                                        .trim()}
+                                </div>
+
+                                <div className="tarjeta-tipo">
+                                    BILLETERA DIGITAL
+                                </div>
 
                             </div>
+                        ) : (
+                            <div
+                                className="tarjeta-visual tarjeta-trasera tarjeta-clickable"
+                                onClick={() => setVistaTarjeta("frontal")}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(evento) => {
+                                    if (evento.key === "Enter" || evento.key === " ") {
+                                        evento.preventDefault();
+                                        setVistaTarjeta("frontal");
+                                    }
+                                }}
+                            >
+                                <div className="tarjeta-trasera-header">
+                                    FIRMA AUTORIZADA
+                                </div>
 
-                            <div className="tarjeta-acciones">
-                                {String(tarjeta.estado).toLowerCase() ===
-                                "bloqueada" ? (
+                                <div className="tarjeta-trasera-licencia">
+                                    <div className="tarjeta-trasera-firma-box" />
+                                    <div className="tarjeta-trasera-codigo-box">
+                                        {datosSeguridad.codigoSeguridad || "---"}
+                                    </div>
+                                </div>
 
+                                <div className="tarjeta-trasera-mensaje">
+                                    Las operaciones de uso de esta tarjeta y la responsabilidad en su manejo son responsabilidad del cliente.
+                                </div>
+
+                                <div className="tarjeta-trasera-footer">
+                                    <div className="tarjeta-trasera-campo">
+                                        <strong>{datosSeguridad.ultimosTres || "---"}</strong>
+                                    </div>
+                                    <div className="tarjeta-trasera-campo">
+                                        <strong>{datosSeguridad.vencimiento || "--/--"}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="tarjeta-estado">
+
+                            <span>
+                                Estado actual:
+                            </span>
+
+                            <strong
+                                className={
+                                    String(tarjetaActual.estado)
+                                        .toLowerCase() === "activa"
+                                        ? "activa"
+                                        : "bloqueada"
+                                }
+                            >
+                                {tarjetaActual.estado || "Bloqueada"}
+                            </strong>
+
+                        </div>
+
+                        <div className="tarjeta-acciones">
+                            {String(tarjetaActual.estado).toLowerCase() ===
+                            "bloqueada" ? (
+
+                            <button
+                                className="btn-desbloquear"
+                                onClick={desbloquearTarjeta}
+                                disabled={desbloqueando}
+                            >
+                                {desbloqueando
+                                    ? "Desbloqueando..."
+                                    : "🔓 Desbloquear tarjeta"}
+                            </button>
+
+                            ) : (
                                 <button
-                                    className="btn-desbloquear"
-                                    onClick={desbloquearTarjeta}
-                                    disabled={desbloqueando}
+                                    className="btn-bloquear"
+                                    onClick={bloquearTarjeta}
+                                    disabled={bloqueando}
                                 >
-                                    {desbloqueando
-                                        ? "Desbloqueando..."
-                                        : "🔓 Desbloquear tarjeta"}
+                                    {bloqueando
+                                        ? "Bloqueando..."
+                                        : "🔒 Bloquear tarjeta por completo"}
                                 </button>
+                            )}
+                        </div>
 
-                                ) : (
-                                    <button
-                                        className="btn-bloquear"
-                                        onClick={bloquearTarjeta}
-                                        disabled={bloqueando}
-                                    >
-                                        {bloqueando
-                                            ? "Bloqueando..."
-                                            : "🔒 Bloquear tarjeta por completo"}
-                                    </button>
-                                )}
-                            </div>
-
-
-                        </>
-                    )}
+                    </>
 
                 </div>
 
@@ -460,7 +470,7 @@ function DesbloquearTarjeta() {
                             <label htmlFor="password-bloqueo">Contraseña de usuario</label>
                             <input
                                 id="password-bloqueo"
-                                type="password"
+                                type="text"
                                 value={passwordBloqueo}
                                 onChange={(evento) => setPasswordBloqueo(evento.target.value)}
                                 placeholder="Ingresa tu contraseña"

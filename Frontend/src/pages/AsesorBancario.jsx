@@ -5,7 +5,27 @@ import Registro from "./registro";
 import logo from "../assets/images/logo.jpeg";
 import "../styles/asesorBancario.css";
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "http://localhost:8000";
+
+const normalizarNumero = (valor) => {
+  const numero = Number(valor);
+  return Number.isFinite(numero) ? numero : 0;
+};
+
+const normalizarEstadisticas = (datos = {}) => ({
+  usuariosRegistrados: normalizarNumero(
+    datos.usuarios_registrados ?? datos.usuariosRegistrados
+  ),
+  cuentasHabilitadas: normalizarNumero(
+    datos.cuentas_habilitadas ?? datos.cuentasHabilitadas
+  ),
+  cuentasDeshabilitadas: normalizarNumero(
+    datos.cuentas_deshabilitadas ?? datos.cuentasDeshabilitadas
+  ),
+  tarjetasActivas: normalizarNumero(
+    datos.tarjetas_activas ?? datos.tarjetasActivas
+  ),
+});
 
 export default function AsesorBancario() {
   const navigate = useNavigate();
@@ -65,14 +85,10 @@ export default function AsesorBancario() {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        const datos = respuesta.data;
+        const datos = respuesta.data ?? {};
 
-        setEstadisticas({
-          usuariosRegistrados: datos.usuarios_registrados,
-          cuentasHabilitadas: datos.cuentas_habilitadas,
-          cuentasDeshabilitadas: datos.cuentas_deshabilitadas,
-          tarjetasActivas: datos.tarjetas_activas,
-        });
+        setEstadisticas(normalizarEstadisticas(datos));
+        setMensaje("");
       } catch (error) {
         if (error.response?.status === 401 || error.response?.status === 403) {
           localStorage.removeItem("token");

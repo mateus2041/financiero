@@ -341,6 +341,11 @@ function Historial({ isModal = false }) {
                                         🧾 Transferir
                                     </Link>
                                 </li>
+                                <li>
+                                <Link to="/transferencias-scr">
+                                 📤 Registrar Llave Bre-B
+                                </Link>             
+                                </li>
 
                             </ul>
                         )}
@@ -361,6 +366,15 @@ function Historial({ isModal = false }) {
                             className="btn-nav"
                         >
                             ⚙️ Ajustes
+                        </Link>
+                    </li>
+                    
+                    <li>
+                     <Link
+                        to="/desbloquear-cuenta"
+                        className="btn-nav"            
+                        >
+                         🚫 bloque de trajeta 
                         </Link>
                     </li>
 
