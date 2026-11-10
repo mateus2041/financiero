@@ -655,7 +655,7 @@ export default function ListaCuentas() {
     localStorage.removeItem("documento");
     localStorage.removeItem("fotoPerfil");
 
-    navigate("/login");
+    navigate("/");
   };
 
   return (
