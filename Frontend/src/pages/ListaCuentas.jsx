@@ -980,6 +980,11 @@ export default function ListaCuentas() {
                         "activa",
                         "activo",
                       ].includes(estado);
+                      const claseEstado = cuentaActiva
+                        ? "activo"
+                        : ["inactiva", "inactivo"].includes(estado)
+                          ? "inactivo"
+                          : "";
 
                       return (
                         <tr
@@ -1006,7 +1011,7 @@ export default function ListaCuentas() {
 
                           <td>
                             <span
-                              className={`estado-cuenta ${estado}`}
+                              className={`estado-cuenta ${claseEstado}`}
                             >
                               {cuenta.estado}
                             </span>
