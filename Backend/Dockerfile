@@ -5,11 +5,14 @@ COPY --from=ghcr.io/astral-sh/uv:0.8.22 /uv /uvx /bin/
 WORKDIR /app
 
 ENV PYTHONPATH=/app \
-    UV_LINK_MODE=copy
+    UV_LINK_MODE=copy \
+    UV_HTTP_TIMEOUT=120 \
+    VIRTUAL_ENV=/opt/backend-venv \
+    PATH="/opt/backend-venv/bin:$PATH"
 
 COPY Backend/requirements.txt ./Backend/requirements.txt
-RUN uv venv .venv \
-    && uv pip install --python .venv/bin/python -r Backend/requirements.txt
+RUN uv venv /opt/backend-venv \
+    && uv pip install --python /opt/backend-venv/bin/python -r Backend/requirements.txt
 
 COPY Backend/ ./Backend/
 

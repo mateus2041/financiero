@@ -141,7 +141,7 @@ function Login({ isModal = false }) {
       return;
     }
 
-    if (rol === "usuario" && (!documento || !password)) {
+    if (rol === "usuario" && (!documento.trim() || !password)) {
       setMensaje("Completa todos los campos");
       return;
     }
@@ -165,7 +165,7 @@ function Login({ isModal = false }) {
                   documento: documentoAdministrador,
                   codigo_administrador: codigoAdministrador,
                 }
-            : { documento, password, rol }
+            : { documento: documento.trim(), password, rol }
         ),
       });
 
@@ -329,15 +329,19 @@ function Login({ isModal = false }) {
               </>
             ) : (
               <>
-                <label>Documento, correo o número de cuenta</label>
+                <label htmlFor="documento-usuario">Número de documento</label>
 
                 <div className="input-icon">
                   <input
+                    id="documento-usuario"
                     type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]+"
                     value={documento}
                     onChange={(e) => setDocumento(e.target.value)}
                     disabled={bloqueado || iniciandoSesion}
-                    placeholder="Ingresa tu documento, correo o número de cuenta"
+                    placeholder="Ingresa tu número de documento"
+                    autoComplete="username"
                   />
                 </div>
 
