@@ -42,11 +42,11 @@ class SaldoCuenta(BaseModel):
 
 class SaldoCuentaAutorizado(BaseModel):
     saldo: Decimal = Field(ge=0)
-    codigo_autorizacion: str = Field(min_length=4, max_length=6)
+    codigo_autorizacion: str = Field(min_length=1, max_length=30)
 
 
 class CodigoAutorizacion(BaseModel):
-    codigo_autorizacion: str = Field(min_length=4, max_length=6)
+    codigo_autorizacion: str = Field(min_length=1, max_length=30)
 
 
 class UltimosDigitosCuenta(BaseModel):
@@ -55,7 +55,7 @@ class UltimosDigitosCuenta(BaseModel):
 
 class UltimosDigitosCuentaAutorizada(BaseModel):
     ultimos_digitos: str = Field(pattern=r"^\d{4}$")
-    codigo_autorizacion: str = Field(min_length=4, max_length=6)
+    codigo_autorizacion: str = Field(min_length=1, max_length=30)
 
 
 class TipoOperacionCuenta(BaseModel):
@@ -64,7 +64,7 @@ class TipoOperacionCuenta(BaseModel):
 
 class TipoOperacionCuentaAutorizada(BaseModel):
     tipo_operacion: Literal["debito", "credito"]
-    codigo_autorizacion: str = Field(min_length=4, max_length=6)
+    codigo_autorizacion: str = Field(min_length=1, max_length=30)
 
 
 class TipoCuentaCuenta(BaseModel):
@@ -715,13 +715,19 @@ def registrar_usuario(
             text(
                 """
                 INSERT INTO asesores_banco (
-                    id_usuario,
+                    nombre,
+                    documento,
+                    email,
+                    tipo_documento,
                     codigo_asesor,
                     especialidad,
                     estado
                 )
                 VALUES (
-                    :id_usuario,
+                    :nombre,
+                    :documento,
+                    :email,
+                    :tipo_documento,
                     :codigo_asesor,
                     :especialidad,
                     'activo'
@@ -729,7 +735,10 @@ def registrar_usuario(
                 """
             ),
             {
-                "id_usuario": nuevo_usuario.id_usuario,
+                "nombre": nuevo_usuario.nombre,
+                "documento": nuevo_usuario.documento,
+                "email": nuevo_usuario.email,
+                "tipo_documento": tipo_documento.nombre_doc,
                 "codigo_asesor": f"ASESOR-{nuevo_usuario.id_usuario:06d}",
                 "especialidad": data.get("especialidad", "Asesoría bancaria"),
             },
@@ -902,7 +911,8 @@ def asesor_login(
                                          COALESCE(a.email, u.email) AS email,
                      COALESCE(u.rol, 'asesor') AS rol
             FROM asesores_banco AS a
-            LEFT JOIN usuario AS u ON u.id_usuario = a.id_usuario
+            LEFT JOIN usuario AS u
+                ON LOWER(TRIM(u.email)) = LOWER(TRIM(a.email))
                         WHERE LOWER(COALESCE(a.email, u.email)) = :email_asesor
               AND a.codigo_asesor = :codigo_asesor
               AND a.estado = 'activo'
@@ -1092,7 +1102,8 @@ def consultar_asesores(
                      a.codigo_asesor,
                      a.estado, a.fecha_ingreso
             FROM asesores_banco AS a
-            LEFT JOIN usuario AS u ON u.id_usuario = a.id_usuario
+            LEFT JOIN usuario AS u
+                ON LOWER(TRIM(u.email)) = LOWER(TRIM(a.email))
             LEFT JOIN tipo_documento AS td ON td.id_tipo_doc = u.id_tipo_doc
             WHERE (:codigo_asesor IS NULL OR a.codigo_asesor = :codigo_asesor)
             ORDER BY a.id_asesor
@@ -1440,17 +1451,10 @@ def login(
             detail="Tipo de acceso inválido"
         )
 
-    identificador = data["documento"].strip()
+    documento = data["documento"].strip()
     usuario = (
         db.query(Usuario)
-        .outerjoin(Cuenta, Cuenta.id_usuario == Usuario.id_usuario)
-        .filter(
-            or_(
-                func.trim(Usuario.documento) == identificador,
-                func.lower(func.trim(Usuario.email)) == identificador.lower(),
-                func.trim(Cuenta.numero_cuenta) == identificador,
-            )
-        )
+        .filter(func.trim(Usuario.documento) == documento)
         .first()
     )
 
@@ -1746,12 +1750,14 @@ def listar_cuentas_admin(
         .filter(~Usuario.id_usuario.in_(
             db.query(Administrador.id_usuario)
         ))
-        .filter(text(
-            "NOT EXISTS ("
-            "SELECT 1 FROM asesores_banco asesor "
-            "WHERE asesor.id_usuario = usuario.id_usuario"
-            ")"
-        ))
+        .filter(
+            ~db.query(AsesorBanco.id_asesor)
+            .filter(
+                func.lower(func.trim(AsesorBanco.documento))
+                == func.lower(func.trim(Usuario.documento))
+            )
+            .exists()
+        )
     )
     if despues_de is not None:
         consulta = consulta.filter(Cuenta.id_cuenta > despues_de)
@@ -1803,9 +1809,6 @@ def obtener_estadisticas_usuarios(
         Usuario.rol == "usuario",
         ~db.query(Administrador.id_administrador).filter(
             Administrador.id_usuario == Usuario.id_usuario
-        ).exists(),
-        ~db.query(AsesorBanco.id_asesor).filter(
-            AsesorBanco.id_usuario == Usuario.id_usuario
         ).exists(),
     ).one()
 
@@ -1866,12 +1869,12 @@ def crear_cuenta_usuario(
         Usuario.id_usuario == id_usuario,
         Usuario.rol == "usuario",
         ~Usuario.id_usuario.in_(db.query(Administrador.id_usuario)),
-        text(
-            "NOT EXISTS ("
-            "SELECT 1 FROM asesores_banco asesor "
-            "WHERE asesor.id_usuario = usuario.id_usuario"
-            ")"
+        ~db.query(AsesorBanco.id_asesor)
+        .filter(
+            func.lower(func.trim(AsesorBanco.documento))
+            == func.lower(func.trim(Usuario.documento))
         )
+        .exists()
     ).first()
 
     if not usuario:
@@ -1942,12 +1945,12 @@ def listar_cuentas_usuario(
         ~Usuario.id_usuario.in_(
             db.query(Administrador.id_usuario)
         ),
-        text(
-            "NOT EXISTS ("
-            "SELECT 1 FROM asesores_banco asesor "
-            "WHERE asesor.id_usuario = usuario.id_usuario"
-            ")"
+        ~db.query(AsesorBanco.id_asesor)
+        .filter(
+            func.lower(func.trim(AsesorBanco.documento))
+            == func.lower(func.trim(Usuario.documento))
         )
+        .exists()
     ).first()
 
     if not usuario:
@@ -1987,12 +1990,12 @@ def actualizar_perfil_usuario(
         Usuario.id_usuario == id_usuario,
         Usuario.rol == "usuario",
         ~Usuario.id_usuario.in_(db.query(Administrador.id_usuario)),
-        text(
-            "NOT EXISTS ("
-            "SELECT 1 FROM asesores_banco asesor "
-            "WHERE asesor.id_usuario = usuario.id_usuario"
-            ")"
+        ~db.query(AsesorBanco.id_asesor)
+        .filter(
+            func.lower(func.trim(AsesorBanco.documento))
+            == func.lower(func.trim(Usuario.documento))
         )
+        .exists()
     ).first()
 
     if not usuario:
@@ -2374,12 +2377,12 @@ def listar_tarjetas_cuenta(
         Cuenta.id_cuenta == id_cuenta,
         Usuario.rol == "usuario",
         ~Usuario.id_usuario.in_(db.query(Administrador.id_usuario)),
-        text(
-            "NOT EXISTS ("
-            "SELECT 1 FROM asesores_banco asesor "
-            "WHERE asesor.id_usuario = usuario.id_usuario"
-            ")"
+        ~db.query(AsesorBanco.id_asesor)
+        .filter(
+            func.lower(func.trim(AsesorBanco.documento))
+            == func.lower(func.trim(Usuario.documento))
         )
+        .exists()
     ).first()
 
     if not cuenta:
@@ -2521,6 +2524,61 @@ def activar_tarjeta_usuario(
         "id_tarjeta": tarjeta.id_tarjeta,
         "estado": tarjeta.estado
     }
+
+
+@app.patch("/tarjetas/{id_tarjeta}/desactivar")
+def desactivar_tarjeta_usuario(
+    id_tarjeta: int,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    tarjeta = db.query(Tarjeta).join(Cuenta).filter(
+        Tarjeta.id_tarjeta == id_tarjeta
+    ).first()
+
+    if not tarjeta:
+        raise HTTPException(status_code=404, detail="Tarjeta no encontrada")
+
+    if current_user != tarjeta.cuenta.id_usuario:
+        administrador_o_asesor_requerido(
+            current_user=current_user,
+            db=db
+        )
+
+    tarjeta.estado = "bloqueada"
+    db.commit()
+    db.refresh(tarjeta)
+
+    return {
+        "mensaje": "Tarjeta desactivada correctamente",
+        "id_tarjeta": tarjeta.id_tarjeta,
+        "estado": tarjeta.estado
+    }
+
+
+@app.get("/administradores/tarjetas")
+def listar_tarjetas_administracion(
+    current_user: int = Depends(administrador_o_asesor_requerido),
+    db: Session = Depends(get_db)
+):
+    tarjetas = db.query(Tarjeta, Cuenta.id_usuario).join(
+        Cuenta,
+        Tarjeta.id_cuenta == Cuenta.id_cuenta
+    ).join(
+        Usuario,
+        Cuenta.id_usuario == Usuario.id_usuario
+    ).filter(
+        Usuario.rol == "usuario"
+    ).order_by(Tarjeta.id_tarjeta).all()
+
+    return [
+        {
+            "id_tarjeta": tarjeta.id_tarjeta,
+            "id_usuario": id_usuario,
+            "estado": tarjeta.estado
+        }
+        for tarjeta, id_usuario in tarjetas
+    ]
 
 
 @app.patch("/tarjetas/{id_tarjeta}")
@@ -3125,11 +3183,23 @@ def asesor_actualizar_saldo(
     }
 
 
+def buscar_asesor_por_codigo(db: Session, codigo: str):
+    codigo_normalizado = codigo.strip()
+
+    if not codigo_normalizado:
+        return None
+
+    return db.query(AsesorBanco.id_asesor).filter(
+        func.trim(AsesorBanco.codigo_asesor) == codigo_normalizado,
+        func.lower(func.trim(AsesorBanco.estado)) == "activo",
+    ).first()
+
+
 @app.put("/administradores/cuenta/{id_cuenta}/saldo")
 def administrador_actualizar_saldo(
     id_cuenta: int,
     datos: SaldoCuentaAutorizado,
-    current_user: int = Depends(administrador_o_asesor_requerido),
+    asesor: Usuario = Depends(asesor_requerido),
     db: Session = Depends(get_db)
 ):
     if datos.saldo < 0:
@@ -3138,27 +3208,10 @@ def administrador_actualizar_saldo(
             detail="El saldo no puede ser negativo."
         )
 
-    codigo = datos.codigo_autorizacion.strip()
-    codigo_administrador = db.query(Administrador).filter(
-        Administrador.codigo_administrador == codigo
-    ).first()
-    codigo_asesor = db.execute(
-        text(
-            """
-            SELECT id_asesor
-            FROM asesores_banco
-            WHERE codigo_asesor = :codigo
-              AND estado = 'activo'
-            LIMIT 1
-            """
-        ),
-        {"codigo": codigo},
-    ).first()
-
-    if not codigo_administrador and not codigo_asesor:
+    if not buscar_asesor_por_codigo(db, datos.codigo_autorizacion):
         raise HTTPException(
             status_code=401,
-            detail="El código de administrador o asesor no es válido."
+            detail="El código del asesor no es válido."
         )
 
     cuenta = db.query(Cuenta).filter(
@@ -3422,7 +3475,7 @@ def autorizar_edicion_ultimos_digitos(
 def autorizar_edicion_saldo(
     id_cuenta: int,
     datos: CodigoAutorizacion,
-    current_user: int = Depends(administrador_o_asesor_requerido),
+    asesor: Usuario = Depends(asesor_requerido),
     db: Session = Depends(get_db)
 ):
     cuenta = db.query(Cuenta).filter(
@@ -3435,27 +3488,10 @@ def autorizar_edicion_saldo(
             detail="Cuenta no encontrada."
         )
 
-    codigo = datos.codigo_autorizacion.strip()
-    codigo_administrador = db.query(Administrador).filter(
-        Administrador.codigo_administrador == codigo
-    ).first()
-    codigo_asesor = db.execute(
-        text(
-            """
-            SELECT id_asesor
-            FROM asesores_banco
-            WHERE codigo_asesor = :codigo
-              AND estado = 'activo'
-            LIMIT 1
-            """
-        ),
-        {"codigo": codigo},
-    ).first()
-
-    if not codigo_administrador and not codigo_asesor:
+    if not buscar_asesor_por_codigo(db, datos.codigo_autorizacion):
         raise HTTPException(
             status_code=401,
-            detail="El código de administrador o asesor no es válido."
+            detail="El código del asesor no es válido."
         )
 
     return {

@@ -1,10 +1,7 @@
-﻿import logging
+import logging
 import os
-<<<<<<< HEAD
 import re
-=======
 from pathlib import Path
->>>>>>> origin/main
 from typing import Any
 
 import httpx
