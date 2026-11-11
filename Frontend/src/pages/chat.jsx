@@ -1,0 +1,883 @@
+import React, { useEffect, useRef, useState } from "react";
+import axios from "axios";
+import { useLocation, useNavigate } from "react-router-dom";
+import Historial from "./historial";
+import RegistrarLlaveBreB from "./transferenciascr";
+import "../styles/chatIA.css";
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
+const ULTIMO_MENSAJE_CHAT_KEY = "ultimo_mensaje_asistente";
+const MENSAJE_SEGUIMIENTO = "¿Qué más necesitas de mi asistencia virtual de Financiero?";
+const PASOS_INICIAR_CUENTA =
+  "Para iniciar sesión en tu cuenta:\n1. Abre la aplicación.\n2. Selecciona «Iniciar sesión».\n3. Escribe tu número de documento y contraseña.\n4. Pulsa «Ingresar» para entrar a tu cuenta.";
+
+const obtenerUltimoMensajeChat = () => {
+  try {
+    const texto = sessionStorage.getItem(ULTIMO_MENSAJE_CHAT_KEY);
+    return texto?.trim() ? { tipo: "ia", texto } : null;
+  } catch (error) {
+    console.error("No fue posible recuperar el último mensaje del asistente:", error);
+    return null;
+  }
+};
+
+const crearMensajeBienvenida = () => {
+  const nombreUsuario = localStorage.getItem("nombre_usuario")?.trim();
+
+  return {
+    tipo: "ia",
+    texto: `Hola${nombreUsuario ? ` ${nombreUsuario}` : ""}, soy el asistente virtual de Financiero. ¿En qué puedo ayudarte hoy?`,
+  };
+};
+
+const OPCIONES_CHAT = [
+  { etiqueta: "Cuentas", pregunta: "Quiero información sobre cuentas de ahorro y corrientes." },
+  { etiqueta: "Transferencias", tipo: "transferencias" },
+  { etiqueta: "Historial", pregunta: "Quiero saber cómo consultar mi historial de transacciones." },
+  { etiqueta: "Llaves Bre-B", pregunta: "Quiero información sobre las llaves Bre-B." },
+  { etiqueta: "Certificados", pregunta: "Quiero saber cómo obtener un certificado bancario." },
+  { etiqueta: "Porcentaje de dinero", tipo: "resumenDinero" },
+  { etiqueta: "¿Cómo uso la aplicación?", pregunta: "Necesito ayuda para usar la aplicación." },
+];
+
+const OPCIONES_USO_APLICACION = [
+  { etiqueta: "Transferencias", tipo: "transferencias" },
+  { etiqueta: "Historial", pregunta: "Quiero saber cómo consultar mi historial de transacciones." },
+  { etiqueta: "Llaves Bre-B", pregunta: "Quiero información sobre las llaves Bre-B." },
+  { etiqueta: "Certificados", pregunta: "Quiero saber cómo obtener un certificado bancario." },
+];
+
+const PASOS_NAVEGACION = {
+  Transferencias:
+    "1. Abre el menú lateral y entra en «Otros».\n2. Elige «Enviar dinero» para transferir entre tus cuentas, o «Transferir» para iniciar otro tipo de transferencia.",
+  Historial:
+    "1. Abre el menú lateral.\n2. Selecciona «Historial Monetario» para consultar tus movimientos.",
+  "Llaves Bre-B":
+    "1. Abre el menú lateral y entra en «Otros».\n2. Selecciona «Registrar Llave Bre-B» para gestionar tus llaves.",
+  Certificados:
+    "1. Abre el menú lateral.\n2. Selecciona «Certificado Bancario» para consultar o descargar tu certificado.",
+};
+
+const OPCIONES_TRANSFERENCIA = [
+  {
+    etiqueta: "Entre mis cuentas",
+    tipo: "transferenciaEntreCuentas",
+    pregunta: "Necesito ayuda para transferir dinero entre mis propias cuentas.",
+  },
+  {
+    etiqueta: "A otra persona con Bre-B",
+    tipo: "transferenciaBreB",
+    pregunta: "Necesito información para enviar dinero a otra persona usando una llave Bre-B.",
+  },
+  {
+    etiqueta: "Otro tipo de transferencia",
+    pregunta: "Necesito ayuda con otro tipo de transferencia.",
+  },
+];
+
+const OPCIONES_CONFIRMACION = [
+  { etiqueta: "Sí", tipo: "confirmarSi" },
+  { etiqueta: "No", tipo: "confirmarNo" },
+];
+
+const OPCIONES_CUENTA_ORIGEN = [
+  { etiqueta: "Cuenta corriente", tipo: "cuentaOrigen", cuenta: "corriente" },
+  { etiqueta: "Cuenta de ahorros", tipo: "cuentaOrigen", cuenta: "ahorro" },
+];
+
+const MENSAJE_SALUDO =
+  "¡Hola! Soy tu asistente financiero. ¿En qué puedo ayudarte hoy?";
+
+const OPCIONES_ASISTENTE = [
+  {
+    titulo: "Mis cuentas y saldos",
+    descripcion: "Consulta tus cuentas y aprende a organizar tu dinero.",
+    pregunta: "¿Cómo puedo consultar y organizar los saldos de mis cuentas?",
+  },
+  {
+    titulo: "Transferencias",
+    descripcion: "Resuelve dudas sobre cómo enviar dinero.",
+    pregunta: "¿Cómo puedo hacer una transferencia entre mis cuentas?",
+  },
+  {
+    titulo: "Movimientos",
+    descripcion: "Entiende y revisa el historial de tus transacciones.",
+    pregunta: "¿Cómo reviso mis movimientos y transacciones recientes?",
+  },
+  {
+    titulo: "Ahorro y presupuesto",
+    descripcion: "Encuentra formas de ahorrar y planificar tus gastos.",
+    pregunta: "¿Cómo puedo crear un presupuesto y ahorrar cada mes?",
+  },
+  {
+    titulo: "Porcentaje de dinero",
+    descripcion: "Consulta cuánto dinero ha ingresado y cuánto has gastado.",
+    tipo: "resumenDinero",
+  },
+];
+
+function ChatIA({ onClose, compacto = false }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [pregunta, setPregunta] = useState("");
+  const [escrituraDesbloqueada, setEscrituraDesbloqueada] = useState(false);
+  const [esperandoLlaveBreB, setEsperandoLlaveBreB] = useState(false);
+  const [llaveBreBIngresada, setLlaveBreBIngresada] = useState("");
+  const preguntaInputRef = useRef(null);
+  const [mostrarHistorial, setMostrarHistorial] = useState(false);
+  const [mostrarLlaveBreB, setMostrarLlaveBreB] = useState(false);
+  const [confirmacionPendiente, setConfirmacionPendiente] = useState(null);
+  const [mensajes, setMensajes] = useState(() => {
+    if (compacto) return [{ tipo: "ia", texto: MENSAJE_SALUDO }];
+
+    const estaEnCuenta = location.pathname === "/cuenta";
+    const estaEnTransferencias = location.pathname === "/transferencias";
+    const mensajeGuardado = obtenerUltimoMensajeChat();
+    const ultimoMensaje =
+      estaEnCuenta || mensajeGuardado?.texto === MENSAJE_SEGUIMIENTO
+        ? crearMensajeBienvenida()
+        : mensajeGuardado || crearMensajeBienvenida();
+
+    return estaEnTransferencias
+      ? [
+          ultimoMensaje,
+          { tipo: "ia", texto: MENSAJE_SEGUIMIENTO, esSeguimiento: true },
+        ]
+      : [ultimoMensaje];
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [tipoOpciones, setTipoOpciones] = useState("inicio");
+
+  useEffect(() => {
+    const ultimoMensaje = [...mensajes]
+      .reverse()
+      .find((mensaje) => mensaje.tipo === "ia" && !mensaje.esSeguimiento);
+
+    if (!ultimoMensaje) return;
+
+    try {
+      sessionStorage.setItem(ULTIMO_MENSAJE_CHAT_KEY, ultimoMensaje.texto);
+    } catch (error) {
+      console.error("No fue posible guardar el último mensaje del asistente:", error);
+    }
+  }, [mensajes]);
+
+  useEffect(() => {
+    if (!mostrarHistorial && !mostrarLlaveBreB) return undefined;
+
+    const cerrarConEscape = (event) => {
+      if (event.key === "Escape") {
+        setMostrarHistorial(false);
+        setMostrarLlaveBreB(false);
+      }
+    };
+
+    document.addEventListener("keydown", cerrarConEscape);
+    return () => document.removeEventListener("keydown", cerrarConEscape);
+  }, [mostrarHistorial, mostrarLlaveBreB]);
+
+  useEffect(() => {
+    if (escrituraDesbloqueada) {
+      preguntaInputRef.current?.focus();
+    }
+  }, [escrituraDesbloqueada]);
+
+  const mostrarResumenDinero = async (textoOpcion) => {
+    setTipoOpciones(null);
+    setPregunta("");
+    setIsLoading(true);
+    setMensajes((prev) => [...prev, { tipo: "usuario", texto: textoOpcion }]);
+
+    try {
+      const respuesta = await axios.get(`${API_BASE_URL}/transacciones`);
+      const datos = respuesta.data;
+      const transacciones = Array.isArray(datos)
+        ? datos
+        : datos?.transacciones || datos?.data;
+
+      if (!Array.isArray(transacciones)) {
+        throw new Error("El servidor devolvió un historial de transacciones inválido.");
+      }
+
+      const totales = transacciones.reduce(
+        (acumulado, transaccion) => {
+          const tipo = String(transaccion.tipo || "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase();
+          const monto = Number(transaccion.monto ?? transaccion.valor ?? 0);
+
+          if (!Number.isFinite(monto)) {
+            throw new Error("No fue posible calcular el resumen: hay un monto inválido.");
+          }
+
+          if (tipo.includes("ingreso") || tipo.includes("recib")) {
+            acumulado.ingresos += monto;
+          } else if (tipo.includes("gasto") || tipo.includes("transfer")) {
+            acumulado.gastos += monto;
+          }
+
+          return acumulado;
+        },
+        { ingresos: 0, gastos: 0 }
+      );
+
+      const formatoDinero = (monto) =>
+        new Intl.NumberFormat("es-CO", {
+          style: "currency",
+          currency: "COP",
+          maximumFractionDigits: 2,
+        }).format(monto);
+      const porcentajeGastado =
+        totales.ingresos > 0
+          ? `${((totales.gastos / totales.ingresos) * 100).toFixed(2)}%`
+          : "No disponible (no hay ingresos registrados)";
+
+      setMensajes((prev) => [
+        ...prev,
+        {
+          tipo: "ia",
+          texto: [
+            "Resumen de todos tus movimientos registrados:",
+            `Ingresos: ${formatoDinero(totales.ingresos)}`,
+            `Gastos y transferencias enviadas: ${formatoDinero(totales.gastos)}`,
+            `Gastado respecto a tus ingresos: ${porcentajeGastado}`,
+            `Diferencia entre ingresos y gastos: ${formatoDinero(totales.ingresos - totales.gastos)}`,
+          ].join("\n"),
+        },
+      ]);
+    } catch (error) {
+      const detalle =
+        typeof error.response?.data?.detail === "string"
+          ? error.response.data.detail
+          : error.message || "No fue posible cargar tus movimientos.";
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "ia", texto: `No pude calcular tu resumen: ${detalle}` },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const enviarPregunta = async (textoSeleccionado) => {
+    const texto = (textoSeleccionado || pregunta).trim();
+    if (!texto || isLoading) return;
+
+    setEscrituraDesbloqueada(false);
+
+    if (esperandoLlaveBreB) {
+      setLlaveBreBIngresada(texto);
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto },
+        { tipo: "ia", texto: "¿Desde qué cuenta quieres enviar el dinero?" },
+      ]);
+      setTipoOpciones("cuentaOrigenBreB");
+      setPregunta("");
+      setEsperandoLlaveBreB(false);
+      return;
+    }
+
+    const preguntaEnviada = texto;
+    const esSaludo =
+      preguntaEnviada
+        .toLocaleLowerCase("es")
+        .replace(/[!¡.,?¿\s]/g, "") === "hola";
+
+    if (esSaludo) {
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: preguntaEnviada },
+        { tipo: "ia", texto: MENSAJE_SALUDO },
+      ]);
+      setPregunta("");
+      return;
+    }
+
+    const textoNormalizado = texto
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[¿?¡!.,]/g, "")
+      .trim();
+
+    if (tipoOpciones === "confirmacionGeneral" && confirmacionPendiente) {
+      if (confirmacionPendiente.tipo === "cuenta" && (textoNormalizado === "si" || textoNormalizado === "s")) {
+        setMensajes((prev) => [
+          ...prev,
+          { tipo: "usuario", texto },
+          { tipo: "ia", texto: "¿Ya tienes una cuenta?" },
+        ]);
+        setConfirmacionPendiente({
+          pasosSi: "Para iniciar tu cuenta:\n1. Ve a la opción de Registro o Inicio de sesión.\n2. Completa tus datos personales y crea tu usuario.\n3. Verifica la información solicitada.\n4. Inicia sesión con tu correo y contraseña y entra a tu cuenta.",
+          pasosNo: "Para registrarte y tener una cuenta:\n1. Ve a la opción de Registro o Crear cuenta.\n2. Completa tus datos personales y de contacto.\n3. Confirma tu información y crea tu usuario.\n4. Inicia sesión con tu cuenta recién creada.",
+          tipo: "cuentaYaRegistrado",
+        });
+        setTipoOpciones("confirmacionGeneral");
+        setPregunta("");
+        return;
+      }
+
+      if (textoNormalizado === "si" || textoNormalizado === "s") {
+        if (confirmacionPendiente.tipo === "transferenciasCuenta") {
+          setMensajes((prev) => [
+            ...prev,
+            { tipo: "usuario", texto },
+            { tipo: "ia", texto: PASOS_INICIAR_CUENTA },
+          ]);
+          setConfirmacionPendiente(null);
+          setTipoOpciones("inicio");
+          setPregunta("");
+          return;
+        }
+
+        const mensajeFinal =
+          confirmacionPendiente.tipo === "cuentaYaRegistrado"
+            ? "Para iniciar tu cuenta:\n1. Ve a la opción de Registro o Inicio de sesión.\n2. Completa tus datos personales y crea tu usuario.\n3. Verifica la información solicitada.\n4. Inicia sesión con tu correo y contraseña y entra a tu cuenta."
+            : confirmacionPendiente.pasosSi;
+
+        setMensajes((prev) => [
+          ...prev,
+          { tipo: "usuario", texto },
+          { tipo: "ia", texto: mensajeFinal },
+        ]);
+        setConfirmacionPendiente(null);
+        setTipoOpciones("inicio");
+        setPregunta("");
+        return;
+      }
+
+      if (textoNormalizado === "no" || textoNormalizado === "n") {
+        const mensajeFinal =
+          confirmacionPendiente.tipo === "cuentaYaRegistrado"
+            ? "Para registrarte y tener una cuenta:\n1. Ve a la opción de Registro o Crear cuenta.\n2. Completa tus datos personales y de contacto.\n3. Confirma tu información y crea tu usuario.\n4. Inicia sesión con tu cuenta recién creada."
+            : confirmacionPendiente.pasosNo;
+
+        setMensajes((prev) => [
+          ...prev,
+          { tipo: "usuario", texto },
+          { tipo: "ia", texto: mensajeFinal },
+        ]);
+        setConfirmacionPendiente(null);
+        setTipoOpciones("inicio");
+        setPregunta("");
+        return;
+      }
+    }
+
+    if (
+      textoNormalizado === "necesito ayuda para usar la aplicacion" ||
+      textoNormalizado === "como uso la aplicacion"
+    ) {
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto },
+        { tipo: "ia", texto: "¿Qué necesitas saber?" },
+      ]);
+      setTipoOpciones("usoAplicacion");
+      setPregunta("");
+      return;
+    }
+
+    const historial = mensajes
+      .filter(
+        (msg) =>
+          msg &&
+          !msg.esSeguimiento &&
+          typeof msg.texto === "string" &&
+          msg.texto.trim()
+      )
+      .map((msg) => ({
+        role: msg.tipo === "usuario" ? "user" : "assistant",
+        content: msg.texto.trim(),
+      }));
+
+    setMensajes((prev) => [...prev, { tipo: "usuario", texto }]);
+    setTipoOpciones(null);
+    setPregunta("");
+    setIsLoading(true);
+
+    try {
+      const res = await axios.post(
+        `${API_BASE_URL}/ia/chat`,
+        { mensaje: texto, historial },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      setMensajes((prev) => [
+        ...prev,
+        {
+          tipo: "ia",
+          texto: res.data?.respuesta || "No pude generar una respuesta.",
+        },
+      ]);
+    } catch (error) {
+      let mensaje = "Error al conectar con la IA.";
+
+      if (error.response?.data?.detail) {
+        mensaje =
+          typeof error.response.data.detail === "string"
+            ? error.response.data.detail
+            : "El asistente bancario no está disponible en este momento.";
+      } else if (error.request) {
+        mensaje = "No hay respuesta del servidor.";
+      } else if (error.message) {
+        mensaje = error.message;
+      }
+
+      setMensajes((prev) => [...prev, { tipo: "ia", texto: mensaje }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const seleccionarOpcion = (opcion) => {
+    if (opcion.tipo === "resumenDinero") {
+      mostrarResumenDinero(opcion.etiqueta || opcion.titulo);
+      return;
+    }
+
+    if (opcion.etiqueta === "¿Cómo uso la aplicación?") {
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: opcion.etiqueta },
+        { tipo: "ia", texto: "¿Qué necesitas saber?" },
+      ]);
+      setTipoOpciones("usoAplicacion");
+      return;
+    }
+
+    if (opcion.etiqueta === "Historial") {
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: "Historial" },
+        { tipo: "ia", texto: "¿Ya tienes una cuenta?" },
+      ]);
+      setConfirmacionPendiente({
+        pasosSi: PASOS_INICIAR_CUENTA,
+        pasosNo:
+          "Para consultar tu historial, primero necesitas tener una cuenta:\n1. Ve a la opción «Registro» o «Crear cuenta».\n2. Completa tus datos personales y de contacto.\n3. Confirma tu información y crea tu usuario.\n4. Inicia sesión con tu cuenta recién creada.",
+        tipo: "historial",
+      });
+      setTipoOpciones("confirmacionGeneral");
+      return;
+    }
+
+    if (tipoOpciones === "usoAplicacion") {
+      const pasos = PASOS_NAVEGACION[opcion.etiqueta];
+      if (!pasos) return;
+
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: opcion.etiqueta },
+        { tipo: "ia", texto: `Para llegar a ${opcion.etiqueta}:\n${pasos}` },
+      ]);
+      return;
+    }
+
+    const prepararConfirmacion = ({
+      pregunta,
+      pasosSi,
+      pasosNo,
+      tipo = "general",
+      mensajeConfirmacion = `¿Quieres saber cómo llegar a la sección de ${pregunta}?`,
+    }) => {
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: pregunta },
+        { tipo: "ia", texto: mensajeConfirmacion },
+      ]);
+      setConfirmacionPendiente({ pasosSi, pasosNo, tipo });
+      setTipoOpciones("confirmacionGeneral");
+    };
+
+    if (opcion.etiqueta === "Cuentas") {
+      prepararConfirmacion({
+        pregunta: "Cuentas",
+        tipo: "cuenta",
+        pasosSi:
+          "Para llegar a Cuentas:\n1. Abre el menú lateral.\n2. Busca la opción «Cuenta» o «Cuentas».\n3. Haz clic ahí para ver tus saldos, movimientos y resumen financiero.",
+        pasosNo:
+          "¿Ya tienes una cuenta?",
+      });
+      return;
+    }
+
+    if (opcion.tipo === "confirmarSi") {
+      if (!confirmacionPendiente) return;
+
+      if (confirmacionPendiente.tipo === "transferenciasCuenta") {
+        setMensajes((prev) => [
+          ...prev,
+          { tipo: "usuario", texto: "Sí" },
+          { tipo: "ia", texto: PASOS_INICIAR_CUENTA },
+        ]);
+        setConfirmacionPendiente(null);
+        setTipoOpciones("inicio");
+        return;
+      }
+
+      if (confirmacionPendiente.tipo === "cuenta") {
+        setMensajes((prev) => [
+          ...prev,
+          { tipo: "usuario", texto: "Sí" },
+          { tipo: "ia", texto: "¿Ya tienes una cuenta?" },
+        ]);
+        setConfirmacionPendiente({
+          pasosSi: "Para iniciar tu cuenta:\n1. Ve a la opción de Registro o Inicio de sesión.\n2. Completa tus datos personales y crea tu usuario.\n3. Verifica la información solicitada.\n4. Inicia sesión con tu correo y contraseña y entra a tu cuenta.",
+          pasosNo: "Para registrarte y tener una cuenta:\n1. Ve a la opción de Registro o Crear cuenta.\n2. Completa tus datos personales y de contacto.\n3. Confirma tu información y crea tu usuario.\n4. Inicia sesión con tu cuenta recién creada.",
+          tipo: "cuentaYaRegistrado",
+        });
+        setTipoOpciones("confirmacionGeneral");
+        return;
+      }
+
+      if (confirmacionPendiente.tipo === "cuentaYaRegistrado") {
+        setMensajes((prev) => [
+          ...prev,
+          { tipo: "usuario", texto: "Sí" },
+          { tipo: "ia", texto: "Para iniciar tu cuenta:\n1. Ve a la opción de Registro o Inicio de sesión.\n2. Completa tus datos personales y crea tu usuario.\n3. Verifica la información solicitada.\n4. Inicia sesión con tu correo y contraseña y entra a tu cuenta." },
+        ]);
+        setConfirmacionPendiente(null);
+        setTipoOpciones("inicio");
+        return;
+      }
+
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: "Sí" },
+        { tipo: "ia", texto: confirmacionPendiente.pasosSi },
+      ]);
+      setConfirmacionPendiente(null);
+      setTipoOpciones("inicio");
+      return;
+    }
+
+    if (opcion.tipo === "confirmarNo") {
+      if (!confirmacionPendiente) return;
+
+      if (confirmacionPendiente.tipo === "cuenta") {
+        setMensajes((prev) => [
+          ...prev,
+          { tipo: "usuario", texto: "No" },
+          { tipo: "ia", texto: "Para registrarte y tener una cuenta:\n1. Ve a la opción de Registro o Crear cuenta.\n2. Completa tus datos personales y de contacto.\n3. Confirma tu información y crea tu usuario.\n4. Inicia sesión con tu cuenta recién creada." },
+        ]);
+        setConfirmacionPendiente(null);
+        setTipoOpciones("inicio");
+        return;
+      }
+
+      if (confirmacionPendiente.tipo === "cuentaYaRegistrado") {
+        setMensajes((prev) => [
+          ...prev,
+          { tipo: "usuario", texto: "No" },
+          { tipo: "ia", texto: "Para registrarte y tener una cuenta:\n1. Ve a la opción de Registro o Crear cuenta.\n2. Completa tus datos personales y de contacto.\n3. Confirma tu información y crea tu usuario.\n4. Inicia sesión con tu cuenta recién creada." },
+        ]);
+        setConfirmacionPendiente(null);
+        setTipoOpciones("inicio");
+        return;
+      }
+
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: "No" },
+        { tipo: "ia", texto: confirmacionPendiente.pasosNo },
+      ]);
+      setConfirmacionPendiente(null);
+      setTipoOpciones("inicio");
+      return;
+    }
+
+    if (opcion.etiqueta === "Transferencias") {
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: "Transferencias" },
+        { tipo: "ia", texto: "¿Ya tienes una cuenta?" },
+      ]);
+      setConfirmacionPendiente({
+        pasosSi: "¿Qué tipo de transferencia necesitas?",
+        pasosNo:
+          "Para registrarte:\n1. Selecciona «Registro» en la parte superior de la aplicación.\n2. Completa tu nombre, correo, tipo y número de documento, teléfono y contraseña.\n3. Pulsa «Siguiente».\n4. Ingresa tu ciudad, localidad, barrio, código postal y dirección.\n5. Pulsa «Registrar» y espera la aprobación de tu solicitud.",
+        tipo: "transferenciasCuenta",
+      });
+      setTipoOpciones("confirmacionGeneral");
+      return;
+    }
+
+    if (opcion.etiqueta === "Llaves Bre-B") {
+      prepararConfirmacion({
+        pregunta: "Llaves Bre-B",
+        pasosSi:
+          "Para llegar a Llaves Bre-B:\n1. Abre el menú lateral.\n2. Entra en «Otros».\n3. Selecciona «Registrar Llave Bre-B» para gestionar tus llaves.",
+        pasosNo:
+          "No hay problema. Si necesitas ayuda, te puedo explicar cómo registrar una llave Bre-B o cómo enviar dinero a otra persona.",
+      });
+      return;
+    }
+
+    if (opcion.etiqueta === "Certificados") {
+      prepararConfirmacion({
+        pregunta: "Certificados",
+        pasosSi:
+          "Para consultar tus certificados:\n1. Abre el menú lateral.\n2. Selecciona «Certificado Bancario».\n3. Revisa o descarga tu certificado.",
+        pasosNo:
+          "No hay problema. Si necesitas un certificado bancario puedes revisarlo desde el menú lateral y pedir ayuda si lo deseas.",
+      });
+      return;
+    }
+
+    if (opcion.tipo === "transferencias") {
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: "Transferencias" },
+        {
+          tipo: "ia",
+          texto: "¿Qué tipo de transferencia necesitas?",
+        },
+      ]);
+      setTipoOpciones("transferencias");
+      return;
+    }
+
+    if (opcion.tipo === "transferenciaEntreCuentas") {
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: opcion.etiqueta },
+        {
+          tipo: "ia",
+          texto: "¿De qué cuenta quieres transferir?",
+        },
+      ]);
+      setTipoOpciones("cuentaOrigen");
+      return;
+    }
+
+    if (opcion.tipo === "transferenciaBreB") {
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: opcion.etiqueta },
+        { tipo: "ia", texto: "¿Cuál es la llave Bre-B de la persona a quien quieres enviar dinero?" },
+      ]);
+      setTipoOpciones(null);
+      setPregunta("");
+      setEsperandoLlaveBreB(true);
+      setEscrituraDesbloqueada(true);
+      return;
+    }
+
+    if (opcion.tipo === "cuentaOrigen" && tipoOpciones === "cuentaOrigenBreB") {
+      const nombreCuenta =
+        opcion.cuenta === "corriente"
+          ? "Cuenta corriente"
+          : "Cuenta de ahorros";
+
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: nombreCuenta },
+        {
+          tipo: "ia",
+          texto: `Seleccionaste ${nombreCuenta}. Te llevo a la transferencia.`,
+        },
+      ]);
+      setTipoOpciones(null);
+      onClose?.();
+      navigate("/corriente", {
+        state: {
+          llaveInicial: llaveBreBIngresada,
+          origen: opcion.cuenta,
+        },
+      });
+      return;
+    }
+
+    if (opcion.tipo === "cuentaOrigen") {
+      const nombreCuenta =
+        opcion.cuenta === "corriente"
+          ? "Cuenta corriente"
+          : "Cuenta de ahorros";
+      const mensajesActualizados = [
+        ...mensajes,
+        { tipo: "usuario", texto: nombreCuenta },
+        {
+          tipo: "ia",
+          texto: `Seleccionaste ${nombreCuenta}. En transferencias podrás ingresar el monto y confirmar la operación.`,
+        },
+      ];
+      setMensajes(mensajesActualizados);
+      setTipoOpciones(null);
+      onClose?.();
+      navigate("/transferencias", {
+        state: { desdeAsistente: true, origen: opcion.cuenta },
+      });
+      return;
+    }
+
+    enviarPregunta(opcion.pregunta);
+  };
+
+  return (
+    <>
+    <div className="chat-container">
+      <div className="chat-header">
+        <span id="asistente-titulo">Asistente IA 🤖</span>
+        {onClose && (
+          <button
+            type="button"
+            className="chat-close"
+            onClick={onClose}
+            aria-label="Cerrar asistente"
+          >
+            ×
+          </button>
+        )}
+      </div>
+
+      <div className="chat-body">
+        {mensajes.map((msg, index) => (
+          <div
+            key={index}
+            className={msg.tipo === "usuario" ? "usuario" : "ia"}
+          >
+            {msg.texto}
+          </div>
+        ))}
+
+        {tipoOpciones && (
+          <div className="chat-opciones" role="group" aria-label="Opciones de ayuda">
+            {(tipoOpciones === "transferencias"
+              ? OPCIONES_TRANSFERENCIA
+              : tipoOpciones === "cuentaOrigen" || tipoOpciones === "cuentaOrigenBreB"
+                ? OPCIONES_CUENTA_ORIGEN
+                : tipoOpciones === "usoAplicacion"
+                  ? OPCIONES_USO_APLICACION
+                  : tipoOpciones === "confirmacionGeneral"
+                    ? OPCIONES_CONFIRMACION
+                    : OPCIONES_CHAT
+            ).map((opcion) => (
+              <button
+                key={opcion.etiqueta}
+                type="button"
+                onClick={() => seleccionarOpcion(opcion)}
+                disabled={isLoading}
+              >
+                {opcion.etiqueta}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {isLoading && <div className="ia">Escribiendo...</div>}
+      </div>
+
+      <div className="chat-footer">
+        <input
+          className="chat-input"
+          type="text"
+          placeholder={
+            esperandoLlaveBreB
+              ? "Escribe la llave Bre-B de la persona..."
+              : escrituraDesbloqueada
+              ? "Escribe una pregunta..."
+              : "Pulsa «Desbloquear escritura» para escribir..."
+          }
+          value={pregunta}
+          disabled={(!escrituraDesbloqueada && !esperandoLlaveBreB) || isLoading}
+          ref={preguntaInputRef}
+          onChange={(event) => setPregunta(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && (escrituraDesbloqueada || esperandoLlaveBreB)) {
+              enviarPregunta();
+            }
+          }}
+          aria-label={
+            esperandoLlaveBreB
+              ? "Escribe la llave Bre-B del destinatario"
+              : escrituraDesbloqueada
+              ? "Escribe una pregunta para el asistente"
+              : "Escritura bloqueada; pulsa Desbloquear escritura para activarla"
+          }
+        />
+        <button
+          type="button"
+          className="chat-unlock-button"
+          onClick={() => setEscrituraDesbloqueada(true)}
+          disabled={isLoading}
+          aria-pressed={escrituraDesbloqueada}
+        >
+          {escrituraDesbloqueada ? "Escritura habilitada" : "Desbloquear escritura"}
+        </button>
+        <button
+          type="button"
+          onClick={() => enviarPregunta()}
+          disabled={(!escrituraDesbloqueada && !esperandoLlaveBreB) || isLoading}
+        >
+          {esperandoLlaveBreB ? "Continuar" : "Enviar"}
+        </button>
+      </div>
+    </div>
+    {mostrarHistorial && (
+      <div
+        className="historial-asistente-overlay"
+        onClick={() => setMostrarHistorial(false)}
+      >
+        <div
+          className="historial-asistente-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="historial-asistente-titulo"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="historial-asistente-header">
+            <h2 id="historial-asistente-titulo">Historial de transacciones</h2>
+            <button
+              type="button"
+              onClick={() => setMostrarHistorial(false)}
+              aria-label="Cerrar historial"
+            >
+              ×
+            </button>
+          </div>
+          <div className="historial-asistente-body">
+            <Historial isModal />
+          </div>
+        </div>
+      </div>
+    )}
+    {mostrarLlaveBreB && (
+      <div
+        className="historial-asistente-overlay"
+        onClick={() => setMostrarLlaveBreB(false)}
+      >
+        <section
+          className="llave-breb-asistente-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="llave-breb-asistente-titulo"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="historial-asistente-header">
+            <h2 id="llave-breb-asistente-titulo">Registrar llave Bre-B</h2>
+            <button
+              type="button"
+              onClick={() => setMostrarLlaveBreB(false)}
+              aria-label="Cerrar registro de llave Bre-B"
+            >
+              ×
+            </button>
+          </div>
+          <div className="llave-breb-asistente-body">
+            <RegistrarLlaveBreB isModal />
+          </div>
+        </section>
+      </div>
+    )}
+    </>
+  );
+}
+
+export default ChatIA;
