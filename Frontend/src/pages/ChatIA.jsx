@@ -34,6 +34,7 @@ const OPCIONES_CHAT = [
   { etiqueta: "Historial", pregunta: "Quiero saber cómo consultar mi historial de transacciones." },
   { etiqueta: "Llaves Bre-B", pregunta: "Quiero información sobre las llaves Bre-B." },
   { etiqueta: "Certificados", pregunta: "Quiero saber cómo obtener un certificado bancario." },
+  { etiqueta: "Porcentaje de dinero", tipo: "resumenDinero" },
   { etiqueta: "¿Cómo uso la aplicación?", pregunta: "Necesito ayuda para usar la aplicación." },
 ];
 
@@ -101,6 +102,11 @@ const OPCIONES_ASISTENTE = [
     descripcion: "Encuentra formas de ahorrar y planificar tus gastos.",
     pregunta: "¿Cómo puedo crear un presupuesto y ahorrar cada mes?",
   },
+  {
+    titulo: "Porcentaje de dinero",
+    descripcion: "Consulta cuánto dinero ha ingresado y cuánto has gastado.",
+    tipo: "resumenDinero",
+  },
 ];
 
 function ChatIA({ onClose, compacto = false }) {
@@ -167,6 +173,87 @@ function ChatIA({ onClose, compacto = false }) {
       preguntaInputRef.current?.focus();
     }
   }, [escrituraDesbloqueada]);
+
+  const mostrarResumenDinero = async (textoOpcion) => {
+    setTipoOpciones(null);
+    setPregunta("");
+    setIsLoading(true);
+    setMensajes((prev) => [...prev, { tipo: "usuario", texto: textoOpcion }]);
+
+    try {
+      const token = localStorage.getItem("token");
+      const respuesta = await axios.get(`${API_BASE_URL}/transacciones`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const datos = respuesta.data;
+      const transacciones = Array.isArray(datos)
+        ? datos
+        : datos?.transacciones || datos?.data;
+
+      if (!Array.isArray(transacciones)) {
+        throw new Error("El servidor devolvió un historial de transacciones inválido.");
+      }
+
+      const totales = transacciones.reduce(
+        (acumulado, transaccion) => {
+          const tipo = String(transaccion.tipo || "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase();
+          const monto = Number(transaccion.monto ?? transaccion.valor ?? 0);
+
+          if (!Number.isFinite(monto)) {
+            throw new Error("No fue posible calcular el resumen: hay un monto inválido.");
+          }
+
+          if (tipo.includes("ingreso") || tipo.includes("recib")) {
+            acumulado.ingresos += monto;
+          } else if (tipo.includes("gasto") || tipo.includes("transfer")) {
+            acumulado.gastos += monto;
+          }
+
+          return acumulado;
+        },
+        { ingresos: 0, gastos: 0 }
+      );
+
+      const formatoDinero = (monto) =>
+        new Intl.NumberFormat("es-CO", {
+          style: "currency",
+          currency: "COP",
+          maximumFractionDigits: 2,
+        }).format(monto);
+      const porcentajeGastado =
+        totales.ingresos > 0
+          ? `${((totales.gastos / totales.ingresos) * 100).toFixed(2)}%`
+          : "No disponible (no hay ingresos registrados)";
+
+      setMensajes((prev) => [
+        ...prev,
+        {
+          tipo: "ia",
+          texto: [
+            "Resumen de todos tus movimientos registrados:",
+            `Ingresos: ${formatoDinero(totales.ingresos)}`,
+            `Gastos y transferencias enviadas: ${formatoDinero(totales.gastos)}`,
+            `Gastado respecto a tus ingresos: ${porcentajeGastado}`,
+            `Diferencia entre ingresos y gastos: ${formatoDinero(totales.ingresos - totales.gastos)}`,
+          ].join("\n"),
+        },
+      ]);
+    } catch (error) {
+      const detalle =
+        typeof error.response?.data?.detail === "string"
+          ? error.response.data.detail
+          : error.message || "No fue posible cargar tus movimientos.";
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "ia", texto: `No pude calcular tu resumen: ${detalle}` },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const enviarPregunta = async (textoSeleccionado) => {
     const texto = (textoSeleccionado || pregunta).trim();
@@ -283,6 +370,11 @@ function ChatIA({ onClose, compacto = false }) {
   };
 
   const seleccionarOpcion = (opcion) => {
+    if (opcion.tipo === "resumenDinero") {
+      mostrarResumenDinero(opcion.etiqueta || opcion.titulo);
+      return;
+    }
+
     if (opcion.etiqueta === "¿Cómo uso la aplicación?") {
       setMensajes((prev) => [
         ...prev,
@@ -438,7 +530,11 @@ function ChatIA({ onClose, compacto = false }) {
           key={opcion.titulo}
           type="button"
           className="chat-sugerencia"
-          onClick={() => setPregunta(opcion.pregunta)}
+          onClick={() =>
+            opcion.tipo === "resumenDinero"
+              ? seleccionarOpcion(opcion)
+              : setPregunta(opcion.pregunta)
+          }
         >
           <strong>{opcion.titulo}</strong>
           <span>{opcion.descripcion}</span>

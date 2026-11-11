@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import ChatIA from "./ChatIA";
 import "../styles/reporta.css";
 
 function Reporte() {
@@ -11,6 +12,7 @@ function Reporte() {
   const [openTransfer, setOpenTransfer] = useState(false);
   const [openCertificado, setOpenCertificado] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
+  const [asistenteAbierto, setAsistenteAbierto] = useState(false);
 
   useEffect(() => {
     const actualizarEstadoMenu = () => {
@@ -22,6 +24,17 @@ function Reporte() {
 
     return () => window.removeEventListener("resize", actualizarEstadoMenu);
   }, []);
+
+  useEffect(() => {
+    if (!asistenteAbierto) return undefined;
+
+    const cerrarConEscape = (event) => {
+      if (event.key === "Escape") setAsistenteAbierto(false);
+    };
+
+    document.addEventListener("keydown", cerrarConEscape);
+    return () => document.removeEventListener("keydown", cerrarConEscape);
+  }, [asistenteAbierto]);
 
   const generarReporte = async () => {
     try {
@@ -355,14 +368,15 @@ function Reporte() {
   
             <li>
   
-              <Link
-                to="/ChatIA"
+              <button
+                type="button"
                 className="btn-nav"
+                onClick={() => setAsistenteAbierto(true)}
               >
   
                 🤖 Asistente IA
   
-              </Link>
+              </button>
   
   
             </li>
@@ -556,6 +570,23 @@ function Reporte() {
               </Link>
             </div>
           </section>
+        </div>
+      )}
+
+      {asistenteAbierto && (
+        <div
+          className="asistente-modal-overlay"
+          onClick={() => setAsistenteAbierto(false)}
+        >
+          <div
+            className="asistente-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="asistente-titulo"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <ChatIA onClose={() => setAsistenteAbierto(false)} />
+          </div>
         </div>
       )}
 
