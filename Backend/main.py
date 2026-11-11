@@ -42,11 +42,11 @@ class SaldoCuenta(BaseModel):
 
 class SaldoCuentaAutorizado(BaseModel):
     saldo: Decimal = Field(ge=0)
-    codigo_autorizacion: str = Field(min_length=4, max_length=6)
+    codigo_autorizacion: str = Field(min_length=1, max_length=30)
 
 
 class CodigoAutorizacion(BaseModel):
-    codigo_autorizacion: str = Field(min_length=4, max_length=6)
+    codigo_autorizacion: str = Field(min_length=1, max_length=30)
 
 
 class UltimosDigitosCuenta(BaseModel):
@@ -55,7 +55,7 @@ class UltimosDigitosCuenta(BaseModel):
 
 class UltimosDigitosCuentaAutorizada(BaseModel):
     ultimos_digitos: str = Field(pattern=r"^\d{4}$")
-    codigo_autorizacion: str = Field(min_length=4, max_length=6)
+    codigo_autorizacion: str = Field(min_length=1, max_length=30)
 
 
 class TipoOperacionCuenta(BaseModel):
@@ -64,7 +64,7 @@ class TipoOperacionCuenta(BaseModel):
 
 class TipoOperacionCuentaAutorizada(BaseModel):
     tipo_operacion: Literal["debito", "credito"]
-    codigo_autorizacion: str = Field(min_length=4, max_length=6)
+    codigo_autorizacion: str = Field(min_length=1, max_length=30)
 
 
 class TipoCuentaCuenta(BaseModel):
@@ -3183,11 +3183,23 @@ def asesor_actualizar_saldo(
     }
 
 
+def buscar_asesor_por_codigo(db: Session, codigo: str):
+    codigo_normalizado = codigo.strip()
+
+    if not codigo_normalizado:
+        return None
+
+    return db.query(AsesorBanco.id_asesor).filter(
+        func.trim(AsesorBanco.codigo_asesor) == codigo_normalizado,
+        func.lower(func.trim(AsesorBanco.estado)) == "activo",
+    ).first()
+
+
 @app.put("/administradores/cuenta/{id_cuenta}/saldo")
 def administrador_actualizar_saldo(
     id_cuenta: int,
     datos: SaldoCuentaAutorizado,
-    current_user: int = Depends(administrador_o_asesor_requerido),
+    asesor: Usuario = Depends(asesor_requerido),
     db: Session = Depends(get_db)
 ):
     if datos.saldo < 0:
@@ -3196,27 +3208,10 @@ def administrador_actualizar_saldo(
             detail="El saldo no puede ser negativo."
         )
 
-    codigo = datos.codigo_autorizacion.strip()
-    codigo_administrador = db.query(Administrador).filter(
-        Administrador.codigo_administrador == codigo
-    ).first()
-    codigo_asesor = db.execute(
-        text(
-            """
-            SELECT id_asesor
-            FROM asesores_banco
-            WHERE codigo_asesor = :codigo
-              AND estado = 'activo'
-            LIMIT 1
-            """
-        ),
-        {"codigo": codigo},
-    ).first()
-
-    if not codigo_administrador and not codigo_asesor:
+    if not buscar_asesor_por_codigo(db, datos.codigo_autorizacion):
         raise HTTPException(
             status_code=401,
-            detail="El código de administrador o asesor no es válido."
+            detail="El código del asesor no es válido."
         )
 
     cuenta = db.query(Cuenta).filter(
@@ -3480,7 +3475,7 @@ def autorizar_edicion_ultimos_digitos(
 def autorizar_edicion_saldo(
     id_cuenta: int,
     datos: CodigoAutorizacion,
-    current_user: int = Depends(administrador_o_asesor_requerido),
+    asesor: Usuario = Depends(asesor_requerido),
     db: Session = Depends(get_db)
 ):
     cuenta = db.query(Cuenta).filter(
@@ -3493,27 +3488,10 @@ def autorizar_edicion_saldo(
             detail="Cuenta no encontrada."
         )
 
-    codigo = datos.codigo_autorizacion.strip()
-    codigo_administrador = db.query(Administrador).filter(
-        Administrador.codigo_administrador == codigo
-    ).first()
-    codigo_asesor = db.execute(
-        text(
-            """
-            SELECT id_asesor
-            FROM asesores_banco
-            WHERE codigo_asesor = :codigo
-              AND estado = 'activo'
-            LIMIT 1
-            """
-        ),
-        {"codigo": codigo},
-    ).first()
-
-    if not codigo_administrador and not codigo_asesor:
+    if not buscar_asesor_por_codigo(db, datos.codigo_autorizacion):
         raise HTTPException(
             status_code=401,
-            detail="El código de administrador o asesor no es válido."
+            detail="El código del asesor no es válido."
         )
 
     return {
