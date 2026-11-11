@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import AsistenteMovil from "../components/AsistenteMovil";
 import "../styles/desbloquearTarjeta.css";
+import "../styles/navegacionMovil.css";
 
 function DesbloquearTarjeta() {
 
@@ -181,6 +183,8 @@ function DesbloquearTarjeta() {
                 ☰
             </button>
 
+            <AsistenteMovil to="/ChatIA" />
+
             <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
 
                 <ul>
@@ -282,7 +286,7 @@ function DesbloquearTarjeta() {
 
                         <Link
                             to="/ChatIA"
-                            className="btn-nav"
+                            className="btn-nav asistente-sidebar-trigger"
                         >
                             🤖 Asistente IA
                         </Link>

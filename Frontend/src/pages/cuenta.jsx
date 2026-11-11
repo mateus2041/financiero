@@ -2,7 +2,9 @@ import React, { useEffect, useState } from "react";
 import Chart from "chart.js/auto";
 import { useNavigate, Link } from "react-router-dom";
 import ChatIA from "./ChatIA";
+import AsistenteMovil from "../components/AsistenteMovil";
 import "../styles/cuenta.css";
+import "../styles/navegacionMovil.css";
 
 const Cuenta = () => {
 
@@ -390,6 +392,8 @@ const Cuenta = () => {
         ☰
       </button>
 
+      <AsistenteMovil onClick={() => setAsistenteAbierto(true)} />
+
       <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
 
         <ul>
@@ -539,7 +543,6 @@ const Cuenta = () => {
           </li>
 
           <li>
-
             <Link
               to="/desbloquear-cuenta"
               className="btn-nav"
@@ -549,25 +552,14 @@ const Cuenta = () => {
             </Link>
 
           </li>
-
-
-
-
-          {/* BOTON NUEVO CHAT IA */}
-
           <li>
-
             <button
               type="button"
-              className="btn-nav"
+              className="btn-nav asistente-sidebar-trigger"
               onClick={() => setAsistenteAbierto(true)}
             >
-
               🤖 Asistente IA
-
             </button>
-
-
           </li>
 
 

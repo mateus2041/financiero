@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import ChatIA from "./ChatIA";
+import AsistenteMovil from "../components/AsistenteMovil";
 import "../styles/reporta.css";
+import "../styles/navegacionMovil.css";
 
 function Reporte() {
   const [reporte, setReporte] = useState([]);
@@ -213,6 +215,8 @@ function Reporte() {
         >
           ☰
         </button>
+
+        <AsistenteMovil onClick={() => setAsistenteAbierto(true)} />
   
         <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
   
@@ -367,22 +371,15 @@ function Reporte() {
             {/* BOTON NUEVO CHAT IA */}
   
             <li>
-  
               <button
                 type="button"
-                className="btn-nav"
+                className="btn-nav asistente-sidebar-trigger"
                 onClick={() => setAsistenteAbierto(true)}
               >
-  
                 🤖 Asistente IA
-  
               </button>
-  
-  
             </li>
-  
-  
-  
+
           </ul>
   
   
