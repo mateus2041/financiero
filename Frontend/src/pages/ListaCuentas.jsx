@@ -37,6 +37,8 @@ export default function ListaCuentas() {
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [cuentaSeleccionada, setCuentaSeleccionada] = useState(null);
+  const [cuentaSaldoSeleccionada, setCuentaSaldoSeleccionada] =
+    useState(null);
 
   const [autorizandoSaldo, setAutorizandoSaldo] = useState(false);
   const [editandoSaldo, setEditandoSaldo] = useState(false);
@@ -51,7 +53,6 @@ export default function ListaCuentas() {
 
   const [usuarioNuevaCuenta, setUsuarioNuevaCuenta] = useState(null);
   const [opcionNuevaCuenta, setOpcionNuevaCuenta] = useState("ahorros");
-  const [nuevoSaldoCuenta, setNuevoSaldoCuenta] = useState("0");
   const [guardandoCuenta, setGuardandoCuenta] = useState(false);
   const [mostrarMensajeAdmin, setMostrarMensajeAdmin] = useState(false);
   const [mensajeAdmin, setMensajeAdmin] = useState("");
@@ -98,6 +99,9 @@ export default function ListaCuentas() {
       cuenta.estado,
       cuenta.id_cuenta,
       cuenta.usuario,
+      cuenta.rol,
+      cuenta.usuario?.nombre,
+      cuenta.usuario?.documento,
     ].some((valor) =>
       normalizarTexto(valor).includes(textoBusqueda)
     );
@@ -125,10 +129,19 @@ export default function ListaCuentas() {
         }
       );
 
-      const cuentasUsuario = (respuesta.data?.cuentas || []).filter(
-        (cuenta) =>
-          String(cuenta.rol || "").toLowerCase() === "usuario"
-      );
+      const cuentasRecibidas = Array.isArray(respuesta.data)
+        ? respuesta.data
+        : respuesta.data?.cuentas || [];
+
+      const cuentasUsuario = cuentasRecibidas.filter((cuenta) => {
+        const rolCuenta = String(
+          cuenta.rol || cuenta.usuario?.rol || cuenta.role || ""
+        )
+          .trim()
+          .toLowerCase();
+
+        return rolCuenta === "" || rolCuenta === "usuario";
+      });
 
       setCuentas(cuentasUsuario);
     } catch (error) {
@@ -218,21 +231,10 @@ export default function ListaCuentas() {
         ? "credito"
         : "ahorros"
     );
-
-    setNuevoSaldoCuenta("0");
   };
 
   const crearNuevaCuenta = async (evento) => {
     evento.preventDefault();
-
-    const saldo = Number(nuevoSaldoCuenta);
-
-    if (!Number.isFinite(saldo) || saldo < 0) {
-      setError(
-        "Ingrese un saldo válido mayor o igual a cero."
-      );
-      return;
-    }
 
     try {
       setError("");
@@ -253,7 +255,6 @@ export default function ListaCuentas() {
               ? "credito"
               : "debito",
           opcion_cuenta: opcionNuevaCuenta,
-          saldo,
         },
         {
           headers: {
@@ -309,9 +310,12 @@ export default function ListaCuentas() {
     return String(valor);
   };
 
-  const abrirEdicionSaldo = () => {
+  const abrirEdicionSaldo = (cuenta) => {
+    setCuentaSaldoSeleccionada(cuenta);
     setCodigoAutorizacion("");
+    setNuevoSaldo(String(cuenta.saldo ?? ""));
     setError("");
+    setMensaje("");
     setAutorizandoSaldo(true);
   };
 
@@ -320,7 +324,7 @@ export default function ListaCuentas() {
 
     if (!codigoAutorizacion.trim()) {
       setError(
-        "Ingrese el código de administrador o asesor."
+        "Ingrese el código del asesor."
       );
       return;
     }
@@ -333,7 +337,7 @@ export default function ListaCuentas() {
       const token = localStorage.getItem("token");
 
       await axios.post(
-        `${API_URL}/administradores/cuenta/${cuentaSeleccionada.id_cuenta}/autorizar-saldo`,
+        `${API_URL}/administradores/cuenta/${cuentaSaldoSeleccionada.id_cuenta}/autorizar-saldo`,
         {
           codigo_autorizacion:
             codigoAutorizacion.trim(),
@@ -346,7 +350,7 @@ export default function ListaCuentas() {
       );
 
       setNuevoSaldo(
-        String(cuentaSeleccionada.saldo ?? "")
+        String(cuentaSaldoSeleccionada.saldo ?? "")
       );
 
       setAutorizandoSaldo(false);
@@ -377,7 +381,7 @@ export default function ListaCuentas() {
 
     if (!codigoAutorizacion.trim()) {
       setError(
-        "Ingrese el código de administrador o asesor."
+        "Ingrese el código del asesor."
       );
       return;
     }
@@ -390,7 +394,7 @@ export default function ListaCuentas() {
       const token = localStorage.getItem("token");
 
       const respuesta = await axios.put(
-        `${API_URL}/administradores/cuenta/${cuentaSeleccionada.id_cuenta}/saldo`,
+        `${API_URL}/administradores/cuenta/${cuentaSaldoSeleccionada.id_cuenta}/saldo`,
         {
           saldo,
           codigo_autorizacion:
@@ -409,7 +413,7 @@ export default function ListaCuentas() {
       setCuentas((cuentasActuales) =>
         cuentasActuales.map((cuenta) =>
           cuenta.id_cuenta ===
-          cuentaSeleccionada.id_cuenta
+          cuentaSaldoSeleccionada.id_cuenta
             ? {
                 ...cuenta,
                 saldo: saldoActualizado,
@@ -418,12 +422,14 @@ export default function ListaCuentas() {
         )
       );
 
-      setCuentaSeleccionada((cuenta) => ({
-        ...cuenta,
-        saldo: saldoActualizado,
-      }));
+      setCuentaSeleccionada((cuenta) =>
+        cuenta?.id_cuenta === cuentaSaldoSeleccionada.id_cuenta
+          ? { ...cuenta, saldo: saldoActualizado }
+          : cuenta
+      );
 
       setEditandoSaldo(false);
+      setCuentaSaldoSeleccionada(null);
       setCodigoAutorizacion("");
 
       setMensaje(
@@ -648,7 +654,7 @@ export default function ListaCuentas() {
     localStorage.removeItem("documento");
     localStorage.removeItem("fotoPerfil");
 
-    navigate("/login");
+    navigate("/");
   };
 
   return (
@@ -980,6 +986,11 @@ export default function ListaCuentas() {
                         "activa",
                         "activo",
                       ].includes(estado);
+                      const claseEstado = cuentaActiva
+                        ? "activo"
+                        : ["inactiva", "inactivo"].includes(estado)
+                          ? "inactivo"
+                          : "";
 
                       return (
                         <tr
@@ -1006,13 +1017,30 @@ export default function ListaCuentas() {
 
                           <td>
                             <span
-                              className={`estado-cuenta ${estado}`}
+                              className={`estado-cuenta ${claseEstado}`}
                             >
                               {cuenta.estado}
                             </span>
                           </td>
 
                           <td className="acciones-cuenta">
+                            {esAsesor && (
+                              <button
+                                type="button"
+                                className="boton-asignar-saldo"
+                                onClick={() =>
+                                  abrirEdicionSaldo(cuenta)
+                                }
+                                aria-label={`Asignar saldo a la cuenta ${
+                                  cuenta.numero_cuenta ||
+                                  cuenta.id_cuenta
+                                }`}
+                                title="Asignar saldo"
+                              >
+                                💵
+                              </button>
+                            )}
+
                             <button
                               type="button"
                               className={
@@ -1139,24 +1167,6 @@ export default function ListaCuentas() {
                   : "Se creará una cuenta de ahorros adicional."}
               </p>
 
-              <label htmlFor="nuevo-saldo-cuenta">
-                Saldo inicial
-              </label>
-
-              <input
-                id="nuevo-saldo-cuenta"
-                type="number"
-                min="0"
-                step="0.01"
-                value={nuevoSaldoCuenta}
-                onChange={(evento) =>
-                  setNuevoSaldoCuenta(
-                    evento.target.value
-                  )
-                }
-                required
-              />
-
               <div className="acciones-formulario-saldo">
                 <button
                   type="button"
@@ -1183,7 +1193,11 @@ export default function ListaCuentas() {
           </div>
         )}
 
-        {cuentaSeleccionada && (
+        {(cuentaSeleccionada ||
+          autorizandoSaldo ||
+          editandoSaldo ||
+          autorizandoTipoOperacion ||
+          editandoTipoOperacion) && (
           <div
             className="modal-cuenta-overlay"
             role="presentation"
@@ -1191,74 +1205,77 @@ export default function ListaCuentas() {
               setCuentaSeleccionada(null)
             }
           >
-            <section
-              className="modal-cuenta"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="titulo-modal-cuenta"
-              onClick={(evento) =>
-                evento.stopPropagation()
-              }
-            >
-              <div className="encabezado-modal-cuenta">
-                <h2 id="titulo-modal-cuenta">
-                  Información de la cuenta
-                </h2>
+            {cuentaSeleccionada && (
+              <section
+                className="modal-cuenta"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="titulo-modal-cuenta"
+                onClick={(evento) =>
+                  evento.stopPropagation()
+                }
+              >
+                <div className="encabezado-modal-cuenta">
+                  <h2 id="titulo-modal-cuenta">
+                    Información de la cuenta
+                  </h2>
 
-                <button
-                  type="button"
-                  className="boton-cerrar-modal"
-                  onClick={() =>
-                    setCuentaSeleccionada(null)
-                  }
-                  aria-label="Cerrar información de la cuenta"
-                >
-                  ×
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    className="boton-cerrar-modal"
+                    onClick={() =>
+                      setCuentaSeleccionada(null)
+                    }
+                    aria-label="Cerrar información de la cuenta"
+                  >
+                    ×
+                  </button>
+                </div>
 
-              <div className="detalles-cuenta">
-                {Object.entries(cuentaSeleccionada)
-                  .filter(
-                    ([clave]) =>
-                      ![
-                        "id_cuenta",
-                        "id_usuario",
-                        "tipos_cuenta",
-                      ].includes(clave)
-                  )
-                  .map(([clave, valor]) => (
-                    <div
-                      className="detalle-cuenta"
-                      key={clave}
-                    >
-                      <strong>
-                        {clave.replaceAll(
-                          "_",
-                          " "
-                        )}
-                      </strong>
-
-                      <div className="valor-detalle-cuenta">
-                        <span>
-                          {formatearValor(
-                            clave,
-                            valor
+                <div className="detalles-cuenta">
+                  {Object.entries(cuentaSeleccionada)
+                    .filter(
+                      ([clave]) =>
+                        ![
+                          "id_cuenta",
+                          "id_usuario",
+                          "tipos_cuenta",
+                        ].includes(clave)
+                    )
+                    .map(([clave, valor]) => (
+                      <div
+                        className="detalle-cuenta"
+                        key={clave}
+                      >
+                        <strong>
+                          {clave.replaceAll(
+                            "_",
+                            " "
                           )}
-                        </span>
+                        </strong>
+
+                        <div className="valor-detalle-cuenta">
+                          <span>
+                            {formatearValor(
+                              clave,
+                              valor
+                            )}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-              </div>
-            </section>
+                    ))}
+                </div>
+              </section>
+            )}
 
             {autorizandoSaldo && (
               <div
                 className="modal-edicion-overlay"
                 role="presentation"
-                onClick={() =>
-                  setAutorizandoSaldo(false)
-                }
+                onClick={() => {
+                  setAutorizandoSaldo(false);
+                  setCuentaSaldoSeleccionada(null);
+                }}
               >
                 <form
                   className="modal-edicion-saldo"
@@ -1270,12 +1287,15 @@ export default function ListaCuentas() {
                   }
                 >
                   <h2>
-                    Autorización para editar saldo
+                    Autorizar saldo de la cuenta
                   </h2>
 
                   <p>
-                    Ingrese el código de administrador
-                    o asesor.
+                    Cuenta{" "}
+                    {cuentaSaldoSeleccionada?.numero_cuenta ||
+                      cuentaSaldoSeleccionada?.id_cuenta}
+                    . Ingrese el código del asesor para
+                    continuar.
                   </p>
 
                   <label htmlFor="codigo-autorizacion">
@@ -1300,9 +1320,10 @@ export default function ListaCuentas() {
                     <button
                       type="button"
                       className="boton-cancelar-saldo"
-                      onClick={() =>
-                        setAutorizandoSaldo(false)
-                      }
+                      onClick={() => {
+                        setAutorizandoSaldo(false);
+                        setCuentaSaldoSeleccionada(null);
+                      }}
                       disabled={guardandoSaldo}
                     >
                       Cancelar
@@ -1326,9 +1347,10 @@ export default function ListaCuentas() {
               <div
                 className="modal-edicion-overlay"
                 role="presentation"
-                onClick={() =>
-                  setEditandoSaldo(false)
-                }
+                onClick={() => {
+                  setEditandoSaldo(false);
+                  setCuentaSaldoSeleccionada(null);
+                }}
               >
                 <form
                   className="modal-edicion-saldo"
@@ -1340,11 +1362,17 @@ export default function ListaCuentas() {
                   }
                 >
                   <h2>
-                    Editar saldo de la cuenta
+                    Asignar saldo a la cuenta
                   </h2>
 
+                  <p>
+                    Cuenta{" "}
+                    {cuentaSaldoSeleccionada?.numero_cuenta ||
+                      cuentaSaldoSeleccionada?.id_cuenta}
+                  </p>
+
                   <label htmlFor="nuevo-saldo">
-                    Nuevo saldo
+                    Saldo que tendrá la cuenta
                   </label>
 
                   <input
@@ -1365,9 +1393,10 @@ export default function ListaCuentas() {
                     <button
                       type="button"
                       className="boton-cancelar-saldo"
-                      onClick={() =>
-                        setEditandoSaldo(false)
-                      }
+                      onClick={() => {
+                        setEditandoSaldo(false);
+                        setCuentaSaldoSeleccionada(null);
+                      }}
                       disabled={guardandoSaldo}
                     >
                       Cancelar

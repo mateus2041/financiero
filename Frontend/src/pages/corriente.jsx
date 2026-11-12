@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import ChatIA from "./ChatIA";
+import AsistenteMovil from "../components/AsistenteMovil";
 import "../styles/corriente.css";
+import "../styles/navegacionMovil.css";
 
 const API_BASE_URL = "http://localhost:8000";
 const HISTORIAL_LOCAL_KEY = "historial_transferencias";
@@ -446,6 +448,8 @@ export default function Transferencia() {
         ☰
       </button>
 
+      <AsistenteMovil onClick={() => setAsistenteAbierto(true)} />
+
       <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
 
         <ul>
@@ -530,7 +534,7 @@ export default function Transferencia() {
           <li>
             <button
               type="button"
-              className="btn-nav"
+              className="btn-nav asistente-sidebar-trigger"
               onClick={() => setAsistenteAbierto(true)}
             >
               🤖 Asistente IA
