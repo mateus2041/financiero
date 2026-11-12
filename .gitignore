@@ -1,11 +1,15 @@
-﻿# Python / UV
+# Python / UV
 .venv/
+venv/
 __pycache__/
-*.pyc
+*.py[cod]
 .env
+.env.*
+!.env.example
 .scripts
 .pytest_cache/
 .vscode/
+.idea/
 
 # Dependencias de Node.js en cualquier nivel del proyecto
 node_modules/
