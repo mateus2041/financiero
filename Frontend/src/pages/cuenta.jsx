@@ -1,7 +1,10 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Chart from "chart.js/auto";
 import { useNavigate, Link } from "react-router-dom";
+import ChatIA from "./ChatIA";
+import AsistenteMovil from "../components/AsistenteMovil";
 import "../styles/cuenta.css";
+import "../styles/navegacionMovil.css";
 
 const Cuenta = () => {
 
@@ -40,6 +43,7 @@ const Cuenta = () => {
     () => localStorage.getItem("fotoPerfil") || ""
   );
   const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
+  const [asistenteAbierto, setAsistenteAbierto] = useState(false);
 
   const mostrarCuentaCorriente = estadoCuentaCorriente === "activa";
   const mostrarCuentaAhorro = estadoCuentaAhorro === "activa";
@@ -102,6 +106,17 @@ const Cuenta = () => {
 
     return () => window.removeEventListener("resize", actualizarEstadoMenu);
   }, []);
+
+  useEffect(() => {
+    if (!asistenteAbierto) return undefined;
+
+    const cerrarConEscape = (event) => {
+      if (event.key === "Escape") setAsistenteAbierto(false);
+    };
+
+    document.addEventListener("keydown", cerrarConEscape);
+    return () => document.removeEventListener("keydown", cerrarConEscape);
+  }, [asistenteAbierto]);
 
   useEffect(() => {
 
@@ -377,6 +392,8 @@ const Cuenta = () => {
         ☰
       </button>
 
+      <AsistenteMovil onClick={() => setAsistenteAbierto(true)} />
+
       <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
 
         <ul>
@@ -526,7 +543,6 @@ const Cuenta = () => {
           </li>
 
           <li>
-
             <Link
               to="/desbloquear-cuenta"
               className="btn-nav"
@@ -536,24 +552,14 @@ const Cuenta = () => {
             </Link>
 
           </li>
-
-
-
-
-          {/* BOTON NUEVO CHAT IA */}
-
           <li>
-
-            <Link
-              to="/ChatIA"
-              className="btn-nav"
+            <button
+              type="button"
+              className="btn-nav asistente-sidebar-trigger"
+              onClick={() => setAsistenteAbierto(true)}
             >
-
               🤖 Asistente IA
-
-            </Link>
-
-
+            </button>
           </li>
 
 
@@ -725,6 +731,23 @@ const Cuenta = () => {
 
 
       </main>
+
+      {asistenteAbierto && (
+        <div
+          className="asistente-modal-overlay"
+          onClick={() => setAsistenteAbierto(false)}
+        >
+          <div
+            className="asistente-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="asistente-titulo"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <ChatIA onClose={() => setAsistenteAbierto(false)} />
+          </div>
+        </div>
+      )}
 
     </div>
 

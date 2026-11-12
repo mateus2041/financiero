@@ -545,28 +545,25 @@ SELECT id_usuario, nombre, rol
 FROM usuario
 WHERE id_usuario = 2;
 -- SQLBook: Code
-<<<<<<< HEAD
 UPDATE usuario
-SET email = 'kirogamateus@gmail.com'
-<<<<<<< HEAD
-WHERE id_usuario = 10;
+SET email = 'luisssm@gmail.com'
+
+WHERE id_usuario = 25;
 
 SELECT id_usuario, nombre, email
 FROM usuario
-WHERE id_usuario = 10;
-=======
-WHERE id_usuario = 4;
+WHERE id_usuario = 25;
+
+WHERE id_usuario = 25;
 
 SELECT id_usuario, nombre, email
 FROM usuario
-WHERE id_usuario = 4;
+WHERE id_usuario = 25;
 -- SQLBook: Code
 USE billetera;
 
 DELETE FROM usuario
 WHERE id_usuario BETWEEN 701 AND 1004;
-
->>>>>>> develop
 -- SQLBook: Code
 
 USE billetera;
@@ -699,4 +696,165 @@ SHOW COLUMNS FROM asesores_banco LIKE 'id_usuario';
 SHOW INDEX FROM asesores_banco;
 -- SQLBook: Code
 ALTER TABLE asesores_banco DROP COLUMN id_usuario;
->>>>>>> develop
+
+
+-- SQLBook: Code
+USE billetera;
+
+START TRANSACTION;
+
+INSERT INTO usuario (
+    nombre, email, password, telefono, direccion, codigo_postal,
+    ciudad, localidad, barrio, llave_bre_b, documento, rol,
+    codigo_registro, estado, tope_ahorros, tope_corriente,
+    fecha_creacion, id_tipo_doc
+)
+SELECT
+    datos.nombre,
+    datos.email,
+    datos.password,
+    datos.telefono,
+    datos.direccion,
+    datos.codigo_postal,
+    datos.ciudad,
+    datos.localidad,
+    datos.barrio,
+    datos.llave_bre_b,
+    datos.documento,
+    datos.rol,
+    datos.codigo_registro,
+    datos.estado,
+    datos.tope_ahorros,
+    datos.tope_corriente,
+    CURRENT_TIMESTAMP,
+    datos.id_tipo_doc
+FROM (
+    SELECT
+        'Mateo Alejandro Cardenas Rivas' AS nombre,
+        'luissmate89@gmail.com' AS email,
+        '$argon2id$v=19$m=65536,t=3,p=4$I6T03ntvrZUSIqSU8p6TUg$HsOTH4aIlWXnHKHCHNuPAEUbriAWUFMNwiSDQv6WyS8' AS password,
+        '0000000001' AS telefono,
+        'Calle 10 # 20-01' AS direccion,
+        '110001' AS codigo_postal,
+        'Bogota' AS ciudad,
+        'Usaquen' AS localidad,
+        'Santa Ana' AS barrio,
+        'prueba0001' AS llave_bre_b,
+        'TESTDOC000001' AS documento,
+        'usuario' AS rol,
+        '900001' AS codigo_registro,
+        'activo' AS estado,
+        5000000 AS tope_ahorros,
+        3000000 AS tope_corriente,
+        1 AS id_tipo_doc
+    UNION ALL
+    SELECT
+        'Sebastian Emiliano Torres Beltran',
+        'kirogmateus@gmail.com',
+        '$argon2id$v=19$m=65536,t=3,p=4$I6T03ntvrZUSIqSU8p6TUg$HsOTH4aIlWXnHKHCHNuPAEUbriAWUFMNwiSDQv6WyS8',
+        '0000000002',
+        'Carrera 11 # 21-02',
+        '110002',
+        'Bogota',
+        'Suba',
+        'El Prado',
+        'prueba0002',
+        'TESTDOC000002',
+        'usuario',
+        '900002',
+        'activo',
+        5000000,
+        3000000,
+        1
+    UNION ALL
+    SELECT
+        'Nicolas Esteban Valderrama Cruz',
+        'finaciero2026@gmail.com',
+        '$argon2id$v=19$m=65536,t=3,p=4$I6T03ntvrZUSIqSU8p6TUg$HsOTH4aIlWXnHKHCHNuPAEUbriAWUFMNwiSDQv6WyS8',
+        '0000000003',
+        'Calle 12 # 22-03',
+        '110003',
+        'Bogota',
+        'Kennedy',
+        'Timiza',
+        'prueba0003',
+        'TESTDOC000003',
+        'usuario',
+        '900003',
+        'activo',
+        5000000,
+        3000000,
+        1
+) AS datos
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM usuario AS u
+    WHERE BINARY LOWER(TRIM(u.email)) =
+          BINARY LOWER(TRIM(datos.email))
+);
+
+INSERT INTO cuentas (
+    numero_cuenta, id_usuario, tipo_cuenta, tipo_operacion, saldo, estado
+)
+SELECT
+    CONCAT('9', LPAD(u.id_usuario, 15, '0')),
+    u.id_usuario,
+    'corriente',
+    'debito',
+    0,
+    'inactiva'
+FROM usuario AS u
+WHERE (
+       (BINARY LOWER(TRIM(u.email)) = BINARY 'luissmate89@gmail.com'
+        AND u.nombre = 'Mateo Alejandro Cardenas Rivas')
+    OR (BINARY LOWER(TRIM(u.email)) = BINARY 'kirogmateus@gmail.com'
+        AND u.nombre = 'Sebastian Emiliano Torres Beltran')
+    OR (BINARY LOWER(TRIM(u.email)) = BINARY 'finaciero2026@gmail.com'
+        AND u.nombre = 'Nicolas Esteban Valderrama Cruz')
+)
+AND NOT EXISTS (
+    SELECT 1
+    FROM cuentas AS c
+    WHERE c.id_usuario = u.id_usuario
+      AND c.tipo_cuenta = 'corriente'
+)
+AND NOT EXISTS (
+    SELECT 1
+    FROM cuentas AS c
+    WHERE BINARY c.numero_cuenta =
+          BINARY CONCAT('9', LPAD(u.id_usuario, 15, '0'))
+);
+
+COMMIT;
+-- SQLBook: Code
+USE billetera;
+
+UPDATE usuario
+SET documento = '1043219876'
+WHERE id_usuario = 28;
+-- SQLBook: Code
+USE billetera;
+
+UPDATE usuario
+SET email = 'luisssmateus802@gmail.com'
+WHERE id_usuario = 25;
+-- SQLBook: Code
+START TRANSACTION;
+
+SET @id_usuario = 4;
+
+DELETE FROM notificaciones
+WHERE id_usuario = @id_usuario;
+
+DELETE t
+FROM tarjetas AS t
+JOIN cuentas AS c ON c.id_cuenta = t.id_cuenta
+WHERE c.id_usuario = @id_usuario;
+
+DELETE FROM cuentas
+WHERE id_usuario = @id_usuario;
+
+DELETE FROM usuario
+WHERE id_usuario = @id_usuario;
+
+COMMIT;

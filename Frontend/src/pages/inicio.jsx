@@ -4,18 +4,21 @@ import "../styles/inicio.css";
 import logo from "../assets/images/logo.jpeg";
 import Login from "./login";
 import Registro from "./registro";
+import ChatIA from "./chat";
 
 function Home() {
   const [modalActivo, setModalActivo] = useState(null);
+  const [chatAbierto, setChatAbierto] = useState(false);
 
   useEffect(() => {
     const cerrarConEscape = (event) => {
       if (event.key === "Escape") {
         setModalActivo(null);
+        setChatAbierto(false);
       }
     };
 
-    if (modalActivo) {
+    if (modalActivo || chatAbierto) {
       document.addEventListener("keydown", cerrarConEscape);
       document.body.style.overflow = "hidden";
     }
@@ -24,7 +27,7 @@ function Home() {
       document.removeEventListener("keydown", cerrarConEscape);
       document.body.style.overflow = "";
     };
-  }, [modalActivo]);
+  }, [modalActivo, chatAbierto]);
 
   return (
     <div className="home-container">
@@ -130,6 +133,36 @@ function Home() {
             ) : (
               <Login isModal />
             )}
+          </div>
+        </div>
+      )}
+
+      <button
+        className="home-chat-trigger"
+        type="button"
+        aria-label="Abrir asistente virtual"
+        onClick={() => setChatAbierto(true)}
+      >
+        🤖
+      </button>
+
+      {chatAbierto && (
+        <div
+          className="asistente-modal-overlay home-chat-modal-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setChatAbierto(false);
+            }
+          }}
+        >
+          <div
+            className="asistente-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="asistente-titulo"
+          >
+            <ChatIA compacto onClose={() => setChatAbierto(false)} />
           </div>
         </div>
       )}
