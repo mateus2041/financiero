@@ -2,7 +2,9 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import ChatIA from "./ChatIA";
+import AsistenteMovil from "../components/AsistenteMovil";
 import "../styles/transferencias.css";
+import "../styles/navegacionMovil.css";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -244,6 +246,8 @@ export default function RegistrarLlaveBreB({ isModal = false }) {
                 ☰
             </button>
 
+            <AsistenteMovil onClick={() => setAsistenteAbierto(true)} />
+
             <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
 
                 <ul>
@@ -327,7 +331,7 @@ export default function RegistrarLlaveBreB({ isModal = false }) {
                         <li>
                             <button
                                 type="button"
-                                className="sidebar-link asistente-trigger"
+                                className="sidebar-link asistente-trigger asistente-sidebar-trigger"
                                 onClick={() => setAsistenteAbierto(true)}
                             >
                                 🤖 Asistente IA

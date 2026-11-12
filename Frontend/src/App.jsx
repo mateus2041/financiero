@@ -12,6 +12,7 @@ import ListaCuentas from "./pages/ListaCuentas";
 import Cuenta from "./pages/cuenta";
 import Historial from "./pages/historial";
 import DesbloquearTarjeta from "./pages/desbloquearTarjeta";
+import Chatbot from "./pages/chat";
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
       <Route path="/historial" element={<Historial />} />
       <Route path="/desbloquear-tarjeta" element={<DesbloquearTarjeta />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="/chat" element={<Chatbot />} />
     </Routes>
   );
 }
