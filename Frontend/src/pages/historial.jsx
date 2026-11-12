@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import ChatIA from "./ChatIA";
+import AsistenteMovil from "../components/AsistenteMovil";
 import "../styles/historial.css";
+import "../styles/navegacionMovil.css";
 
 const HISTORIAL_LOCAL_KEY = "historial_transferencias";
 const HISTORIAL_LEGACY_KEY = "historial";
@@ -289,6 +291,8 @@ function Historial({ isModal = false }) {
                 </button>
             )}
 
+            {!isModal && <AsistenteMovil onClick={() => setAsistenteAbierto(true)} />}
+
             {!isModal && (
             <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
                 <ul>
@@ -341,6 +345,11 @@ function Historial({ isModal = false }) {
                                         🧾 Transferir
                                     </Link>
                                 </li>
+                                <li>
+                                <Link to="/transferencias-scr">
+                                 📤 Registrar Llave Bre-B
+                                </Link>             
+                                </li>
 
                             </ul>
                         )}
@@ -363,15 +372,14 @@ function Historial({ isModal = false }) {
                             ⚙️ Ajustes
                         </Link>
                     </li>
-
+                    
                     <li>
-                        <button
-                            type="button"
-                            className="btn-nav"
-                            onClick={() => setAsistenteAbierto(true)}
+                     <Link
+                        to="/desbloquear-cuenta"
+                        className="btn-nav"            
                         >
-                            🤖 Asistente IA
-                        </button>
+                         🚫 bloque de trajeta 
+                        </Link>
                     </li>
 
                 </ul>

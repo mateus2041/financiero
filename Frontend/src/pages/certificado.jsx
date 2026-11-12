@@ -2,7 +2,9 @@ import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import html2pdf from "html2pdf.js";
 import ChatIA from "./ChatIA";
+import AsistenteMovil from "../components/AsistenteMovil";
 import "../styles/Certificado.css";
+import "../styles/navegacionMovil.css";
 
 const obtenerFechaLocal = () => {
   const fecha = new Date();
@@ -320,6 +322,8 @@ const CertificadoBancario = () => {
         ☰
       </button>
 
+      <AsistenteMovil onClick={() => setAsistenteAbierto(true)} />
+
       {/* SIDEBAR */}
       <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
 
@@ -398,12 +402,20 @@ const CertificadoBancario = () => {
               ⚙️ Ajustes
             </Link>
           </li>
+          <li>
+            <Link
+              to="/desbloquear-cuenta"
+              className="btn-nav"
+            >
+              🚫 bloque de trajeta 
+            </Link>
+          </li>
 
           {/* BOTÓN NUEVO CHAT IA */}
           <li>
             <button
               type="button"
-              className="btn-nav"
+              className="btn-nav asistente-sidebar-trigger"
               onClick={() => setAsistenteAbierto(true)}
             >
               🤖 Asistente IA
