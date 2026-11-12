@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import ChatIA from "./ChatIA";
+import AsistenteMovil from "../components/AsistenteMovil";
 import "../styles/historial.css";
+import "../styles/navegacionMovil.css";
 
 const HISTORIAL_LOCAL_KEY = "historial_transferencias";
 const HISTORIAL_LEGACY_KEY = "historial";
@@ -289,6 +291,8 @@ function Historial({ isModal = false }) {
                 </button>
             )}
 
+            {!isModal && <AsistenteMovil onClick={() => setAsistenteAbierto(true)} />}
+
             {!isModal && (
             <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
                 <ul>
@@ -376,16 +380,6 @@ function Historial({ isModal = false }) {
                         >
                          🚫 bloque de trajeta 
                         </Link>
-                    </li>
-
-                    <li>
-                        <button
-                            type="button"
-                            className="btn-nav"
-                            onClick={() => setAsistenteAbierto(true)}
-                        >
-                            🤖 Asistente IA
-                        </button>
                     </li>
 
                 </ul>

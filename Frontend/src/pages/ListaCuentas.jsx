@@ -53,7 +53,6 @@ export default function ListaCuentas() {
 
   const [usuarioNuevaCuenta, setUsuarioNuevaCuenta] = useState(null);
   const [opcionNuevaCuenta, setOpcionNuevaCuenta] = useState("ahorros");
-  const [nuevoSaldoCuenta, setNuevoSaldoCuenta] = useState("0");
   const [guardandoCuenta, setGuardandoCuenta] = useState(false);
   const [mostrarMensajeAdmin, setMostrarMensajeAdmin] = useState(false);
   const [mensajeAdmin, setMensajeAdmin] = useState("");
@@ -100,6 +99,9 @@ export default function ListaCuentas() {
       cuenta.estado,
       cuenta.id_cuenta,
       cuenta.usuario,
+      cuenta.rol,
+      cuenta.usuario?.nombre,
+      cuenta.usuario?.documento,
     ].some((valor) =>
       normalizarTexto(valor).includes(textoBusqueda)
     );
@@ -127,10 +129,19 @@ export default function ListaCuentas() {
         }
       );
 
-      const cuentasUsuario = (respuesta.data?.cuentas || []).filter(
-        (cuenta) =>
-          String(cuenta.rol || "").toLowerCase() === "usuario"
-      );
+      const cuentasRecibidas = Array.isArray(respuesta.data)
+        ? respuesta.data
+        : respuesta.data?.cuentas || [];
+
+      const cuentasUsuario = cuentasRecibidas.filter((cuenta) => {
+        const rolCuenta = String(
+          cuenta.rol || cuenta.usuario?.rol || cuenta.role || ""
+        )
+          .trim()
+          .toLowerCase();
+
+        return rolCuenta === "" || rolCuenta === "usuario";
+      });
 
       setCuentas(cuentasUsuario);
     } catch (error) {
@@ -220,21 +231,10 @@ export default function ListaCuentas() {
         ? "credito"
         : "ahorros"
     );
-
-    setNuevoSaldoCuenta("0");
   };
 
   const crearNuevaCuenta = async (evento) => {
     evento.preventDefault();
-
-    const saldo = Number(nuevoSaldoCuenta);
-
-    if (!Number.isFinite(saldo) || saldo < 0) {
-      setError(
-        "Ingrese un saldo válido mayor o igual a cero."
-      );
-      return;
-    }
 
     try {
       setError("");
@@ -255,7 +255,6 @@ export default function ListaCuentas() {
               ? "credito"
               : "debito",
           opcion_cuenta: opcionNuevaCuenta,
-          saldo,
         },
         {
           headers: {
@@ -1167,24 +1166,6 @@ export default function ListaCuentas() {
                   ? "Se verificará la cuenta principal y se configurará como crédito."
                   : "Se creará una cuenta de ahorros adicional."}
               </p>
-
-              <label htmlFor="nuevo-saldo-cuenta">
-                Saldo inicial
-              </label>
-
-              <input
-                id="nuevo-saldo-cuenta"
-                type="number"
-                min="0"
-                step="0.01"
-                value={nuevoSaldoCuenta}
-                onChange={(evento) =>
-                  setNuevoSaldoCuenta(
-                    evento.target.value
-                  )
-                }
-                required
-              />
 
               <div className="acciones-formulario-saldo">
                 <button
