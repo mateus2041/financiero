@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ChatIA from "./ChatIA";
+import AsistenteMovil from "../components/AsistenteMovil";
 import "../styles/ajustes.css";
+import "../styles/navegacionMovil.css";
 
 function AjustesPerfil() {
   const navigate = useNavigate();
@@ -376,6 +378,8 @@ function AjustesPerfil() {
         ☰
       </button>
 
+      <AsistenteMovil onClick={() => setAsistenteAbierto(true)} />
+
       <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
 
         <ul>
@@ -456,7 +460,7 @@ function AjustesPerfil() {
           <li>
             <button
               type="button"
-              className="btn-nav"
+              className="btn-nav asistente-sidebar-trigger"
               onClick={() => setAsistenteAbierto(true)}
             >
               🤖 Asistente IA

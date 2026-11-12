@@ -1,4 +1,8 @@
 from pathlib import Path
+
+import pytest
+from fastapi import HTTPException
+from pydantic import ValidationError
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -185,7 +189,7 @@ def test_login_sigue_con_el_acceso_si_falla_el_envio_del_correo(monkeypatch):
     db.close()
 
 
-def test_login_acepta_identificadores_alternos_y_migra_contrasena_legacy(monkeypatch):
+def test_login_solo_acepta_documento_y_migra_contrasena_legacy(monkeypatch):
     engine = create_engine("sqlite://")
     Base.metadata.create_all(bind=engine)
     SessionLocal = sessionmaker(bind=engine)
@@ -225,15 +229,25 @@ def test_login_acepta_identificadores_alternos_y_migra_contrasena_legacy(monkeyp
     assert usuario.password != password_legacy
     assert check_password("ClaveTemporal123!", usuario.password)
 
-    for identificador in ("luis@test.com", "1234567890123456"):
-        resultado = login(
+    with pytest.raises(ValidationError):
+        login(
             {
-                "documento": identificador,
+                "documento": "luis@test.com",
                 "password": "ClaveTemporal123!",
                 "rol": "usuario",
             },
             db=db,
         )
-        assert resultado["message"] == "Login exitoso"
+
+    with pytest.raises(HTTPException) as error:
+        login(
+            {
+                "documento": "1234567890123456",
+                "password": "ClaveTemporal123!",
+                "rol": "usuario",
+            },
+            db=db,
+        )
+    assert error.value.status_code == 404
 
     db.close()
