@@ -781,9 +781,7 @@ function ChatIA({ onClose, compacto = false }) {
           placeholder={
             esperandoLlaveBreB
               ? "Escribe la llave Bre-B de la persona..."
-              : escrituraDesbloqueada
-              ? "Escribe una pregunta..."
-              : "Pulsa «Desbloquear escritura» para escribir..."
+              : "Escribe una pregunta..."
           }
           value={pregunta}
           disabled={(!escrituraDesbloqueada && !esperandoLlaveBreB) || isLoading}
@@ -797,20 +795,9 @@ function ChatIA({ onClose, compacto = false }) {
           aria-label={
             esperandoLlaveBreB
               ? "Escribe la llave Bre-B del destinatario"
-              : escrituraDesbloqueada
-              ? "Escribe una pregunta para el asistente"
-              : "Escritura bloqueada; pulsa Desbloquear escritura para activarla"
+              : "Escribe una pregunta para el asistente"
           }
         />
-        <button
-          type="button"
-          className="chat-unlock-button"
-          onClick={() => setEscrituraDesbloqueada(true)}
-          disabled={isLoading}
-          aria-pressed={escrituraDesbloqueada}
-        >
-          {escrituraDesbloqueada ? "Escritura habilitada" : "Desbloquear escritura"}
-        </button>
         <button
           type="button"
           onClick={() => enviarPregunta()}
