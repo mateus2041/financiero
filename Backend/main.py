@@ -12,7 +12,7 @@ import json
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import case, func, or_, text
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from pydantic import BaseModel, EmailStr, Field
 from typing import Literal
 
@@ -136,6 +136,35 @@ app = FastAPI(
 )
 
 codigos_recuperacion = {}
+cors_allowed_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ALLOWED_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000",
+    ).split(",")
+    if origin.strip()
+]
+if not cors_allowed_origins or "*" in cors_allowed_origins:
+    raise RuntimeError(
+        "CORS_ALLOWED_ORIGINS debe enumerar uno o mas origenes concretos."
+    )
+
+
+@app.get("/health", include_in_schema=False)
+def health():
+    return {"status": "ok"}
+
+
+@app.get("/ready", include_in_schema=False)
+def readiness(db: Session = Depends(get_db)):
+    try:
+        db.execute(text("SELECT 1"))
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="database unavailable",
+        ) from exc
+    return {"status": "ready"}
 
 
 # ==========================================================
@@ -144,7 +173,7 @@ codigos_recuperacion = {}
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -38,6 +38,8 @@ function Registro({ isModal = false, onClose }) {
 
   // Nuevos campos
   const [direccion, setDireccion] = useState("");
+  const [fechaExpedicion, setFechaExpedicion] = useState("");
+  const [fechaNacimiento, setFechaNacimiento] = useState("");
   const [ciudad, setCiudad] = useState("");
   const [localidad, setLocalidad] = useState("");
   const [barrio, setBarrio] = useState("");
@@ -343,6 +345,22 @@ function Registro({ isModal = false, onClose }) {
               type="text"
               value={direccion}
               onChange={(e) => setDireccion(e.target.value)}
+            />
+
+            <label>Fecha de expedición del documento</label>
+            <input
+              name="fecha_expedicion"
+              type="date"
+              value={fechaExpedicion}
+              onChange={(e) => setFechaExpedicion(e.target.value)}
+            />
+
+            <label>Fecha de nacimiento</label>
+            <input
+              name="fecha_nacimiento"
+              type="date"
+              value={fechaNacimiento}
+              onChange={(e) => setFechaNacimiento(e.target.value)}
             />
 
             <div
