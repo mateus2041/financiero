@@ -42,9 +42,9 @@ Los estados **observado** y **presente** indican evidencia en archivos; no prueb
 ## Pendientes para cerrar la documentación
 
 1. Obtener y comparar la guía/rúbrica oficial de `3-proyecto`, `starter` y semanas 03–09.
-2. Resolver los marcadores de conflicto presentes en `Backend/docs/entregable-s02-planes.md` y `Backend/docs/migraciones.md`.
-3. Alinear la guía heredada de migraciones con `compose.yml`: el Compose actual no declara un servicio `migrate`.
-4. Ejecutar y registrar las pruebas y procedimientos operativos antes de afirmar aceptación.
+2. Resolver los marcadores de conflicto que siguen presentes en `Backend/docs/entregable-s02-planes.md`.
+3. Ensayar el perfil manual `maintenance` de migraciones en una base aislada y en una copia de una base existente.
+4. Ejecutar pruebas de aceptación y procedimientos de operación antes de afirmar aceptación formal.
 
 ## Enlaces y coherencia
 

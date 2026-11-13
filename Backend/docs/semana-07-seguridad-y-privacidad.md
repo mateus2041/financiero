@@ -22,7 +22,8 @@
 | Recuperación | Códigos de un solo uso, expiración, límites y respuestas que no enumeren usuarios. |
 | Tarjetas | Minimizar datos; no exponer ni registrar CVV o números completos. Revisar necesidad de almacenar estos campos. |
 | Secretos | Inyectar desde un gestor/entorno seguro; rotar secretos comprometidos y excluirlos del control de versiones. |
-| Transporte | HTTPS en despliegues y CORS restringido a orígenes necesarios. |
+| Transporte | HTTPS en despliegues y `CORS_ALLOWED_ORIGINS` con orígenes explícitos; el comodín no se admite. |
+| Firma de tokens | `SECRET_KEY` aleatoria de al menos 32 bytes; obligatoria fuera de desarrollo. |
 | Integridad | Transferencias atómicas, control de concurrencia e idempotencia según el contrato. |
 | IA/correo | Reducir datos enviados a terceros, documentar proveedor/retención y comunicar fallos explícitamente. |
 | Auditoría | Registrar operaciones sensibles sin incluir secretos ni datos completos de medios de pago. |
@@ -32,8 +33,9 @@
 1. El modelo `Tarjeta` incluye `codigo_seguridad`; confirmar si se persiste y eliminar su almacenamiento si no es estrictamente necesario y legalmente permitido.
 2. El plan de trabajo y los requisitos identifican permisos, transferencias y datos de tarjetas como pendientes de validación.
 3. Varias páginas del frontend usan direcciones locales; revisar configuración por entorno y evitar transmitir datos sensibles por canales no cifrados fuera de desarrollo.
-4. La configuración de Compose debe tratarse como local. No publicar puertos ni usar credenciales de desarrollo fuera de un entorno aislado.
-5. La cobertura de las medidas depende de revisión y pruebas; no se ha realizado una prueba de penetración ni una evaluación normativa como parte de esta entrega.
+4. En desarrollo, la clave JWT temporal invalida sesiones al reiniciar; debe definirse una clave fuerte antes de cualquier ambiente persistente.
+5. La configuración de Compose debe tratarse como local. No publicar puertos ni usar credenciales de desarrollo fuera de un entorno aislado.
+6. La cobertura de las medidas depende de revisión y pruebas; no se ha realizado una prueba de penetración ni una evaluación normativa como parte de esta entrega.
 
 ## Pruebas de seguridad priorizadas
 
@@ -45,4 +47,4 @@
 - Una transferencia fallida no deja un débito parcial y una repetición no duplica el efecto.
 - CORS, cookies/tokens, límites de tasa y manejo de errores se comprueban en el entorno acordado.
 
-**Referencias:** [Requisitos no funcionales](../Backend/docs/requirements/non-functional.md), [Restricciones](../Backend/docs/requirements/constraints.md), [modelos](../Backend/models.py).
+**Referencias:** [Requisitos no funcionales](../Backend/docs/requirements/non-functional.md), [Restricciones](../Backend/docs/requirements/constraints.md), [modelos](../Backend/models.py), [configuración de seguridad](../security.py).

@@ -1,75 +1,71 @@
-﻿# Migraciones de base de datos
+# Migraciones de base de datos
 
-Alembic es la Ãºnica vÃ­a para cambiar el esquema. Los modelos en `Backend/models.py` usan la misma `Base` y conexiÃ³n definidas en `Backend/database/database.py`. FastAPI ya no crea ni altera tablas durante su inicio.
+Alembic es la unica via para cambiar el esquema. FastAPI no crea ni modifica tablas al iniciar. Las migraciones no se ejecutan con `docker compose up`; se ejecutan como un paso operativo explicito para que una actualizacion no aplique DDL sin respaldo o revision.
 
-<<<<<<< HEAD
-## ConfiguraciÃ³n
-=======
-La revisión `91d8b15c4a22` copia a `asesores_banco` los datos que antes se obtenían mediante `id_usuario` y luego elimina esa columna. Aplique el cambio con `uv run alembic -c Backend/alembic.ini upgrade head` (o el comando equivalente de Docker Compose descrito abajo).
+## Configuracion
 
-## Configuración
->>>>>>> develop
+Compose lee las variables del archivo `.env` en la raiz del repositorio. Usa las credenciales de MySQL que ya correspondan al volumen persistente:
 
-Para ejecutar el backend fuera de Docker, configure en `.env` `DB_HOST=127.0.0.1`, `DB_PORT=3307`, `DB_USER`, `DB_PASSWORD` y `DB_NAME=billetera` (o una `DATABASE_URL` equivalente). Dentro de Compose, el host es `db` y el puerto `3306`; las credenciales Docker se suministran mediante `MYSQL_ROOT_PASSWORD`, `MYSQL_APP_USER` y `MYSQL_APP_PASSWORD`. Compose lee el archivo `.env` de la raÃ­z, junto a `compose.yml`; el ejemplo estÃ¡ en `Backend/.env.example`. AÃ±ada allÃ­ las variables Docker que falten sin reemplazar el `.env` real. `MYSQL_ROOT_PASSWORD` debe coincidir con la contraseÃ±a root del volumen MySQL existente; `MYSQL_APP_PASSWORD` debe coincidir con la contraseÃ±a de `MYSQL_APP_USER` (por defecto `app_user`). No copie contraseÃ±as reales a este documento ni a `alembic.ini`.
+- `MYSQL_ROOT_PASSWORD`
+- `MYSQL_APP_USER` (opcional; por defecto `app_user`)
+- `MYSQL_APP_PASSWORD`
+- `MYSQL_DATABASE` (opcional; por defecto `billetera`)
 
-## Desarrollo local en PowerShell
+El backend tambien usa `APP_ENV`, `SECRET_KEY` y `CORS_ALLOWED_ORIGINS`. En desarrollo, si `SECRET_KEY` esta vacia, el backend genera una clave temporal para ese proceso; los tokens dejan de ser validos al reiniciarlo. Fuera de desarrollo se requiere una clave aleatoria de al menos 32 bytes. No pongas secretos reales en plantillas ni en el control de versiones.
 
-Desde la raÃ­z del repositorio:
+## Aplicar migraciones con Compose
 
-```powershell
-uv sync
-uv run alembic -c Backend/alembic.ini revision --autogenerate -m "descripcion del cambio"
-uv run alembic -c Backend/alembic.ini upgrade head
-uv run alembic -c Backend/alembic.ini current
-uv run alembic -c Backend/alembic.ini history
-uv run alembic -c Backend/alembic.ini downgrade -1
-```
-
-Revise siempre el archivo generado antes de aplicar `upgrade`; investigue cualquier `drop_table`, `drop_column`, cambio de tipo o restricciÃ³n. El downgrade solo es seguro si la revisiÃ³n define operaciones inversas adecuadas; no recupera datos eliminados.
-
-El downgrade de la revisiÃ³n inicial elimina las tablas creadas por esa revisiÃ³n y, por tanto, sus datos. No lo ejecute contra una base con datos que quiera conservar. La revisiÃ³n de normalizaciÃ³n tampoco puede restaurar los nÃºmeros de cuenta que genere.
-
-## Docker Compose
-
-El servicio `migrate` espera a que `db` pase su healthcheck. El backend depende de que `migrate` finalice exitosamente, por lo que no hay dos procesos del backend migrando simultÃ¡neamente. Para crear una revisiÃ³n usando la conexiÃ³n de Docker:
+Revisa que el volumen/base seleccionados sean los esperados. Inicia MySQL, crea un respaldo, ejecuta el servicio del perfil `maintenance` (espera el healthcheck y aplica `upgrade head`) y luego inicia los servicios de la aplicacion:
 
 ```powershell
-docker compose run --rm migrate uv run alembic -c Backend/alembic.ini revision --autogenerate -m "descripcion del cambio"
-```
-
-Para consultar desde el backend activo:
-
-```powershell
-docker compose exec backend uv run alembic -c Backend/alembic.ini current
-docker compose exec backend uv run alembic -c Backend/alembic.ini history
-```
-
-El arranque normal aplica `upgrade head` en el job `migrate`. TambiÃ©n se puede ejecutar explÃ­citamente:
-
-```powershell
-docker compose run --rm migrate uv run alembic -c Backend/alembic.ini upgrade head
-docker compose exec backend uv run alembic -c Backend/alembic.ini downgrade -1
-```
-
-Reconstruya y arranque sin borrar volÃºmenes:
-
-```powershell
+docker compose up -d db
+python scripts\database_backup.py backup
+docker compose --profile maintenance run --rm migrate
 docker compose up -d --build
 ```
 
-No use `docker compose down -v`: el volumen `mysql_data` contiene la base persistente.
-
-## Base de datos preexistente
-
-No se ejecuta `stamp` automaticamente. La instancia Docker existente contiene tablas creadas antes de Alembic y su esquema difiere en algunos detalles de nulabilidad e indices; por eso no se debe marcar el baseline sin revisar.
-
-Si la base esta vacia, `docker compose up -d --build` ejecuta las migraciones. Si ya contiene tablas sin historial Alembic, el preflight detiene `upgrade` antes de ejecutar DDL. La revision `a8c139d27e4f` reconcilia el esquema heredado conocido sin eliminar tablas ni datos; valida las tablas y columnas requeridas, evita correos nulos antes de imponer `NOT NULL`, y verifica duplicados antes de crear el indice unico de asesores. Las tablas adicionales no se eliminan.
-
-Antes de adoptar una base existente, haga una copia de seguridad y confirme que sus tablas corresponden a esta aplicacion. Para esta instancia, marque la revision inicial y luego aplique todas las migraciones:
+El servicio `migrate` no participa en el arranque normal y el backend no queda esperando una migracion automatica. Para consultar el estado desde el contenedor backend activo:
 
 ```powershell
-docker compose run --rm migrate uv run alembic -c Backend/alembic.ini stamp e8698959a1e4
-docker compose run --rm migrate uv run alembic -c Backend/alembic.ini upgrade head
+docker compose exec backend alembic -c Backend/alembic.ini current
+docker compose exec backend alembic -c Backend/alembic.ini history
 ```
 
-No marque `head` directamente: se omitirian las migraciones de normalizacion y adopcion. Si el preflight o las validaciones de la migracion fallan, detengase y revise el esquema; nunca use `stamp head` para ocultar diferencias.
+Para generar una revision, actualiza primero el codigo/modelos y revisa cada cambio autogenerado antes de aplicarlo:
+
+```powershell
+docker compose --profile maintenance run --rm migrate alembic -c Backend/alembic.ini revision --autogenerate -m "descripcion-del-cambio"
+```
+
+No uses `downgrade` como mecanismo de recuperacion de datos. Una migracion hacia atras solo es segura si su codigo restaura correctamente estructura y datos.
+
+## Grafo y datos preexistentes
+
+La revision de conciliacion `a8c139d27e4f` y la revision de asesores `91d8b15c4a22` se crearon como ramas paralelas desde `c4c18e9fa82b`. La revision de merge `d3a6f1c890ab` unifica ambas ramas; por eso `alembic upgrade head` tiene un unico destino. La conciliacion tolera que la columna heredada `asesores_banco.id_usuario` ya haya sido retirada por la otra rama.
+
+El entorno Alembic detiene una actualizacion si encuentra tablas sin historial de migraciones. No se ejecuta `stamp` automaticamente. Para una base existente:
+
+1. Haz y valida un respaldo.
+2. Comprueba que las tablas/columnas correspondan a esta aplicacion y que las validaciones de las revisiones puedan cumplirse.
+3. Solo si el esquema corresponde al baseline esperado, marca la revision inicial y aplica las restantes:
+
+```powershell
+docker compose --profile maintenance run --rm migrate alembic -c Backend/alembic.ini stamp e8698959a1e4
+docker compose --profile maintenance run --rm migrate
+```
+
+No marques `head` directamente: se omitirian las normalizaciones de datos y la adopcion del esquema. Si cualquier comprobacion falla, detente y revisa el esquema; no elimines ni recrees el volumen para forzar el arranque.
+
+Para una base vacia, omite `stamp` y ejecuta el flujo normal de migracion indicado arriba.
+
+## Instalacion local
+
+Desde la raiz del repositorio, con las dependencias de `Backend/requirements.txt` instaladas:
+
+```powershell
+alembic -c Backend/alembic.ini upgrade head
+alembic -c Backend/alembic.ini current
+alembic -c Backend/alembic.ini history
+```
+
+En local, configura `DATABASE_URL` o `DB_HOST=127.0.0.1`, `DB_PORT=3307`, `DB_USER`, `DB_PASSWORD` y `DB_NAME`. No ejecutes estas ordenes contra una base con datos importantes sin respaldo y revision del SQL de cada migracion.

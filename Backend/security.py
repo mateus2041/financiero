@@ -1,9 +1,12 @@
-﻿from passlib.context import CryptContext
+from passlib.context import CryptContext
 import bcrypt
 from jose import JWTError, jwt
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+import logging
+import os
+import secrets
 
 
 # =========================
@@ -20,7 +23,18 @@ pwd_context = CryptContext(
 # JWT CONFIG
 # =========================
 
-SECRET_KEY = "clave_super_secreta_cambiala_por_una_mas_larga"
+logger = logging.getLogger(__name__)
+APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
+SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
+if not SECRET_KEY:
+    if APP_ENV != "development":
+        raise RuntimeError("SECRET_KEY es obligatoria fuera de desarrollo.")
+    SECRET_KEY = secrets.token_urlsafe(48)
+    logger.warning(
+        "SECRET_KEY no configurada; se usara una clave temporal de desarrollo."
+    )
+elif len(SECRET_KEY.encode("utf-8")) < 32:
+    raise RuntimeError("SECRET_KEY debe contener al menos 32 bytes.")
 
 ALGORITHM = "HS256"
 
@@ -67,7 +81,7 @@ def check_password(
 # =========================
 
 def generate_token(identity: int):
-    expire = datetime.utcnow() + timedelta(
+    expire = datetime.now(timezone.utc) + timedelta(
         minutes=ACCESS_TOKEN_EXPIRE_MINUTES
     )
 
