@@ -552,6 +552,9 @@ function ChatIA({ onClose, compacto = false }) {
         ...prev,
         { tipo: "usuario", texto: "Sí" },
         { tipo: "ia", texto: confirmacionPendiente.pasosSi },
+        ...(confirmacionPendiente.tipo === "llaveBreB"
+          ? [{ tipo: "ia", texto: "¿En qué más te puedo ayudar?" }]
+          : []),
       ]);
       setConfirmacionPendiente(null);
       setTipoOpciones("inicio");
@@ -587,6 +590,9 @@ function ChatIA({ onClose, compacto = false }) {
         ...prev,
         { tipo: "usuario", texto: "No" },
         { tipo: "ia", texto: confirmacionPendiente.pasosNo },
+        ...(confirmacionPendiente.tipo === "llaveBreB"
+          ? [{ tipo: "ia", texto: "¿En qué más te puedo ayudar?" }]
+          : []),
       ]);
       setConfirmacionPendiente(null);
       setTipoOpciones("inicio");
@@ -612,10 +618,12 @@ function ChatIA({ onClose, compacto = false }) {
     if (opcion.etiqueta === "Llaves Bre-B") {
       prepararConfirmacion({
         pregunta: "Llaves Bre-B",
+        tipo: "llaveBreB",
+        mensajeConfirmacion: "¿Ya tienes una cuenta?",
         pasosSi:
-          "Para llegar a Llaves Bre-B:\n1. Abre el menú lateral.\n2. Entra en «Otros».\n3. Selecciona «Registrar Llave Bre-B» para gestionar tus llaves.",
+          "Para llegar a Llaves Bre-B:\n1. Ve a la parte superior y haz clic en «Iniciar sesión».\n2. Completa los campos para ingresar.\n3. Verifica la información que ingresaste.\n4. Pulsa «Ingresar» y espera el código de confirmación.\nDespués de iniciar sesión, podrás registrar tu llave Bre-B desde «Otros».",
         pasosNo:
-          "No hay problema. Si necesitas ayuda, te puedo explicar cómo registrar una llave Bre-B o cómo enviar dinero a otra persona.",
+          "Para crear una cuenta:\n1. Selecciona «Registro» y completa todos los campos marcados.\n2. Espera a que se procese tu solicitud.\n3. Cuando sea aprobada, podrás ingresar a tu cuenta.\n4. Espera el código de confirmación.\n5. Después, dirígete al menú del lado izquierdo y selecciona «Otros»; allí encontrarás la opción para registrar tu llave Bre-B.",
       });
       return;
     }
@@ -624,9 +632,9 @@ function ChatIA({ onClose, compacto = false }) {
       prepararConfirmacion({
         pregunta: "Certificados",
         pasosSi:
-          "Para consultar tus certificados:\n1. Abre el menú lateral.\n2. Selecciona «Certificado Bancario».\n3. Revisa o descarga tu certificado.",
+          "Para consultar tus certificados banacario:\n1. inicia sesión.\n2. Seleccione incresar.\n3. espara que te lleve un codigo de confirmación para incresar. \n4. incresa el codigo que te llego a tu correo electronico.\n5. dirijete al menu del lado izquierdo y selecciona «certificados»; allí encontrarás la opción para consultar tu certificado bancario y descargarlo.",
         pasosNo:
-          "No hay problema. Si necesitas un certificado bancario puedes revisarlo desde el menú lateral y pedir ayuda si lo deseas.",
+          "para consultar tus certificados: \n1. Selecciona «Registro» y completa todos los campos marcados.\n2. Espera a que se procese tu solicitud.\n3. Cuando sea aprobada, cuando alla cido aporvada de darle clip en iniciar sesión.\n4. Espera el código de confirmación.\n5. ingresa el codigo que te llego a tu correo electronico.\n6. dirijete al menu del lado izquierdo y selecciona «certificados»; allí encontrarás la opción para consultar tu certificado bancario y descargarlo.",
       });
       return;
     }

@@ -50,7 +50,7 @@ La configuración de Compose define `db`, `backend` y `frontend`, además de vol
 
 - Compose no define proxy inverso, TLS, observabilidad, gestión de secretos, réplicas ni configuración de producción.
 - Las rutas del frontend utilizan varias formas de `localhost` y prefijos diferentes; la integración por entorno requiere verificación.
-- Los documentos heredados describen una configuración de Alembic/servicio `migrate`, pero el `compose.yml` actual solo define `db`, `backend` y `frontend`. Ver [operación y entrega](semana-09-operacion-y-entrega.md).
+- Compose define `db`, `backend`, `frontend` y una tarea `migrate` optativa bajo el perfil `maintenance`; las migraciones no se aplican automáticamente en cada arranque. Ver [operación y entrega](semana-09-operacion-y-entrega.md).
 - No se ha medido disponibilidad, carga, latencia o escalabilidad.
 
 **Referencias:** [compose.yml](../compose.yml), [package.json](../Frontend/package.json), [requirements.txt](../Backend/requirements.txt), [API](../Backend/main.py).

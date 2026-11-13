@@ -201,8 +201,8 @@ async def chat_completion(messages: list[dict[str, Any]]) -> str:
 
     if not providers:
         raise LLMUnavailableError(
-            "No hay ningún proveedor LLM configurado. Verifica la configuración de la clave API y el modelo "
-            "de al menos un proveedor en el archivo .env."
+            "No hay proveedores LLM configurados. Verifica la clave API y el modelo "
+            "de al menos un proveedor en el archivo de entorno."
         )
 
     last_error: Exception | None = None

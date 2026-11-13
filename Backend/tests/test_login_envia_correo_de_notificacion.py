@@ -41,17 +41,19 @@ def test_email_service_lee_credenciales_desde_backend_env(monkeypatch, tmp_path)
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("EMAIL_USER", raising=False)
     monkeypatch.delenv("EMAIL_PASS", raising=False)
+    monkeypatch.delenv("PYTHON_DOTENV_DISABLED", raising=False)
 
     import importlib
     import Backend.email_service.email_service as email_service
-    importlib.reload(email_service)
+    try:
+        importlib.reload(email_service)
 
-    remitente, password = email_service.obtener_credenciales_correo()
+        remitente, password = email_service.obtener_credenciales_correo()
 
-    assert remitente == "prueba@gmail.com"
-    assert password == "app-password"
-
-    env_path.unlink(missing_ok=True)
+        assert remitente == "prueba@gmail.com"
+        assert password == "app-password"
+    finally:
+        env_path.unlink(missing_ok=True)
 
 
 def test_email_service_devuelve_none_si_faltan_credenciales(monkeypatch, tmp_path):
@@ -65,6 +67,7 @@ def test_email_service_devuelve_none_si_faltan_credenciales(monkeypatch, tmp_pat
     monkeypatch.delenv("EMAIL_PASS", raising=False)
     monkeypatch.delenv("MAIL_USER", raising=False)
     monkeypatch.delenv("MAIL_PASSWORD", raising=False)
+    monkeypatch.setenv("PYTHON_DOTENV_DISABLED", "1")
 
     import importlib
     import Backend.email_service.email_service as email_service

@@ -7,24 +7,27 @@
 - Frontend: React/JavaScript con Create React App (`react-scripts`), React Router y Axios.
 - Backend: FastAPI/Python, SQLAlchemy y Uvicorn.
 - Base de datos: MySQL 8.4 declarada en Compose, con PyMySQL.
-- Contenedores: `db`, `backend` y `frontend` definidos en `compose.yml`.
-- Pruebas backend: nueve archivos bajo `Backend/tests/`.
+- Contenedores: `db`, `backend` y `frontend`; la tarea puntual `migrate` está en el perfil Compose `maintenance`.
+- Pruebas backend: pruebas unitarias y de integración bajo `Backend/tests/`.
 
 ## Ejecución con Docker Compose
 
 1. Instalar Docker Desktop y Compose en versiones compatibles con el equipo.
 2. Configurar las variables requeridas para MySQL y los servicios opcionales mediante un archivo local no versionado.
 3. Inspeccionar la configuración efectiva sin imprimir ni compartir valores sensibles.
-4. Ejecutar desde la raíz:
+4. Iniciar MySQL, respaldar, migrar y luego iniciar la aplicación desde la raíz:
 
 ```powershell
-docker compose config
+docker compose config --quiet
+docker compose up -d db
+python scripts\database_backup.py backup
+docker compose --profile maintenance run --rm migrate
 docker compose up --build
 ```
 
-5. Comprobar manualmente frontend (`http://localhost:3000`), API (`http://localhost:8000`) y salud de MySQL.
+5. Comprobar frontend (`http://localhost:3000`), API (`http://localhost:8000/health`) y disponibilidad de la base mediante `http://localhost:8000/ready`.
 
-El Compose no contiene servicio de migración aunque algunos documentos heredados lo mencionan. No usar la ejecución anterior con datos importantes hasta definir cómo y cuándo se aplican revisiones Alembic.
+Las migraciones no se aplican durante el arranque normal. Antes de iniciar la aplicación, crea un respaldo, inicia la base y ejecuta `docker compose --profile maintenance run --rm migrate`. Revisa [la guía de migraciones](migraciones.md), especialmente si la base ya contiene datos.
 
 ## Ejecución por componentes
 
@@ -38,12 +41,12 @@ npm ci
 npm start
 ```
 
-Backend: crear un entorno Python aislado, instalar `Backend/requirements.txt`, configurar la conexión de base de datos, y ejecutar `uvicorn Backend.main:app --reload` desde la raíz. Confirmar primero la configuración de base y migraciones; no conectar un ambiente de producción durante desarrollo.
+Backend: crear un entorno Python aislado, instalar `Backend/requirements.txt`, configurar la conexión de base de datos, `APP_ENV`, `SECRET_KEY` y `CORS_ALLOWED_ORIGINS`, y ejecutar `uvicorn Backend.main:app --reload` desde la raíz. En desarrollo una clave JWT temporal se genera si `SECRET_KEY` está vacía; no usar ese comportamiento en producción.
 
 ## Configuración y secretos
 
 - No copiar contenido de `.env` a documentos, terminales compartidos, logs ni commits.
-- Completar un inventario autoritativo de variables a partir del backend, Compose, correo, IA y Alembic.
+- Usar `Backend/.env.example` como referencia y mantener los valores reales únicamente en el entorno local/gestor de secretos.
 - Usar valores ficticios únicamente en plantillas y mantenerlas sin secretos válidos.
 - Cambiar credenciales de ejemplo antes de cualquier ambiente compartido.
 
@@ -62,12 +65,10 @@ npm test -- --watchAll=false
 npm run build
 ```
 
-Registrar versiones, comando y resultado; no se afirma aquí que los comandos hayan sido ejecutados.
+Registrar versiones, comando y resultado. La suite backend completa tiene fallos conocidos documentados en `DOCUMENTACION_IMPLEMENTACION_BOOTCAMP.md`.
 
 ## Bloqueos de documentación y configuración
 
-1. Revisar los marcadores de conflicto en `Backend/docs/entregable-s02-planes.md` y `Backend/docs/migraciones.md`.
-2. Unificar instrucciones de instalación, versiones y gestor de paquetes.
-3. Alinear Compose y ejecución de Alembic con una estrategia aprobada.
-4. Centralizar URL de API del frontend y configurar por ambiente.
-5. Definir guía de secretos, backup/restore, soporte y operación antes de despliegue.
+1. Resolver los marcadores de conflicto que aún existen en `Backend/docs/entregable-s02-planes.md`.
+2. Ensayar migraciones y restauración en bases aisladas.
+3. Definir TLS, hosting, monitorización, alertas, soporte y objetivos de recuperación antes de producción.
