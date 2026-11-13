@@ -290,6 +290,32 @@ export default function ListaCuentas() {
     }).format(Number(saldo || 0));
   };
 
+  const formatearEntradaSaldo = (valor) => {
+    const [parteEntera = "", parteDecimal] = String(valor)
+      .replace(/\./g, "")
+      .replace(/[^\d,]/g, "")
+      .split(",");
+    const enteroAgrupado = parteEntera.replace(
+      /\B(?=(\d{3})+(?!\d))/g,
+      "."
+    );
+
+    return parteDecimal === undefined
+      ? enteroAgrupado
+      : `${enteroAgrupado},${parteDecimal.slice(0, 2)}`;
+  };
+
+  const prepararEntradaSaldo = (saldo) => {
+    if (saldo === null || saldo === undefined || saldo === "") {
+      return "";
+    }
+
+    return new Intl.NumberFormat("es-CO", {
+      useGrouping: true,
+      maximumFractionDigits: 2,
+    }).format(Number(saldo));
+  };
+
   const formatearValor = (clave, valor) => {
     if (clave === "saldo") {
       return formatearSaldo(valor);
@@ -313,7 +339,7 @@ export default function ListaCuentas() {
   const abrirEdicionSaldo = (cuenta) => {
     setCuentaSaldoSeleccionada(cuenta);
     setCodigoAutorizacion("");
-    setNuevoSaldo(String(cuenta.saldo ?? ""));
+    setNuevoSaldo(prepararEntradaSaldo(cuenta.saldo));
     setError("");
     setMensaje("");
     setAutorizandoSaldo(true);
@@ -350,7 +376,7 @@ export default function ListaCuentas() {
       );
 
       setNuevoSaldo(
-        String(cuentaSaldoSeleccionada.saldo ?? "")
+        prepararEntradaSaldo(cuentaSaldoSeleccionada.saldo)
       );
 
       setAutorizandoSaldo(false);
@@ -370,7 +396,9 @@ export default function ListaCuentas() {
   const actualizarSaldoCuenta = async (evento) => {
     evento.preventDefault();
 
-    const saldo = Number(nuevoSaldo);
+    const saldo = Number(
+      nuevoSaldo.replace(/\./g, "").replace(",", ".")
+    );
 
     if (!Number.isFinite(saldo) || saldo < 0) {
       setError(
@@ -1371,19 +1399,29 @@ export default function ListaCuentas() {
                       cuentaSaldoSeleccionada?.id_cuenta}
                   </p>
 
+                  <p>
+                    Saldo actual:{" "}
+                    <strong>
+                      {formatearSaldo(
+                        cuentaSaldoSeleccionada?.saldo
+                      )}
+                    </strong>
+                  </p>
+
                   <label htmlFor="nuevo-saldo">
                     Saldo que tendrá la cuenta
                   </label>
 
                   <input
                     id="nuevo-saldo"
-                    type="number"
-                    min="0"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     value={nuevoSaldo}
                     onChange={(evento) =>
                       setNuevoSaldo(
-                        evento.target.value
+                        formatearEntradaSaldo(
+                          evento.target.value
+                        )
                       )
                     }
                     required

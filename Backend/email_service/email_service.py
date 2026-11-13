@@ -11,8 +11,8 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 
 def _cargar_env_backend():
     candidatos = [
-        Path.cwd() / ".env",
         BASE_DIR / ".env",
+        Path.cwd() / ".env",
         BASE_DIR.parent / ".env",
         Path.cwd() / "Backend" / ".env",
         BASE_DIR / ".." / ".env",

@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from Backend import main
 from Backend.database.database import Base
@@ -9,7 +10,11 @@ from Backend.security import hash_password
 
 
 def test_administrador_puede_listar_cuentas(monkeypatch):
-    engine = create_engine("sqlite://")
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(bind=engine)
     SessionLocal = sessionmaker(bind=engine)
     db = SessionLocal()
@@ -101,7 +106,11 @@ def test_administrador_puede_listar_cuentas(monkeypatch):
 
 
 def test_asesor_puede_listar_cuentas():
-    engine = create_engine("sqlite://")
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(bind=engine)
     SessionLocal = sessionmaker(bind=engine)
     db = SessionLocal()
@@ -154,7 +163,11 @@ def test_asesor_puede_listar_cuentas():
 
 
 def test_solo_asesor_puede_actualizar_saldo_con_codigo_de_asesor():
-    engine = create_engine("sqlite://")
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(bind=engine)
     SessionLocal = sessionmaker(bind=engine)
     db = SessionLocal()

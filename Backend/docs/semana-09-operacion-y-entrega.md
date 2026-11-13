@@ -12,12 +12,12 @@
 
 La aplicación depende de configuración de conexión MySQL y puede requerir credenciales de correo, código de registro de asesor y clave del proveedor LLM. Los nombres exactos deben inventariarse desde código/configuración del entorno. Mantener los valores fuera de esta guía y de los commits; no copiar archivos `.env` con secretos.
 
-## Migraciones: discrepancia bloqueante
+## Migraciones
 
-- Existen `Backend/alembic.ini` y dos revisiones Alembic.
-- `Backend/docs/migraciones.md` describe un servicio Compose llamado `migrate`, y `Backend/docs/entregable-s02-planes.md` tiene secciones con marcadores de conflicto (`<<<<<<<`, `=======`, `>>>>>>>`).
-- El `compose.yml` inspeccionado define solo `db`, `backend` y `frontend`; no hay servicio `migrate` ni comando `alembic upgrade` en el arranque declarado.
-- Por tanto, los comandos Compose que dependen de `migrate` no se consideran verificados. El equipo debe decidir e implementar la ruta canónica de migración antes de usarla sobre una base persistente.
+- Compose incluye una tarea `migrate` en el perfil optativo `maintenance`; el arranque normal no aplica migraciones.
+- El grafo tiene un único destino `head`, con una prueba automatizada que verifica la revisión de merge.
+- Para migrar se debe crear un respaldo, iniciar MySQL y ejecutar `docker compose --profile maintenance run --rm migrate`. No se ha ensayado todavía contra una base MySQL aislada ni contra datos existentes.
+- `Backend/docs/entregable-s02-planes.md` conserva marcadores de conflicto y requiere resolución documental.
 
 No ejecutar downgrade, `docker compose down -v`, borrado de volúmenes ni operaciones destructivas sobre datos que se quieran conservar.
 

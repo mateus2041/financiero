@@ -14,12 +14,13 @@
 | ADM | Administración/asesoría | Rutas administrativas y router asesor | Matriz aprobada, auditoría y negativas. |
 | NOT | Notificaciones | Modelo y rutas en `Backend/main.py` | Aislamiento e interacción completa en frontend. |
 | IA | Asistente conversacional | Router `/ia/chat`, módulos IA y pruebas focalizadas | Privacidad, proveedor, límites, timeout y disponibilidad. |
-| OPS | Migraciones/operación | Alembic config y revisiones; Compose | Resolver divergencia de servicio `migrate` y ensayar en base vacía/existente. |
-| QA | Calidad | Nueve módulos de pruebas backend y scripts frontend | Ejecutar suites/build y registrar salida/versión. |
+| OPS | Migraciones/operación | Alembic con una sola revisión `head`, perfil Compose `maintenance`, endpoints de salud y herramienta de respaldo | Ensayar upgrade/restore en MySQL aislado y en una copia de datos existentes. |
+| SEC | Seguridad de ejecución | CORS explícito, clave JWT por ambiente, secretos MySQL externos | Definir clave persistente/HTTPS y ejecutar revisión de seguridad. |
+| QA | Calidad | Pruebas focalizadas backend, suite heredada, build frontend y validación Compose | Resolver fallos heredados y ejecutar aceptación end-to-end con servicios activos. |
 
 ## Prioridad de cierre sugerida
 
-1. Resolver discrepancia migraciones/Compose y conflictos de documentación heredada.
+1. Ensayar migraciones/Compose y resolver conflictos de documentación heredada.
 2. Verificar autorización por rol/titularidad y tratamiento de tarjetas.
 3. Probar atomicidad y casos de error de transferencias.
 4. Ejecutar la suite backend, pruebas frontend y build.
