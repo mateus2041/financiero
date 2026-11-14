@@ -1,6 +1,7 @@
 # Semana 09 — Operación y entrega
 
-**Estado:** inventario de configuración y lista de preparación; despliegue y recuperación no ejecutados.
+**Estado:** documento de inventario anterior; la guía canónica actual está en
+[`docs/OPERACION_Y_DESPLIEGUE.md`](../../docs/OPERACION_Y_DESPLIEGUE.md). Despliegue y recuperación no ejecutados.
 
 > No se encontró la guía oficial de la semana 09. Los datos y comandos se limitan a lo observable en el repositorio. No desplegar ni publicar desde esta documentación.
 
@@ -12,12 +13,12 @@
 
 La aplicación depende de configuración de conexión MySQL y puede requerir credenciales de correo, código de registro de asesor y clave del proveedor LLM. Los nombres exactos deben inventariarse desde código/configuración del entorno. Mantener los valores fuera de esta guía y de los commits; no copiar archivos `.env` con secretos.
 
-## Migraciones: discrepancia bloqueante
+## Migraciones y discrepancia documental
 
 - Existen `Backend/alembic.ini` y dos revisiones Alembic.
 - `Backend/docs/migraciones.md` describe un servicio Compose llamado `migrate`, y `Backend/docs/entregable-s02-planes.md` tiene secciones con marcadores de conflicto (`<<<<<<<`, `=======`, `>>>>>>>`).
-- El `compose.yml` inspeccionado define solo `db`, `backend` y `frontend`; no hay servicio `migrate` ni comando `alembic upgrade` en el arranque declarado.
-- Por tanto, los comandos Compose que dependen de `migrate` no se consideran verificados. El equipo debe decidir e implementar la ruta canónica de migración antes de usarla sobre una base persistente.
+- El `compose.yml` actual incluye `migrate`, que ejecuta `alembic upgrade head` antes del backend. La sintaxis de Compose se validó, pero no se ejecutó una migración real.
+- Las bases existentes sin historial Alembic pueden detener el preflight. No marcar una revisión ni borrar un volumen sin respaldo y revisión del esquema.
 
 No ejecutar downgrade, `docker compose down -v`, borrado de volúmenes ni operaciones destructivas sobre datos que se quieran conservar.
 

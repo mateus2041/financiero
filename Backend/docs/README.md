@@ -5,7 +5,7 @@
 
 ## Alcance y límites de esta entrega
 
-Este índice organiza siete entregas documentales (semanas 03 a 09) a partir del código y de los documentos existentes en el proyecto. No se encontraron en el repositorio ni en las carpetas vecinas inspeccionadas los directorios de referencia `3-proyecto` y `starter`, ni guías o rúbricas de las semanas 03–09. Por eso, los títulos temáticos de esta serie son una organización documental propuesta, no una afirmación sobre el contenido oficial de esas clases. Se debe contrastar esta entrega con el material académico cuando esté disponible.
+Este índice organiza siete entregas documentales (semanas 03 a 09) a partir del código y de los documentos existentes en el proyecto. Estos documentos se prepararon antes de consultar el repositorio académico completo; sus títulos temáticos son una organización documental basada en evidencia del proyecto, no una transcripción ni una afirmación de equivalencia con el currículo. La [matriz de cumplimiento](../../docs/MATRIZ_CUMPLIMIENTO_BOOTCAMP.md) relaciona ahora estos documentos con el repositorio oficial y registra los pendientes.
 
 Los estados **observado** y **presente** indican evidencia en archivos; no prueban que un flujo haya sido aceptado, desplegado o medido. **Pendiente de validar** identifica algo que requiere ejecución, decisión o confirmación. No se inventan responsables, resultados de pruebas, metas operativas ni acuerdos.
 
@@ -25,6 +25,7 @@ Los estados **observado** y **presente** indican evidencia en archivos; no prueb
 
 - [Guía técnica y de ejecución](guia-tecnica.md): stack real observado, configuración necesaria y comandos con límites explícitos.
 - [Matriz de trazabilidad y pendientes](matriz-trazabilidad.md): relación entre capacidades, evidencia y validación requerida.
+- [Documentación de implantación del bootcamp](../../docs/README.md): matriz semanal, operación, aceptación y manual básico.
 
 ## Fuentes del repositorio
 

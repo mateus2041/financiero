@@ -78,9 +78,6 @@ const OPCIONES_CUENTA_ORIGEN = [
   { etiqueta: "Cuenta de ahorros", tipo: "cuentaOrigen", cuenta: "ahorro" },
 ];
 
-<<<<<<< HEAD
-function ChatIA({ onClose }) {
-=======
 const MENSAJE_SALUDO =
   "¡Hola! Soy tu asistente financiero. ¿En qué puedo ayudarte hoy?";
 
@@ -113,7 +110,6 @@ const OPCIONES_ASISTENTE = [
 ];
 
 function ChatIA({ onClose, compacto = false }) {
->>>>>>> develop
   const navigate = useNavigate();
   const location = useLocation();
   const [pregunta, setPregunta] = useState("");
@@ -526,9 +522,6 @@ function ChatIA({ onClose, compacto = false }) {
 
     enviarPregunta(opcion.pregunta);
   };
-<<<<<<< HEAD
-=======
-
   const opcionesAsistente = (
     <div className="chat-sugerencias">
       {OPCIONES_ASISTENTE.map((opcion) => (
@@ -548,7 +541,6 @@ function ChatIA({ onClose, compacto = false }) {
       ))}
     </div>
   );
->>>>>>> develop
 
   return (
     <>

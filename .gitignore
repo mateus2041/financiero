@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-﻿# Python / UV
-=======
 # Python / UV
->>>>>>> origin/main
 .venv/
 __pycache__/
 *.pyc
@@ -18,6 +14,9 @@ node_modules/
 # Archivos generados
 /Frontend/dist/
 /Frontend/build/
+
+# Operational data
+/backups/
 
 # Logs
 npm-debug.log*

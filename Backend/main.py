@@ -142,9 +142,18 @@ codigos_recuperacion = {}
 # CORS
 # ==========================================================
 
+cors_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000",
+    ).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -249,6 +258,17 @@ def inicio():
     return {
         "message": "API funcionando correctamente"
     }
+
+
+@app.get("/health/live", include_in_schema=False)
+def health_live():
+    return {"status": "ok"}
+
+
+@app.get("/health/ready", include_in_schema=False)
+def health_ready(db: Session = Depends(get_db)):
+    db.execute(text("SELECT 1"))
+    return {"status": "ok", "database": "ok"}
 
 
 @app.get("/notificaciones")

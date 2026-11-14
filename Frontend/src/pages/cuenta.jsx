@@ -48,7 +48,6 @@ const Cuenta = () => {
   const mostrarCuentaCorriente = estadoCuentaCorriente === "activa";
   const mostrarCuentaAhorro = estadoCuentaAhorro === "activa";
 
-<<<<<<< HEAD
   useEffect(() => {
     if (!asistenteAbierto) return undefined;
 
@@ -65,9 +64,6 @@ const Cuenta = () => {
       document.removeEventListener("keydown", cerrarConEscape);
     };
   }, [asistenteAbierto]);
-
-=======
->>>>>>> develop
 
   useEffect(() => {
 

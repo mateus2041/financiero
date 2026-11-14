@@ -1,4 +1,5 @@
 from sqlalchemy import create_engine
+from sqlalchemy.engine import URL
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
 from dotenv import load_dotenv
@@ -15,9 +16,14 @@ if not DATABASE_URL:
     DB_NAME = os.getenv("DB_NAME")
 
     if DB_HOST and DB_USER and DB_PASSWORD and DB_PORT and DB_NAME:
-        DATABASE_URL = (
-            f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-        )
+        DATABASE_URL = URL.create(
+            drivername="mysql+pymysql",
+            username=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=int(DB_PORT),
+            database=DB_NAME,
+        ).render_as_string(hide_password=False)
     else:
         DATABASE_URL = "sqlite:///./billetera.db"
 

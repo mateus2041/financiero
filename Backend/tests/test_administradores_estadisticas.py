@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from Backend import main
 from Backend.database.database import Base
@@ -8,7 +9,11 @@ from Backend.models import AsesorBanco, Cuenta, Tarjeta, Usuario
 
 
 def test_asesor_puede_cargar_estadisticas_sin_vinculo_a_usuario(monkeypatch):
-    engine = create_engine("sqlite://")
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(bind=engine)
     db = sessionmaker(bind=engine)()
 

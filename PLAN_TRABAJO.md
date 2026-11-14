@@ -1,6 +1,6 @@
 # Plan de trabajo — Billetera Financiera
 
-**Estado del documento:** actualizado el 6 de octubre de 2026
+**Estado del documento:** actualizado el 14 de noviembre de 2026
 **Producto:** aplicación web de billetera financiera
 **Estado de avance:** inventario estático del repositorio; no equivale a aceptación funcional ni a despliegue productivo.
 
@@ -14,9 +14,9 @@ Este plan registra el alcance que se observa en el código y organiza el trabajo
 | --- | --- | --- |
 | Frontend | React y JavaScript; Create React App (`react-scripts`); React Router; Axios | No es una aplicación TypeScript/Vite. Los scripts disponibles están en `Frontend/package.json`. |
 | API | FastAPI, SQLAlchemy y Uvicorn | Punto de entrada: `Backend/main.py`; también existen routers para BRE-B, asesoría y chat IA. |
-| Persistencia | MySQL 8.4 en Docker Compose, acceso mediante SQLAlchemy/PyMySQL | No es PostgreSQL. El arranque crea tablas y aplica algunos cambios de esquema; no se encontró configuración de Alembic. |
-| Ejecución local | Docker Compose para base de datos, backend y frontend | Puertos declarados: 3307, 8000 y 3000. Revisar credenciales de desarrollo antes de exponer servicios. |
-| Pruebas | Seis archivos de pruebas backend bajo `Backend/tests/` | No hay evidencia de cobertura medida ni de una suite frontend configurada/ejecutada. |
+| Persistencia | MySQL 8.4 en Docker Compose, SQLAlchemy/PyMySQL y revisiones Alembic | Compose ahora ejecuta un servicio `migrate` antes del backend. La adopción/migración de una instancia persistente sigue sin probarse. |
+| Ejecución local | Docker Compose para base de datos, migración, backend y frontend | Puertos locales por defecto 3307, 8000 y 3000, enlazados a loopback. `JWT_SECRET_KEY` y contraseñas DB se requieren desde `.env`. |
+| Pruebas | Suite pytest backend en `Backend/tests/`; scripts de prueba y build frontend CRA | 44 pruebas backend pasaron localmente; el frontend no encontró pruebas y su build compiló con advertencias. No hay evidencia de CI remota ni cobertura medida. |
 | Integraciones | Servicio de correo y módulo de chat IA | Requieren configuración externa; confirmar variables y secretos en entorno local/despliegue. |
 
 ## Funcionalidades con código identificable

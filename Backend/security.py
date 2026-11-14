@@ -4,6 +4,11 @@ from jose import JWTError, jwt
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timedelta
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 # =========================
@@ -20,7 +25,9 @@ pwd_context = CryptContext(
 # JWT CONFIG
 # =========================
 
-SECRET_KEY = "clave_super_secreta_cambiala_por_una_mas_larga"
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY or len(SECRET_KEY) < 32:
+    raise RuntimeError("JWT_SECRET_KEY must be configured with at least 32 characters.")
 
 ALGORITHM = "HS256"
 
@@ -28,7 +35,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 
 security = HTTPBearer(
-    auto_error=True
+    auto_error=False
 )
 
 
@@ -90,8 +97,14 @@ def generate_token(identity: int):
 # =========================
 
 def token_required(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials | None = Depends(security)
 ):
+    if credentials is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Credenciales de autenticación requeridas"
+        )
+
     try:
         token = credentials.credentials
         payload = jwt.decode(
