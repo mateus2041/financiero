@@ -92,8 +92,9 @@ def test_chat_completion_uses_fallback_when_primary_is_not_configured(monkeypatc
 
 
 def test_chat_completion_reports_when_no_provider_is_configured(monkeypatch):
+    monkeypatch.setattr(llm.settings, "GROQ_API_KEY", None)
     _configure_provider(monkeypatch, "LLM_", "", "primary-model")
     _configure_provider(monkeypatch, "LLM_FALLBACK_", "", "fallback-model")
 
-    with pytest.raises(llm.LLMUnavailableError, match="No hay proveedores LLM"):
+    with pytest.raises(llm.LLMUnavailableError, match="No hay.*proveedor.*LLM"):
         asyncio.run(llm.chat_completion([{"role": "user", "content": "Hola"}]))

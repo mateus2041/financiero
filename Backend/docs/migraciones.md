@@ -2,15 +2,11 @@
 
 Alembic es la Ãºnica vÃ­a para cambiar el esquema. Los modelos en `Backend/models.py` usan la misma `Base` y conexiÃ³n definidas en `Backend/database/database.py`. FastAPI ya no crea ni altera tablas durante su inicio.
 
-<<<<<<< HEAD
-## ConfiguraciÃ³n
-=======
 La revisión `91d8b15c4a22` copia a `asesores_banco` los datos que antes se obtenían mediante `id_usuario` y luego elimina esa columna. Aplique el cambio con `uv run alembic -c Backend/alembic.ini upgrade head` (o el comando equivalente de Docker Compose descrito abajo).
 
 ## Configuración
->>>>>>> develop
 
-Para ejecutar el backend fuera de Docker, configure en `.env` `DB_HOST=127.0.0.1`, `DB_PORT=3307`, `DB_USER`, `DB_PASSWORD` y `DB_NAME=billetera` (o una `DATABASE_URL` equivalente). Dentro de Compose, el host es `db` y el puerto `3306`; las credenciales Docker se suministran mediante `MYSQL_ROOT_PASSWORD`, `MYSQL_APP_USER` y `MYSQL_APP_PASSWORD`. Compose lee el archivo `.env` de la raÃ­z, junto a `compose.yml`; el ejemplo estÃ¡ en `Backend/.env.example`. AÃ±ada allÃ­ las variables Docker que falten sin reemplazar el `.env` real. `MYSQL_ROOT_PASSWORD` debe coincidir con la contraseÃ±a root del volumen MySQL existente; `MYSQL_APP_PASSWORD` debe coincidir con la contraseÃ±a de `MYSQL_APP_USER` (por defecto `app_user`). No copie contraseÃ±as reales a este documento ni a `alembic.ini`.
+Para ejecutar el backend fuera de Docker, configure `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` y `DB_NAME` en el entorno. En Compose, el host es `db` y el puerto `3306`. Compose lee el archivo `.env` de la raíz, junto a `compose.yml`; use `.env.example` como plantilla. Se requieren `MYSQL_ROOT_PASSWORD`, `DB_PASSWORD` y `JWT_SECRET_KEY` (mínimo 32 caracteres). `DB_PASSWORD` debe coincidir con la contraseña del usuario de aplicación. Para el volumen MySQL existente, conserve las credenciales que lo inicializaron; cambiar las variables no cambia automáticamente las contraseñas almacenadas en el volumen. No copie secretos a este documento ni a `alembic.ini`.
 
 ## Desarrollo local en PowerShell
 

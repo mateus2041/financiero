@@ -1,158 +1,115 @@
 services:
-
   db:
-
     image: mysql:8.4
-
     container_name: mysql_billetera
-
-    restart: always
-
+    restart: unless-stopped
     environment:
-
-      MYSQL_ROOT_PASSWORD: root
-
-      MYSQL_DATABASE: billetera
-
-      MYSQL_USER: app_user
-
-      MYSQL_PASSWORD: app_pass
-
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in the root .env file}
+      MYSQL_DATABASE: ${DB_NAME:-billetera}
+      MYSQL_USER: ${DB_USER:-app_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the root .env file}
     ports:
-
-      - "3307:3306"
-
+      - "127.0.0.1:${MYSQL_PORT:-3307}:3306"
     volumes:
-
       - mysql_data:/var/lib/mysql
-
     healthcheck:
-
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -proot --silent"]
-
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
       interval: 10s
-
       timeout: 5s
-
       retries: 10
-
       start_period: 20s
-
     networks:
-
       - billetera_net
 
+  migrate:
+    build:
+      context: .
+      dockerfile: Backend/Dockerfile
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_USER: ${DB_USER:-app_user}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the root .env file}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-billetera}
+      PYTHONPATH: /app
+    command: ["alembic", "-c", "Backend/alembic.ini", "upgrade", "head"]
+    networks:
+      - billetera_net
 
   backend:
-
     build:
-
       context: .
-
       dockerfile: Backend/Dockerfile
-
     container_name: backend_billetera
-
-    restart: always
-
+    restart: unless-stopped
     depends_on:
-
-      db:
-
-        condition: service_healthy
-
+      migrate:
+        condition: service_completed_successfully
     environment:
-
-      DB_USER: app_user
-
-      DB_PASSWORD: app_pass
-
+      DB_USER: ${DB_USER:-app_user}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the root .env file}
       DB_HOST: db
-
       DB_PORT: 3306
-
-      DB_NAME: billetera
-
-      DATABASE_URL: mysql+pymysql://app_user:app_pass@db:3306/billetera
-
-
+      DB_NAME: ${DB_NAME:-billetera}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
       ASESOR_REGISTRATION_CODE: ${ASESOR_REGISTRATION_CODE:-}
-
+      EMAIL_USER: ${EMAIL_USER:-}
+      EMAIL_PASS: ${EMAIL_PASS:-}
+      MAIL_SERVER: ${MAIL_SERVER:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_FALLBACK_API_KEY: ${LLM_FALLBACK_API_KEY:-}
       PYTHONPATH: /app
-
     ports:
-
-      - "8000:8000"
-
+      - "127.0.0.1:8000:8000"
     volumes:
-
       - .:/app
-
     working_dir: /app
-
     command: uvicorn Backend.main:app --host 0.0.0.0 --port 8000 --reload
-
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
-
       - billetera_net
-
 
   frontend:
-
     build:
-
       context: ./Frontend
-
       dockerfile: Dockerfile
-
     container_name: billetera_frontend
-
     restart: unless-stopped
-
     depends_on:
-
       backend:
-
-        condition: service_started
-
+        condition: service_healthy
     working_dir: /app
-
     volumes:
-
       - ./Frontend:/app
-
       - frontend_node_modules:/app/node_modules
-
     ports:
-
-      - "3000:3000"
-
+      - "127.0.0.1:3000:3000"
     environment:
-
       HOST: 0.0.0.0
-
       CHOKIDAR_USEPOLLING: "true"
-
+      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://127.0.0.1:8000/api}
     stdin_open: true
-
     tty: true
-
     command: npm start
-
     networks:
-
       - billetera_net
 
-
 volumes:
-
   mysql_data:
-
   frontend_node_modules:
 
-
 networks:
-
   billetera_net:
-
     driver: bridge

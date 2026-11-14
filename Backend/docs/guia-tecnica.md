@@ -7,24 +7,24 @@
 - Frontend: React/JavaScript con Create React App (`react-scripts`), React Router y Axios.
 - Backend: FastAPI/Python, SQLAlchemy y Uvicorn.
 - Base de datos: MySQL 8.4 declarada en Compose, con PyMySQL.
-- Contenedores: `db`, `backend` y `frontend` definidos en `compose.yml`.
-- Pruebas backend: nueve archivos bajo `Backend/tests/`.
+- Contenedores: `db`, `migrate`, `backend` y `frontend` definidos en `compose.yml`.
+- Pruebas backend: pytest en `Backend/tests/`; frontend usa Create React App y aún no tiene casos de prueba propios.
 
 ## Ejecución con Docker Compose
 
-1. Instalar Docker Desktop y Compose en versiones compatibles con el equipo.
-2. Configurar las variables requeridas para MySQL y los servicios opcionales mediante un archivo local no versionado.
+1. Instalar Docker Desktop y Compose.
+2. Copiar `.env.example` a `.env` y sustituir todos los valores de ejemplo; configura `JWT_SECRET_KEY` de al menos 32 caracteres.
 3. Inspeccionar la configuración efectiva sin imprimir ni compartir valores sensibles.
 4. Ejecutar desde la raíz:
 
 ```powershell
-docker compose config
-docker compose up --build
+docker compose config --quiet
+docker compose up --build -d
 ```
 
-5. Comprobar manualmente frontend (`http://localhost:3000`), API (`http://localhost:8000`) y salud de MySQL.
+5. Comprobar frontend (`http://127.0.0.1:3000`), API (`http://127.0.0.1:8000/health/live`) y estado integrado (`http://127.0.0.1:8000/health/ready`).
 
-El Compose no contiene servicio de migración aunque algunos documentos heredados lo mencionan. No usar la ejecución anterior con datos importantes hasta definir cómo y cuándo se aplican revisiones Alembic.
+Compose ejecuta `alembic upgrade head` en `migrate` antes de iniciar la API. Una base preexistente sin historial Alembic puede detener el arranque; revisar [migraciones](migraciones.md) y respaldar antes de adoptarla. No borrar el volumen MySQL para resolver un error.
 
 ## Ejecución por componentes
 
@@ -38,14 +38,14 @@ npm ci
 npm start
 ```
 
-Backend: crear un entorno Python aislado, instalar `Backend/requirements.txt`, configurar la conexión de base de datos, y ejecutar `uvicorn Backend.main:app --reload` desde la raíz. Confirmar primero la configuración de base y migraciones; no conectar un ambiente de producción durante desarrollo.
+Backend: crear un entorno Python aislado, instalar `Backend/requirements.txt`, configurar la conexión de base de datos y `JWT_SECRET_KEY`, y ejecutar `uvicorn Backend.main:app --reload` desde la raíz. No conectar un ambiente de producción durante desarrollo.
 
 ## Configuración y secretos
 
 - No copiar contenido de `.env` a documentos, terminales compartidos, logs ni commits.
-- Completar un inventario autoritativo de variables a partir del backend, Compose, correo, IA y Alembic.
+- Las plantillas raíz y de cada componente contienen marcadores, nunca credenciales de despliegue.
 - Usar valores ficticios únicamente en plantillas y mantenerlas sin secretos válidos.
-- Cambiar credenciales de ejemplo antes de cualquier ambiente compartido.
+- Si una credencial expuesta en una copia previa fue válida, su propietario debe revocarla/rotarla fuera del repositorio.
 
 ## Calidad
 
@@ -62,12 +62,11 @@ npm test -- --watchAll=false
 npm run build
 ```
 
-Registrar versiones, comando y resultado; no se afirma aquí que los comandos hayan sido ejecutados.
+Validación local del 14-11-2026: `python -m pytest Backend\tests -q -p no:cacheprovider` dio `44 passed` con SQLite aislado y clave JWT exclusiva de test (Python 3.14.3); `npm test -- --watchAll=false --passWithNoTests` terminó correctamente, pero no encontró pruebas frontend; `npm run build` compiló con advertencias de source map/dependencia desactualizada. Estos resultados no sustituyen CI remota, pruebas con MySQL ni aceptación.
 
 ## Bloqueos de documentación y configuración
 
-1. Revisar los marcadores de conflicto en `Backend/docs/entregable-s02-planes.md` y `Backend/docs/migraciones.md`.
-2. Unificar instrucciones de instalación, versiones y gestor de paquetes.
-3. Alinear Compose y ejecución de Alembic con una estrategia aprobada.
-4. Centralizar URL de API del frontend y configurar por ambiente.
-5. Definir guía de secretos, backup/restore, soporte y operación antes de despliegue.
+1. Resolver editorialmente los conflictos heredados de `Backend/docs/entregable-s02-planes.md`.
+2. Probar Compose/migraciones en base limpia y en copia autorizada del esquema existente.
+3. Ensayar el ciclo backup/restore cifrado y acordar custodia/retención.
+4. Definir hosting, dominio, TLS, monitoreo y condiciones de operación antes de producción.

@@ -33,42 +33,25 @@ def test_notificacion_no_se_envia_si_falla_el_codigo(monkeypatch):
     assert asuntos_enviados == ["Código de verificación"]
 
 
-def test_email_service_lee_credenciales_desde_backend_env(monkeypatch, tmp_path):
-    backend_dir = Path(__file__).resolve().parents[1]
-    env_path = backend_dir / ".env"
-    env_path.write_text("EMAIL_USER=prueba@gmail.com\nEMAIL_PASS=app-password\n", encoding="utf-8")
-
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.delenv("EMAIL_USER", raising=False)
-    monkeypatch.delenv("EMAIL_PASS", raising=False)
-
-    import importlib
+def test_email_service_lee_credenciales_de_entorno(monkeypatch):
     import Backend.email_service.email_service as email_service
-    importlib.reload(email_service)
 
+    monkeypatch.setenv("EMAIL_USER", "prueba@example.com")
+    monkeypatch.setenv("EMAIL_PASS", "test-app-password")
     remitente, password = email_service.obtener_credenciales_correo()
 
-    assert remitente == "prueba@gmail.com"
-    assert password == "app-password"
-
-    env_path.unlink(missing_ok=True)
+    assert remitente == "prueba@example.com"
+    assert password == "test-app-password"
 
 
-def test_email_service_devuelve_none_si_faltan_credenciales(monkeypatch, tmp_path):
-    backend_dir = Path(__file__).resolve().parents[1]
-    env_path = backend_dir / ".env"
-    if env_path.exists():
-        env_path.unlink()
+def test_email_service_devuelve_none_si_faltan_credenciales(monkeypatch):
+    import Backend.email_service.email_service as email_service
 
-    monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("EMAIL_USER", raising=False)
     monkeypatch.delenv("EMAIL_PASS", raising=False)
     monkeypatch.delenv("MAIL_USER", raising=False)
     monkeypatch.delenv("MAIL_PASSWORD", raising=False)
-
-    import importlib
-    import Backend.email_service.email_service as email_service
-    importlib.reload(email_service)
+    monkeypatch.setattr(email_service, "_cargar_env_backend", lambda: None)
 
     assert email_service.obtener_credenciales_correo() is None
 
