@@ -838,3 +838,23 @@ USE billetera;
 UPDATE usuario
 SET email = 'luisssmateus802@gmail.com'
 WHERE id_usuario = 25;
+-- SQLBook: Code
+START TRANSACTION;
+
+SET @id_usuario = 4;
+
+DELETE FROM notificaciones
+WHERE id_usuario = @id_usuario;
+
+DELETE t
+FROM tarjetas AS t
+JOIN cuentas AS c ON c.id_cuenta = t.id_cuenta
+WHERE c.id_usuario = @id_usuario;
+
+DELETE FROM cuentas
+WHERE id_usuario = @id_usuario;
+
+DELETE FROM usuario
+WHERE id_usuario = @id_usuario;
+
+COMMIT;
