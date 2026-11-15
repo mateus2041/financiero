@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { parsePositiveInteger } from "../utils/helpers";
@@ -51,6 +51,11 @@ export default function TarjetasUsuario({
     .toLowerCase();
 
   const esAdministrador = rol === "administrador";
+  const puedeAdministrarTarjetas =
+    esAdministrador || rol === "asesor" || esAsesor;
+  const idUsuarioActual = parsePositiveInteger(
+    id_usuario ?? localStorage.getItem("usuario_id")
+  );
 
   const [tarjetas, setTarjetas] = useState([]);
   const [tarjetasPorUsuario, setTarjetasPorUsuario] = useState({});
@@ -76,14 +81,6 @@ export default function TarjetasUsuario({
   const [mensaje, setMensaje] = useState("");
 
   useEffect(() => {
-    if (id_usuario) {
-      void obtenerTarjetas();
-    }
-
-    void obtenerUsuarios();
-  }, [id_usuario]);
-
-  useEffect(() => {
     const comprobarPantalla = () => {
       setEsMovil(window.innerWidth <= 768);
     };
@@ -96,13 +93,11 @@ export default function TarjetasUsuario({
     };
   }, []);
 
-  const obtenerTarjetas = async () => {
-    const usuarioId = parsePositiveInteger(id_usuario);
-    if (usuarioId === null) {
-      setMensaje("El identificador del usuario no es válido");
-      return;
-    }
+  const obtenerTarjetas = useCallback(async () => {
+    const usuarioId = idUsuarioActual;
+    if (usuarioId === null) return;
 
+    setCargandoTarjetas(true);
     try {
       const token = localStorage.getItem("token");
 
@@ -123,10 +118,15 @@ export default function TarjetasUsuario({
         error.response?.data?.detail ||
           "No se pudieron obtener las tarjetas"
       );
+    } finally {
+      setCargandoTarjetas(false);
     }
-  };
+  }, [idUsuarioActual]);
 
-  const obtenerUsuarios = async () => {
+  const obtenerUsuarios = useCallback(async () => {
+    setCargandoTarjetas(true);
+    setErrorTarjetas(false);
+
     try {
       const token = localStorage.getItem("token");
 
@@ -144,12 +144,11 @@ export default function TarjetasUsuario({
         error.response?.data?.detail ||
           "No se pudieron obtener los usuarios"
       );
+      setErrorTarjetas(true);
       setCargandoTarjetas(false);
       return;
     }
 
-    setCargandoTarjetas(true);
-    setErrorTarjetas(false);
     setTarjetasPorUsuario({});
 
     try {
@@ -184,7 +183,23 @@ export default function TarjetasUsuario({
     } finally {
       setCargandoTarjetas(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (puedeAdministrarTarjetas) {
+      void obtenerUsuarios();
+    } else if (idUsuarioActual !== null) {
+      void obtenerTarjetas();
+    } else {
+      setMensaje("No se pudo identificar al usuario");
+      setCargandoTarjetas(false);
+    }
+  }, [
+    idUsuarioActual,
+    obtenerTarjetas,
+    obtenerUsuarios,
+    puedeAdministrarTarjetas,
+  ]);
 
   const obtenerTarjetasDeUsuario = async (usuario) => {
     const usuarioId = parsePositiveInteger(usuario?.id_usuario);
@@ -319,7 +334,7 @@ export default function TarjetasUsuario({
 
       setUsuarioSeleccionado(null);
 
-      if (id_usuario === usuarioSeleccionado.id_usuario) {
+      if (idUsuarioActual === usuarioId) {
         void obtenerTarjetas();
       }
 
@@ -640,25 +655,30 @@ export default function TarjetasUsuario({
             width: "100%",
           }}
         >
-          Añadir tarjetas de clientes
+          {puedeAdministrarTarjetas
+            ? "Administrar tarjetas de clientes"
+            : "Mis tarjetas"}
         </h2>
 
-        <h3
-          style={{
-            color: "#9EA1A7",
-            textAlign: "center",
-            width: "100%",
-          }}
-        >
-          Nuevas tarjetas para los clientes
-        </h3>
+        {puedeAdministrarTarjetas && (
+          <h3
+            style={{
+              color: "#9EA1A7",
+              textAlign: "center",
+              width: "100%",
+            }}
+          >
+            Nuevas tarjetas para los clientes
+          </h3>
+        )}
 
         {mensaje && <p>{mensaje}</p>}
 
-        <div
-          className="tabla-asesores-contenedor"
-          style={{ marginTop: "24px" }}
-        >
+        {puedeAdministrarTarjetas && (
+          <div
+            className="tabla-asesores-contenedor"
+            style={{ marginTop: "24px" }}
+          >
           <table className="tabla-asesores">
             <thead>
               <tr>
@@ -734,7 +754,8 @@ export default function TarjetasUsuario({
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        )}
 
         {usuarioSeleccionado && (
           <div
@@ -884,7 +905,12 @@ export default function TarjetasUsuario({
           </div>
         )}
 
-        {tarjetas.length > 0 &&
+        {!puedeAdministrarTarjetas && !cargandoTarjetas &&
+          tarjetas.length === 0 && !mensaje && (
+            <p>No tienes tarjetas registradas.</p>
+          )}
+
+        {!puedeAdministrarTarjetas &&
           tarjetas.map((tarjeta) => (
             <div key={tarjeta.id_tarjeta}>
               <p>
