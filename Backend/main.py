@@ -4,7 +4,9 @@ import secrets
 import os
 import re
 import hmac
+import time
 from datetime import datetime
+from datetime import timezone
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import json
@@ -482,7 +484,7 @@ def solicitar_recuperacion(
     codigo = f"{secrets.randbelow(1000000):06d}"
     codigos_recuperacion[datos.documento] = {
         "codigo": codigo,
-        "expira": datetime.utcnow().timestamp() + 600,
+        "expira": time.time() + 600,
         "intentos": 0
     }
     mensaje = crear_plantilla_email(
@@ -516,7 +518,7 @@ def verificar_codigo_recuperacion(
     db: Session = Depends(get_db)
 ):
     registro = codigos_recuperacion.get(datos.documento)
-    if not registro or registro["expira"] < datetime.utcnow().timestamp():
+    if not registro or registro["expira"] < time.time():
         raise HTTPException(status_code=400, detail="El código es inválido o expiró")
 
     registro["intentos"] += 1
@@ -529,7 +531,7 @@ def verificar_codigo_recuperacion(
         "token": token,
         "usuario_id": usuario.id_usuario,
         "tarjeta_verificada": False,
-        "expira": datetime.utcnow().timestamp() + 600
+        "expira": time.time() + 600
     }
     return {"token": token}
 
@@ -545,7 +547,7 @@ def verificar_tarjeta_recuperacion(
         None
     )
     registro = codigos_recuperacion.get(documento) if documento else None
-    if not registro or registro["expira"] < datetime.utcnow().timestamp():
+    if not registro or registro["expira"] < time.time():
         raise HTTPException(status_code=400, detail="La sesión de recuperación expiró")
 
     ultimos_digitos = datos.ultimos_digitos.strip()
@@ -585,7 +587,7 @@ def restablecer_password(
         None
     )
     registro = codigos_recuperacion.get(documento) if documento else None
-    if not registro or registro["expira"] < datetime.utcnow().timestamp():
+    if not registro or registro["expira"] < time.time():
         raise HTTPException(status_code=400, detail="La sesión de recuperación expiró")
     if not registro.get("tarjeta_verificada"):
         raise HTTPException(status_code=403, detail="Verifica los últimos 6 dígitos de tu tarjeta")
@@ -1016,7 +1018,12 @@ def generar_codigo_asesor(db: Session) -> str:
                 for _ in range(7)
             ),
         ]
-        secrets.SystemRandom().shuffle(caracteres)
+        for indice in range(len(caracteres) - 1, 0, -1):
+            otro_indice = secrets.randbelow(indice + 1)
+            caracteres[indice], caracteres[otro_indice] = (
+                caracteres[otro_indice],
+                caracteres[indice],
+            )
         codigo_asesor = "".join(caracteres)
         codigo_existente = db.execute(
             text(
@@ -1057,9 +1064,6 @@ def registrar_codigo_asesor(
             status_code=400,
             detail="Nombre, número, correo y tipo de documento son obligatorios"
         )
-
-    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
-        raise HTTPException(status_code=400, detail="Ingrese un correo electrónico válido")
 
     codigo_asesor = generar_codigo_asesor(db)
 
@@ -2457,7 +2461,7 @@ def agregar_tarjeta_usuario(
     else:
         fecha_expiracion = (
             f"{secrets.randbelow(12) + 1:02d}/"
-            f"{str(datetime.utcnow().year + 5)[-2:]}"
+            f"{str(datetime.now(timezone.utc).year + 5)[-2:]}"
         )
 
     codigo_seguridad = datos.cvv or f"{secrets.randbelow(1000):03d}"
@@ -2672,7 +2676,7 @@ def consultar_tarjeta(
 
         fecha_expiracion = (
             f"{secrets.randbelow(12) + 1:02d}/"
-            f"{str(datetime.utcnow().year + 5)[-2:]}"
+            f"{str(datetime.now(timezone.utc).year + 5)[-2:]}"
         )
         codigo_seguridad = f"{secrets.randbelow(1000):03d}"
 
@@ -2690,7 +2694,7 @@ def consultar_tarjeta(
     if not tarjeta.fecha_expiracion or not tarjeta.codigo_seguridad:
         tarjeta.fecha_expiracion = tarjeta.fecha_expiracion or (
             f"{secrets.randbelow(12) + 1:02d}/"
-            f"{str(datetime.utcnow().year + 5)[-2:]}"
+            f"{str(datetime.now(timezone.utc).year + 5)[-2:]}"
         )
         tarjeta.codigo_seguridad = tarjeta.codigo_seguridad or f"{secrets.randbelow(1000):03d}"
         db.commit()
@@ -2745,7 +2749,7 @@ def bloquear_tarjeta(
     if tarjeta:
         tarjeta.estado = "bloqueada"
     cuenta.estado = "bloqueada"
-    cuenta.fecha_estado = datetime.utcnow()
+    cuenta.fecha_estado = datetime.now(timezone.utc).replace(tzinfo=None)
     db.commit()
 
     return {
@@ -2777,7 +2781,7 @@ def desbloquear_tarjeta(
     if tarjeta:
         tarjeta.estado = "activa"
     cuenta.estado = "activa"
-    cuenta.fecha_estado = datetime.utcnow()
+    cuenta.fecha_estado = datetime.now(timezone.utc).replace(tzinfo=None)
     db.commit()
 
     return {

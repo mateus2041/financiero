@@ -36,7 +36,7 @@ export default function Notificaciones() {
       }, 3000);
     }
 
-    cargarNotificaciones();
+    void cargarNotificaciones();
   }, [navigate, token]);
 
   useEffect(() => {
@@ -580,14 +580,15 @@ export default function Notificaciones() {
               <div
                 className="modal-cuenta-overlay"
                 role="presentation"
-                onClick={cerrarMensajeCompleto}
+                onMouseDown={(evento) => {
+                  if (evento.target === evento.currentTarget) cerrarMensajeCompleto();
+                }}
               >
                 <section
                   className="modal-cuenta"
                   role="dialog"
                   aria-modal="true"
                   aria-labelledby="titulo-mensaje-completo"
-                  onClick={(evento) => evento.stopPropagation()}
                 >
                   <div className="encabezado-modal-cuenta">
                     <h2 id="titulo-mensaje-completo">

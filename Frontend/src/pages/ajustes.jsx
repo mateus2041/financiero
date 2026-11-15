@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ChatIA from "./ChatIA";
 import AsistenteMovil from "../components/AsistenteMovil";
+import { activateOnEnterOrSpace } from "../utils/helpers";
 import "../styles/ajustes.css";
 import "../styles/navegacionMovil.css";
 
@@ -165,8 +166,6 @@ function AjustesPerfil() {
           );
         }
 
-        console.log("Información recibida:", data);
-
         setUsuario({
           nombre: data.nombre || "",
           correo: data.correo || data.email || "",
@@ -177,7 +176,7 @@ function AjustesPerfil() {
           tope_corriente: data.tope_corriente || 0,
         });
       } catch (error) {
-        console.error(error);
+        console.error("No se pudo cargar el perfil del usuario.");
 
         alert(
           error.message ||
@@ -186,7 +185,7 @@ function AjustesPerfil() {
       }
     };
 
-    obtenerUsuario();
+    void obtenerUsuario();
   }, [navigate]);
 
   // =====================================================
@@ -348,7 +347,7 @@ function AjustesPerfil() {
       setPassword("");
       setEditando(false);
     } catch (error) {
-      console.error(error);
+      console.error("No se pudo actualizar el perfil del usuario.");
 
       setMensajePerfil(
         error.message ||
@@ -409,8 +408,14 @@ function AjustesPerfil() {
 
             <div
               className="menu-item"
-              onClick={() =>
-                setOpenTransfer(!openTransfer)
+              role="button"
+              tabIndex={0}
+              aria-expanded={openTransfer}
+              onClick={() => setOpenTransfer((isOpen) => !isOpen)}
+              onKeyDown={(event) =>
+                activateOnEnterOrSpace(event, () =>
+                  setOpenTransfer((isOpen) => !isOpen)
+                )
               }
             >
               💳 Otros{" "}
@@ -556,9 +561,10 @@ function AjustesPerfil() {
 
         {/* NOMBRE */}
 
-        <label>Nombre</label>
+        <label htmlFor="perfil-nombre">Nombre</label>
 
         <input
+          id="perfil-nombre"
           type="text"
           placeholder="Nombre"
           value={usuario.nombre}
@@ -573,9 +579,10 @@ function AjustesPerfil() {
 
         {/* CORREO */}
 
-        <label>Correo</label>
+        <label htmlFor="perfil-correo">Correo</label>
 
         <input
+          id="perfil-correo"
           type="email"
           placeholder="Correo"
           value={usuario.correo}
@@ -590,9 +597,10 @@ function AjustesPerfil() {
 
         {/* TELÉFONO */}
 
-        <label>Teléfono</label>
+        <label htmlFor="perfil-telefono">Teléfono</label>
 
         <input
+          id="perfil-telefono"
           type="text"
           placeholder="Teléfono"
           value={usuario.telefono}
@@ -607,9 +615,10 @@ function AjustesPerfil() {
 
         {/* DIRECCIÓN */}
 
-        <label>Dirección</label>
+        <label htmlFor="perfil-direccion">Dirección</label>
 
         <input
+          id="perfil-direccion"
           type="text"
           placeholder="Dirección"
           value={usuario.direccion}
@@ -624,9 +633,10 @@ function AjustesPerfil() {
 
         {/* LLAVE BRE-B */}
 
-        <label>Tu llave Bre-B</label>
+        <label htmlFor="perfil-llave-breb">Tu llave Bre-B</label>
 
         <input
+          id="perfil-llave-breb"
           type="text"
           placeholder="Ej: 3001234567"
           value={usuario.llave_bre_b}
@@ -657,11 +667,12 @@ function AjustesPerfil() {
 
         {/* TOPE AHORROS */}
 
-        <label>
+        <label htmlFor="perfil-tope-ahorros">
           Tope cuenta de ahorros
         </label>
 
         <input
+          id="perfil-tope-ahorros"
           type="number"
           placeholder="Tope de cuenta de ahorros"
           value={usuario.tope_ahorros}
@@ -677,11 +688,12 @@ function AjustesPerfil() {
 
         {/* TOPE CORRIENTE */}
 
-        <label>
+        <label htmlFor="perfil-tope-corriente">
           Tope cuenta corriente
         </label>
 
         <input
+          id="perfil-tope-corriente"
           type="number"
           placeholder="Tope de cuenta corriente"
           value={usuario.tope_corriente}
@@ -699,9 +711,10 @@ function AjustesPerfil() {
 
         {editando && (
           <>
-            <label>Contraseña</label>
+            <label htmlFor="perfil-password">Contraseña</label>
 
             <input
+              id="perfil-password"
               type="password"
               placeholder="Ingresa tu contraseña"
               value={password}
@@ -793,14 +806,16 @@ function AjustesPerfil() {
       {asistenteAbierto && (
         <div
           className="asistente-modal-overlay"
-          onClick={() => setAsistenteAbierto(false)}
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setAsistenteAbierto(false);
+          }}
         >
           <div
             className="asistente-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="asistente-titulo"
-            onClick={(event) => event.stopPropagation()}
           >
             <ChatIA onClose={() => setAsistenteAbierto(false)} />
           </div>

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from decimal import Decimal
+from datetime import datetime, timezone
 from datetime import datetime
 import uuid
 
@@ -666,7 +667,7 @@ def transferir_breb(
             referencia,
 
             fecha_transferencia =
-            datetime.utcnow()
+            datetime.now(timezone.utc).replace(tzinfo=None)
 
         )
 

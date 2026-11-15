@@ -63,7 +63,7 @@ export default function ListaCuentas() {
   const [esMovil, setEsMovil] = useState(() => window.innerWidth <= 650);
 
   useEffect(() => {
-    cargarCuentas();
+    void cargarCuentas();
   }, []);
 
   useEffect(() => {
@@ -795,14 +795,15 @@ export default function ListaCuentas() {
           <div
             className="modal-mensaje-admin-overlay"
             role="presentation"
-            onClick={() => setMostrarMensajeAdmin(false)}
+            onMouseDown={(evento) => {
+              if (evento.target === evento.currentTarget) setMostrarMensajeAdmin(false);
+            }}
           >
             <section
               className="modal-mensaje-admin"
               role="dialog"
               aria-modal="true"
               aria-labelledby="titulo-mensaje-admin"
-              onClick={(evento) => evento.stopPropagation()}
             >
               <div className="modal-mensaje-admin-header">
                 <h2 id="titulo-mensaje-admin">Mensaje para el administrador</h2>
@@ -1049,7 +1050,7 @@ export default function ListaCuentas() {
                                   : "boton-habilitar"
                               }
                               onClick={() => {
-                                cambiarEstadoCuenta(
+                                void cambiarEstadoCuenta(
                                   cuenta.id_cuenta,
                                   cuentaActiva
                                     ? "inactiva"
@@ -1100,16 +1101,13 @@ export default function ListaCuentas() {
           <div
             className="modal-edicion-overlay"
             role="presentation"
-            onClick={() =>
-              setUsuarioNuevaCuenta(null)
-            }
+            onMouseDown={(evento) => {
+              if (evento.target === evento.currentTarget) setUsuarioNuevaCuenta(null);
+            }}
           >
             <form
               className="modal-edicion-saldo"
               onSubmit={crearNuevaCuenta}
-              onClick={(evento) =>
-                evento.stopPropagation()
-              }
             >
               <h2>
                 Añadir cuenta a{" "}
@@ -1201,9 +1199,9 @@ export default function ListaCuentas() {
           <div
             className="modal-cuenta-overlay"
             role="presentation"
-            onClick={() =>
-              setCuentaSeleccionada(null)
-            }
+            onMouseDown={(evento) => {
+              if (evento.target === evento.currentTarget) setCuentaSeleccionada(null);
+            }}
           >
             {cuentaSeleccionada && (
               <section
@@ -1211,9 +1209,6 @@ export default function ListaCuentas() {
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="titulo-modal-cuenta"
-                onClick={(evento) =>
-                  evento.stopPropagation()
-                }
               >
                 <div className="encabezado-modal-cuenta">
                   <h2 id="titulo-modal-cuenta">
@@ -1272,18 +1267,17 @@ export default function ListaCuentas() {
               <div
                 className="modal-edicion-overlay"
                 role="presentation"
-                onClick={() => {
-                  setAutorizandoSaldo(false);
-                  setCuentaSaldoSeleccionada(null);
+                onMouseDown={(evento) => {
+                  if (evento.target === evento.currentTarget) {
+                    setAutorizandoSaldo(false);
+                    setCuentaSaldoSeleccionada(null);
+                  }
                 }}
               >
                 <form
                   className="modal-edicion-saldo"
                   onSubmit={
                     autorizarEdicionSaldo
-                  }
-                  onClick={(evento) =>
-                    evento.stopPropagation()
                   }
                 >
                   <h2>
@@ -1313,7 +1307,6 @@ export default function ListaCuentas() {
                     }
                     autoComplete="off"
                     required
-                    autoFocus
                   />
 
                   <div className="acciones-formulario-saldo">
@@ -1347,18 +1340,17 @@ export default function ListaCuentas() {
               <div
                 className="modal-edicion-overlay"
                 role="presentation"
-                onClick={() => {
-                  setEditandoSaldo(false);
-                  setCuentaSaldoSeleccionada(null);
+                onMouseDown={(evento) => {
+                  if (evento.target === evento.currentTarget) {
+                    setEditandoSaldo(false);
+                    setCuentaSaldoSeleccionada(null);
+                  }
                 }}
               >
                 <form
                   className="modal-edicion-saldo"
                   onSubmit={
                     actualizarSaldoCuenta
-                  }
-                  onClick={(evento) =>
-                    evento.stopPropagation()
                   }
                 >
                   <h2>
@@ -1420,17 +1412,14 @@ export default function ListaCuentas() {
               <div
                 className="modal-edicion-overlay"
                 role="presentation"
-                onClick={() =>
-                  setAutorizandoTipoOperacion(false)
-                }
+                onMouseDown={(evento) => {
+                  if (evento.target === evento.currentTarget) setAutorizandoTipoOperacion(false);
+                }}
               >
                 <form
                   className="modal-edicion-saldo"
                   onSubmit={
                     autorizarEdicionTipoOperacion
-                  }
-                  onClick={(evento) =>
-                    evento.stopPropagation()
                   }
                 >
                   <h2>
@@ -1458,7 +1447,6 @@ export default function ListaCuentas() {
                     }
                     autoComplete="off"
                     required
-                    autoFocus
                   />
 
                   <div className="acciones-formulario-saldo">
@@ -1493,17 +1481,14 @@ export default function ListaCuentas() {
               <div
                 className="modal-edicion-overlay"
                 role="presentation"
-                onClick={() =>
-                  setEditandoTipoOperacion(false)
-                }
+                onMouseDown={(evento) => {
+                  if (evento.target === evento.currentTarget) setEditandoTipoOperacion(false);
+                }}
               >
                 <form
                   className="modal-edicion-saldo"
                   onSubmit={
                     actualizarTipoOperacion
-                  }
-                  onClick={(evento) =>
-                    evento.stopPropagation()
                   }
                 >
                   <h2>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { parsePositiveInteger } from "../utils/helpers";
 import "../styles/mensajeAdmin.css";
 
 export default function Mensajes() {
@@ -7,37 +8,68 @@ export default function Mensajes() {
 
   const [mensaje, setMensaje] = useState("");
   const [mensajes, setMensajes] = useState([]);
+  const [errorAlmacenamiento, setErrorAlmacenamiento] = useState("");
   const [menuAbierto, setMenuAbierto] = useState(true);
 
+  const leerMensajesGuardados = () => {
+    const contenido = localStorage.getItem("mensajes_admin");
+    if (!contenido) return [];
+
+    try {
+      const guardados = JSON.parse(contenido);
+      if (!Array.isArray(guardados)) {
+        throw new TypeError("El contenido almacenado no es una lista");
+      }
+
+      return guardados
+        .filter((item) => item && typeof item === "object" && !Array.isArray(item))
+        .map((item, index) => {
+          const texto = [item.texto, item.mensaje, item.descripcion].find(
+            (valor) => typeof valor === "string"
+          ) || "";
+          const fechaCreacion = typeof item.fecha_creacion === "string"
+            ? item.fecha_creacion.slice(0, 64)
+            : new Date().toISOString();
+          const fecha = typeof item.fecha === "string"
+            ? item.fecha.slice(0, 100)
+            : new Date(fechaCreacion).toLocaleString("es-CO");
+          const id = parsePositiveInteger(item.id ?? item.id_notificacion)
+            ?? Date.now() + index;
+
+          return {
+            id,
+            id_notificacion: id,
+            nombre_asesor: [
+              item.nombre_asesor,
+              item.nombre,
+              localStorage.getItem("nombre_asesor"),
+            ].find((valor) => typeof valor === "string")?.slice(0, 100)
+              || "Sin nombre",
+            texto: texto.slice(0, 500),
+            mensaje: texto.slice(0, 500),
+            descripcion: texto.slice(0, 500),
+            titulo: typeof item.titulo === "string"
+              ? item.titulo.slice(0, 100)
+              : "Mensaje para el administrador",
+            tipo: typeof item.tipo === "string" ? item.tipo.slice(0, 50) : "mensaje",
+            fecha,
+            fecha_creacion: fechaCreacion,
+            leida: Boolean(item.leida),
+          };
+        });
+    } catch (error) {
+      if (!(error instanceof SyntaxError || error instanceof TypeError)) {
+        throw error;
+      }
+
+      localStorage.removeItem("mensajes_admin");
+      setErrorAlmacenamiento("Se descartaron mensajes locales dañados.");
+      return [];
+    }
+  };
+
   useEffect(() => {
-    const guardados = JSON.parse(
-      localStorage.getItem("mensajes_admin") || "[]"
-    );
-
-    const mensajesCargados = guardados.map((item) => ({
-      id: item.id ?? item.id_notificacion,
-      id_notificacion: item.id_notificacion ?? item.id,
-      nombre_asesor:
-        item.nombre_asesor ??
-        item.nombre ??
-        localStorage.getItem("nombre_asesor") ??
-        "Sin nombre",
-      texto: item.texto ?? item.mensaje ?? item.descripcion ?? "",
-      mensaje: item.mensaje ?? item.texto ?? item.descripcion ?? "",
-      descripcion: item.descripcion ?? item.mensaje ?? item.texto ?? "",
-      titulo: item.titulo ?? "Mensaje para el administrador",
-      tipo: item.tipo ?? "mensaje",
-      fecha:
-        item.fecha ??
-        (item.fecha_creacion
-          ? new Date(item.fecha_creacion).toLocaleString("es-CO")
-          : new Date().toLocaleString("es-CO")),
-      fecha_creacion:
-        item.fecha_creacion ?? new Date().toISOString(),
-      leida: Boolean(item.leida),
-    }));
-
-    setMensajes(mensajesCargados);
+    setMensajes(leerMensajesGuardados());
   }, []);
 
   const enviarMensaje = () => {
@@ -46,13 +78,14 @@ export default function Mensajes() {
     }
 
     const ahora = new Date();
+    const textoMensaje = mensaje.trim().slice(0, 500);
     const nuevoMensaje = {
       id: Date.now(),
       id_notificacion: Date.now(),
       nombre_asesor: localStorage.getItem("nombre_usuario") || "Sin nombre",
-      texto: mensaje.trim(),
-      mensaje: mensaje.trim(),
-      descripcion: mensaje.trim(),
+      texto: textoMensaje,
+      mensaje: textoMensaje,
+      descripcion: textoMensaje,
       titulo: "Mensaje para el administrador",
       tipo: "mensaje",
       fecha: ahora.toLocaleString("es-CO"),
@@ -60,18 +93,14 @@ export default function Mensajes() {
       leida: false,
     };
 
-    const mensajesGuardados = JSON.parse(
-      localStorage.getItem("mensajes_admin") || "[]"
-    );
+    const mensajesGuardados = leerMensajesGuardados();
 
     const actualizados = [nuevoMensaje, ...mensajesGuardados];
-    localStorage.setItem(
-      "mensajes_admin",
-      JSON.stringify(actualizados)
-    );
+    localStorage.setItem("mensajes_admin", JSON.stringify(actualizados));
 
     setMensajes((anteriores) => [nuevoMensaje, ...anteriores]);
     setMensaje("");
+    setErrorAlmacenamiento("");
   };
 
   const manejarTecla = (e) => {
@@ -157,11 +186,12 @@ export default function Mensajes() {
                 </div>
 
                 <div className="mensaje-admin-body">
-                  <label className="mensaje-admin-label">
+                  <label className="mensaje-admin-label" htmlFor="mensaje-admin-input">
                     Código de mensaje:
                   </label>
 
                   <input
+                    id="mensaje-admin-input"
                     type="text"
                     className="mensaje-admin-input"
                     value={mensaje}
@@ -169,6 +199,7 @@ export default function Mensajes() {
                     onKeyDown={manejarTecla}
                     placeholder="Escribe un mensaje"
                     autoComplete="off"
+                    maxLength={500}
                     style={{
                       color: "#ffffff",
                       backgroundColor: "#0b0f16",
@@ -177,6 +208,10 @@ export default function Mensajes() {
                       fontWeight: 600,
                     }}
                   />
+
+                  {errorAlmacenamiento && (
+                    <p role="alert">{errorAlmacenamiento}</p>
+                  )}
 
                   <button
                     type="button"

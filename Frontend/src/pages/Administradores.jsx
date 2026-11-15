@@ -33,7 +33,7 @@ export default function Administradores() {
   const [menuAbierto, setMenuAbierto] = useState(true);
 
   useEffect(() => {
-    cargarDatos();
+    void cargarDatos();
   }, []);
 
   useEffect(() => {
@@ -441,6 +441,22 @@ export default function Administradores() {
                   <div
                     key={item.label}
                     className="fila-grafica-detallada"
+                    role="button"
+                    aria-label={`${item.label}: ${item.valor}`}
+                    aria-expanded={detalleGraficaVisible === item.label}
+                    onClick={() => {
+                      setDetalleGraficaVisible((visible) =>
+                        visible === item.label ? null : item.label
+                      );
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setDetalleGraficaVisible((visible) =>
+                          visible === item.label ? null : item.label
+                        );
+                      }
+                    }}
                     onMouseEnter={() => setDetalleGraficaVisible(item.label)}
                     onMouseLeave={() => setDetalleGraficaVisible(null)}
                     onFocus={() => setDetalleGraficaVisible(item.label)}
@@ -484,12 +500,13 @@ export default function Administradores() {
           {graficaAbierta && (
             <div
               className="modal-grafica-overlay"
-              onClick={() => setGraficaAbierta(false)}
               role="presentation"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) setGraficaAbierta(false);
+              }}
             >
               <div
                 className="modal-grafica"
-                onClick={(e) => e.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="titulo-modal-grafica"
@@ -529,12 +546,13 @@ export default function Administradores() {
           {editandoCodigo && asesorConsultado && (
               <div
                 className="modal-cambio-codigo-overlay"
-                onClick={() => setEditandoCodigo(false)}
                 role="presentation"
+                onMouseDown={(event) => {
+                  if (event.target === event.currentTarget) setEditandoCodigo(false);
+                }}
               >
                 <div
                   className="modal-cambio-codigo"
-                  onClick={(e) => e.stopPropagation()}
                   role="dialog"
                   aria-modal="true"
                   aria-labelledby="titulo-modal-cambio-codigo"

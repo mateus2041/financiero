@@ -28,13 +28,15 @@ const Modal = ({ isOpen, onClose, title, children }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       
       {/* FONTO TRASLÚCIDO (OVERLAY) */}
-      <div 
-        className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity"
-        onClick={onClose} 
+      <button
+        type="button"
+        className="absolute inset-0 z-0 border-0 p-0 bg-slate-950/70 backdrop-blur-sm transition-opacity"
+        aria-label="Cerrar modal"
+        onClick={onClose}
       />
 
       {/* CONTENEDOR DEL MODAL */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl max-w-lg w-full overflow-hidden transform transition-all z-10 animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative z-10 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl max-w-lg w-full overflow-hidden transform transition-all animate-in fade-in zoom-in-95 duration-200">
         
         {/* CABECERA */}
         <div className="flex items-center justify-between p-4 border-b border-slate-800">

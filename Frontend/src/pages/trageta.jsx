@@ -1,23 +1,43 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import { parsePositiveInteger } from "../utils/helpers";
 import "../styles/trageta.css";
 
-const API_URL = "http://localhost:8000";
+const generarDigitos = (longitud) => {
+  let resultado = "";
+  const bytes = new Uint8Array(longitud);
 
-const generarUltimosDigitos = () =>
-  String(Math.floor(Math.random() * 1000)).padStart(3, "0");
+  while (resultado.length < longitud) {
+    window.crypto.getRandomValues(bytes);
+    for (const byte of bytes) {
+      if (byte < 250 && resultado.length < longitud) {
+        resultado += byte % 10;
+      }
+    }
+  }
 
-const generarCVV = () =>
-  String(Math.floor(Math.random() * 10000)).padStart(4, "0");
+  return resultado;
+};
 
-const generarPrimerosDigitos = () =>
-  String(Math.floor(Math.random() * 10 ** 13)).padStart(13, "0");
+const generarEnteroSeguro = (limite) => {
+  const maximoAceptable = 256 - (256 % limite);
+  const valor = new Uint8Array(1);
+  do {
+    window.crypto.getRandomValues(valor);
+  } while (valor[0] >= maximoAceptable);
+
+  return valor[0] % limite;
+};
+
+const generarUltimosDigitos = () => generarDigitos(3);
+const generarCVV = () => generarDigitos(4);
+const generarPrimerosDigitos = () => generarDigitos(13);
 
 const generarFechaVencimiento = () => {
   const fecha = new Date();
   const anio = fecha.getFullYear() + 5;
-  const mes = String(Math.floor(Math.random() * 12) + 1).padStart(2, "0");
+  const mes = String(generarEnteroSeguro(12) + 1).padStart(2, "0");
 
   return `${anio}-${mes}`;
 };
@@ -57,10 +77,10 @@ export default function TarjetasUsuario({
 
   useEffect(() => {
     if (id_usuario) {
-      obtenerTarjetas();
+      void obtenerTarjetas();
     }
 
-    obtenerUsuarios();
+    void obtenerUsuarios();
   }, [id_usuario]);
 
   useEffect(() => {
@@ -77,11 +97,17 @@ export default function TarjetasUsuario({
   }, []);
 
   const obtenerTarjetas = async () => {
+    const usuarioId = parsePositiveInteger(id_usuario);
+    if (usuarioId === null) {
+      setMensaje("El identificador del usuario no es válido");
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
 
       const respuesta = await axios.get(
-        `${API_URL}/usuarios/${id_usuario}/tarjetas`,
+        `/usuarios/${usuarioId}/tarjetas`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -104,7 +130,7 @@ export default function TarjetasUsuario({
     try {
       const token = localStorage.getItem("token");
 
-      const respuesta = await axios.get(`${API_URL}/usuarios`, {
+      const respuesta = await axios.get("/usuarios", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -129,7 +155,7 @@ export default function TarjetasUsuario({
     try {
       const token = localStorage.getItem("token");
       const respuesta = await axios.get(
-        `${API_URL}/administradores/tarjetas`,
+        "/administradores/tarjetas",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -161,10 +187,16 @@ export default function TarjetasUsuario({
   };
 
   const obtenerTarjetasDeUsuario = async (usuario) => {
+    const usuarioId = parsePositiveInteger(usuario?.id_usuario);
+    if (usuarioId === null) {
+      setMensaje("El identificador del usuario no es válido");
+      return null;
+    }
+
     try {
       const token = localStorage.getItem("token");
       const respuesta = await axios.get(
-        `${API_URL}/usuarios/${usuario.id_usuario}/tarjetas`,
+        `/usuarios/${usuarioId}/tarjetas`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -200,6 +232,12 @@ export default function TarjetasUsuario({
       return;
     }
 
+    const usuarioId = parsePositiveInteger(usuarioSeleccionado.id_usuario);
+    if (usuarioId === null) {
+      setMensaje("El identificador del usuario no es válido");
+      return;
+    }
+
     if (!formulario.fecha_vencimiento) {
       setMensaje("La fecha de vencimiento es obligatoria");
       return;
@@ -211,11 +249,17 @@ export default function TarjetasUsuario({
     }
 
     if (tarjetaEditando) {
+      const tarjetaId = parsePositiveInteger(tarjetaEditando.id_tarjeta);
+      if (tarjetaId === null) {
+        setMensaje("El identificador de la tarjeta no es válido");
+        return;
+      }
+
       try {
         const token = localStorage.getItem("token");
 
         await axios.patch(
-          `${API_URL}/tarjetas/${tarjetaEditando.id_tarjeta}`,
+          `/tarjetas/${tarjetaId}`,
           {
             fecha_vencimiento: formulario.fecha_vencimiento,
           },
@@ -228,7 +272,7 @@ export default function TarjetasUsuario({
 
         setMensaje("Tarjeta actualizada correctamente");
         cerrarModalTarjeta();
-        obtenerTarjetasDeUsuario(usuarioSeleccionado);
+        await obtenerTarjetasDeUsuario(usuarioSeleccionado);
       } catch (error) {
         console.error("Error al actualizar tarjeta:", error);
         setMensaje(
@@ -251,7 +295,7 @@ export default function TarjetasUsuario({
         formulario.primeros_digitos + formulario.ultimos_digitos;
 
       await axios.post(
-        `${API_URL}/usuarios/${usuarioSeleccionado.id_usuario}/tarjetas`,
+        `/usuarios/${usuarioId}/tarjetas`,
         {
           ...formulario,
           numero_tarjeta,
@@ -276,10 +320,10 @@ export default function TarjetasUsuario({
       setUsuarioSeleccionado(null);
 
       if (id_usuario === usuarioSeleccionado.id_usuario) {
-        obtenerTarjetas();
+        void obtenerTarjetas();
       }
 
-      obtenerUsuarios();
+      void obtenerUsuarios();
     } catch (error) {
       console.error("Error al agregar tarjeta:", error);
 
@@ -351,10 +395,16 @@ export default function TarjetasUsuario({
   };
 
   const eliminarTarjeta = async (id_tarjeta) => {
+    const tarjetaId = parsePositiveInteger(id_tarjeta);
+    if (tarjetaId === null) {
+      setMensaje("El identificador de la tarjeta no es válido");
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
 
-      await axios.delete(`${API_URL}/tarjetas/${id_tarjeta}`, {
+      await axios.delete(`/tarjetas/${tarjetaId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -362,7 +412,7 @@ export default function TarjetasUsuario({
 
       setMensaje("Tarjeta eliminada correctamente");
 
-      obtenerTarjetas();
+      void obtenerTarjetas();
     } catch (error) {
       console.error("Error al eliminar tarjeta:", error);
 
@@ -374,11 +424,17 @@ export default function TarjetasUsuario({
   };
 
   const activarTarjeta = async (id_tarjeta) => {
+    const tarjetaId = parsePositiveInteger(id_tarjeta);
+    if (tarjetaId === null) {
+      setMensaje("El identificador de la tarjeta no es válido");
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
 
       await axios.patch(
-        `${API_URL}/tarjetas/${id_tarjeta}/activar`,
+        `/tarjetas/${tarjetaId}/activar`,
         {},
         {
           headers: {
@@ -388,7 +444,7 @@ export default function TarjetasUsuario({
       );
 
       setMensaje("Tarjeta activada correctamente");
-      obtenerTarjetas();
+      void obtenerTarjetas();
     } catch (error) {
       console.error("Error al activar tarjeta:", error);
 
@@ -405,6 +461,12 @@ export default function TarjetasUsuario({
       return;
     }
 
+    const tarjetaId = parsePositiveInteger(tarjeta.id_tarjeta);
+    if (tarjetaId === null) {
+      setMensaje("El identificador de la tarjeta no es válido");
+      return;
+    }
+
     const activar = tarjeta.estado !== "activa";
     const accion = activar ? "activar" : "desactivar";
 
@@ -413,7 +475,7 @@ export default function TarjetasUsuario({
       const token = localStorage.getItem("token");
 
       const respuesta = await axios.patch(
-        `${API_URL}/tarjetas/${tarjeta.id_tarjeta}/${accion}`,
+        `/tarjetas/${tarjetaId}/${accion}`,
         {},
         {
           headers: {
@@ -680,12 +742,13 @@ export default function TarjetasUsuario({
             role="dialog"
             aria-modal="true"
             aria-labelledby="titulo-modal-tarjeta"
-            onClick={cerrarModalTarjeta}
+            onClick={(evento) => {
+              if (evento.target === evento.currentTarget) cerrarModalTarjeta();
+            }}
           >
             <form
               className="modal-tarjeta"
               onSubmit={agregarTarjeta}
-              onClick={(e) => e.stopPropagation()}
             >
               <button
                 type="button"

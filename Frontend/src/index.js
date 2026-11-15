@@ -4,30 +4,42 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App.js";
 
+const isLoopbackHost = (hostname) =>
+  hostname === "localhost" ||
+  hostname === "127.0.0.1" ||
+  hostname === "[::1]";
+
 const resolveApiBaseUrl = () => {
   const configuredUrl =
     process.env.REACT_APP_API_URL ||
     process.env.VITE_API_URL ||
-    "http://localhost:8000";
+    `${window.location.protocol}//${window.location.hostname}:8000`;
+  const apiUrl = new URL(configuredUrl, window.location.origin);
 
-  return configuredUrl.replace(/\/$/, "");
+  if (
+    (apiUrl.protocol !== "https:" &&
+      !(apiUrl.protocol === "http:" && isLoopbackHost(apiUrl.hostname))) ||
+    apiUrl.username ||
+    apiUrl.password
+  ) {
+    throw new Error("La API debe usar HTTPS fuera de un entorno local.");
+  }
+
+  return apiUrl.toString().replace(/\/$/, "");
 };
 
 const API_BASE_URL = resolveApiBaseUrl();
 
 const normalizeApiUrl = (url) => {
   if (typeof url !== "string") return url;
+  const parsedUrl = new URL(url, window.location.origin);
 
-  const candidates = [
-    "http://127.0.0.1:8000",
-    "http://localhost:8000",
-    "http://0.0.0.0:8000",
-  ];
-
-  for (const candidate of candidates) {
-    if (url.startsWith(candidate)) {
-      return url.replace(candidate, API_BASE_URL);
-    }
+  if (
+    parsedUrl.protocol === "http:" &&
+    isLoopbackHost(parsedUrl.hostname) &&
+    parsedUrl.port === "8000"
+  ) {
+    return `${API_BASE_URL}${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
   }
 
   return url;

@@ -3,7 +3,7 @@ import bcrypt
 from jose import JWTError, jwt
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 
 from dotenv import load_dotenv
@@ -74,7 +74,7 @@ def check_password(
 # =========================
 
 def generate_token(identity: int):
-    expire = datetime.utcnow() + timedelta(
+    expire = datetime.now(timezone.utc) + timedelta(
         minutes=ACCESS_TOKEN_EXPIRE_MINUTES
     )
 

@@ -78,7 +78,7 @@ export default function ListaUsuarios() {
   const arrastreInicioRef = useRef(null);
 
   useEffect(() => {
-    cargarUsuarios();
+    void cargarUsuarios();
   }, []);
 
   useEffect(() => {

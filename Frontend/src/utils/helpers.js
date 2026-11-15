@@ -10,11 +10,30 @@
  * @param {string} currency - Por defecto 'MXN' o 'USD'
  */
 export const formatCurrency = (amount, locale = 'es-MX', currency = 'MXN') => {
-  if (isNaN(amount) || amount === null) return '$0.00';
+  if (amount === null || Number.isNaN(Number(amount))) return '$0.00';
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency,
   }).format(amount);
+};
+
+export const parsePositiveInteger = (value) => {
+  if (
+    typeof value !== 'number' &&
+    (typeof value !== 'string' || !/^\d+$/.test(value))
+  ) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+export const activateOnEnterOrSpace = (event, action) => {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    action();
+  }
 };
 
 /**
@@ -37,8 +56,17 @@ export const formatDate = (date) => {
  * @returns {boolean}
  */
 export const validateEmail = (email) => {
-  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return regex.test(String(email).toLowerCase());
+  const normalizedEmail = String(email).toLowerCase();
+  const parts = normalizedEmail.split("@");
+  if (parts.length !== 2 || /\s/.test(normalizedEmail)) return false;
+
+  const [localPart, domain] = parts;
+  const dotIndex = domain.indexOf(".");
+  return (
+    localPart.length > 0 &&
+    dotIndex > 0 &&
+    dotIndex < domain.length - 1
+  );
 };
 
 /**

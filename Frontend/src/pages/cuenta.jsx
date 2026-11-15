@@ -3,6 +3,7 @@ import Chart from "chart.js/auto";
 import { useNavigate, Link } from "react-router-dom";
 import ChatIA from "./ChatIA";
 import AsistenteMovil from "../components/AsistenteMovil";
+import { activateOnEnterOrSpace } from "../utils/helpers";
 import "../styles/cuenta.css";
 import "../styles/navegacionMovil.css";
 
@@ -210,7 +211,7 @@ const Cuenta = () => {
     };
 
 
-    obtenerUsuario();
+    void obtenerUsuario();
 
 
   }, [id, actualizacion]);
@@ -342,7 +343,7 @@ const Cuenta = () => {
       }
     };
 
-    cargarDatosFinancieros();
+    void cargarDatosFinancieros();
 
     const actualizarCuentas = () => cargarDatosFinancieros();
 
@@ -463,11 +464,15 @@ const Cuenta = () => {
             <div
 
               className="menu-item"
-
-              onClick={() =>
-                setOpenTransfer(!openTransfer)
+              role="button"
+              tabIndex={0}
+              aria-expanded={openTransfer}
+              onClick={() => setOpenTransfer((isOpen) => !isOpen)}
+              onKeyDown={(event) =>
+                activateOnEnterOrSpace(event, () =>
+                  setOpenTransfer((isOpen) => !isOpen)
+                )
               }
-
             >
 
               💳 Otros 
@@ -751,14 +756,16 @@ const Cuenta = () => {
       {asistenteAbierto && (
         <div
           className="asistente-modal-overlay"
-          onClick={() => setAsistenteAbierto(false)}
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setAsistenteAbierto(false);
+          }}
         >
           <div
             className="asistente-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="asistente-titulo"
-            onClick={(event) => event.stopPropagation()}
           >
             <ChatIA onClose={() => setAsistenteAbierto(false)} />
           </div>

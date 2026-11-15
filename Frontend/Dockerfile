@@ -1,13 +1,14 @@
-FROM node:22
+FROM node:22-slim
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY --chown=node:node package*.json ./
 
-RUN npm install
+USER node
+RUN npm ci --ignore-scripts --no-audit --no-fund
 
-COPY public ./public
-COPY src ./src
+COPY --chown=node:node public ./public
+COPY --chown=node:node src ./src
 
 EXPOSE 3000
 

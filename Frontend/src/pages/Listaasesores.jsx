@@ -35,7 +35,7 @@ export default function Administradores() {
     useState(false);
 
   useEffect(() => {
-    cargarDatos();
+    void cargarDatos();
   }, []);
 
   useEffect(() => {
@@ -671,12 +671,13 @@ export default function Administradores() {
           {registroModalAbierto && (
             <div
               className="modal-edicion-asesor-overlay"
-              onClick={() => setRegistroModalAbierto(false)}
               role="presentation"
+              onMouseDown={(evento) => {
+                if (evento.target === evento.currentTarget) setRegistroModalAbierto(false);
+              }}
             >
               <section
                 className="modal-edicion-asesor"
-                onClick={(evento) => evento.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="titulo-registro-asesor"
@@ -769,12 +770,13 @@ export default function Administradores() {
           {asesorEditando && (
             <div
               className="modal-edicion-asesor-overlay"
-              onClick={() => setAsesorEditando(null)}
               role="presentation"
+              onMouseDown={(evento) => {
+                if (evento.target === evento.currentTarget) setAsesorEditando(null);
+              }}
             >
               <section
                 className="modal-edicion-asesor"
-                onClick={(evento) => evento.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="titulo-edicion-asesor"
@@ -927,12 +929,13 @@ export default function Administradores() {
                 {confirmacionRestablecerAbierta && (
                   <div
                     className="confirmacion-codigo-overlay"
-                    onClick={() => setConfirmacionRestablecerAbierta(false)}
                     role="presentation"
+                    onMouseDown={(evento) => {
+                      if (evento.target === evento.currentTarget) setConfirmacionRestablecerAbierta(false);
+                    }}
                   >
                     <section
                       className="confirmacion-codigo-modal"
-                      onClick={(evento) => evento.stopPropagation()}
                       role="dialog"
                       aria-modal="true"
                       aria-labelledby="titulo-confirmacion-codigo"
