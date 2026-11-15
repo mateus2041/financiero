@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import ChatIA from "./ChatIA";
 import AsistenteMovil from "../components/AsistenteMovil";
+import { activateOnEnterOrSpace } from "../utils/helpers";
 import "../styles/historial.css";
 import "../styles/navegacionMovil.css";
 
@@ -21,8 +22,8 @@ function Historial({ isModal = false }) {
     const [asistenteAbierto, setAsistenteAbierto] = useState(false);
 
     useEffect(() => {
-        cargarTransacciones();
-        cargarUsuario();
+        void cargarTransacciones();
+        void cargarUsuario();
     }, []);
 
     useEffect(() => {
@@ -159,7 +160,7 @@ function Historial({ isModal = false }) {
 
         const fechaConvertida = new Date(fecha);
 
-        if (isNaN(fechaConvertida.getTime())) {
+        if (Number.isNaN(fechaConvertida.getTime())) {
             return fecha;
         }
 
@@ -321,9 +322,13 @@ function Historial({ isModal = false }) {
                     <li>
                         <div
                             className="menu-item"
-                            onClick={() =>
-                                setOpenTransfer(
-                                    !openTransfer
+                            role="button"
+                            tabIndex={0}
+                            aria-expanded={openTransfer}
+                            onClick={() => setOpenTransfer((isOpen) => !isOpen)}
+                            onKeyDown={(event) =>
+                                activateOnEnterOrSpace(event, () =>
+                                    setOpenTransfer((isOpen) => !isOpen)
                                 )
                             }
                         >
@@ -622,14 +627,16 @@ function Historial({ isModal = false }) {
             {asistenteAbierto && (
                 <div
                     className="asistente-modal-overlay"
-                    onClick={() => setAsistenteAbierto(false)}
+                    role="presentation"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget) setAsistenteAbierto(false);
+                    }}
                 >
                     <div
                         className="asistente-modal"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="asistente-titulo"
-                        onClick={(event) => event.stopPropagation()}
                     >
                         <ChatIA onClose={() => setAsistenteAbierto(false)} />
                     </div>

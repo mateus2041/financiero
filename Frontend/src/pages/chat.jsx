@@ -438,7 +438,7 @@ function ChatIA({ onClose, compacto = false }) {
 
   const seleccionarOpcion = (opcion) => {
     if (opcion.tipo === "resumenDinero") {
-      mostrarResumenDinero(opcion.etiqueta || opcion.titulo);
+      void mostrarResumenDinero(opcion.etiqueta || opcion.titulo);
       return;
     }
 
@@ -717,7 +717,7 @@ function ChatIA({ onClose, compacto = false }) {
       return;
     }
 
-    enviarPregunta(opcion.pregunta);
+    void enviarPregunta(opcion.pregunta);
   };
 
   return (
@@ -791,7 +791,7 @@ function ChatIA({ onClose, compacto = false }) {
           onChange={(event) => setPregunta(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter" && (escrituraDesbloqueada || esperandoLlaveBreB)) {
-              enviarPregunta();
+              void enviarPregunta();
             }
           }}
           aria-label={
@@ -823,14 +823,16 @@ function ChatIA({ onClose, compacto = false }) {
     {mostrarHistorial && (
       <div
         className="historial-asistente-overlay"
-        onClick={() => setMostrarHistorial(false)}
+        role="presentation"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setMostrarHistorial(false);
+        }}
       >
         <div
           className="historial-asistente-modal"
           role="dialog"
           aria-modal="true"
           aria-labelledby="historial-asistente-titulo"
-          onClick={(event) => event.stopPropagation()}
         >
           <div className="historial-asistente-header">
             <h2 id="historial-asistente-titulo">Historial de transacciones</h2>
@@ -851,14 +853,16 @@ function ChatIA({ onClose, compacto = false }) {
     {mostrarLlaveBreB && (
       <div
         className="historial-asistente-overlay"
-        onClick={() => setMostrarLlaveBreB(false)}
+        role="presentation"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setMostrarLlaveBreB(false);
+        }}
       >
         <section
           className="llave-breb-asistente-modal"
           role="dialog"
           aria-modal="true"
           aria-labelledby="llave-breb-asistente-titulo"
-          onClick={(event) => event.stopPropagation()}
         >
           <div className="historial-asistente-header">
             <h2 id="llave-breb-asistente-titulo">Registrar llave Bre-B</h2>

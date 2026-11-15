@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Login from "./login";
 import Recuperacion from "./recuperacion";
 import "../styles/registro.css";
+import { validateEmail } from "../utils/helpers";
 
 const obtenerMensajeError = (detalle) => {
   if (typeof detalle === "string") {
@@ -69,7 +70,7 @@ function Registro({ isModal = false, onClose }) {
       }
     };
 
-    cargarUbicaciones();
+    void cargarUbicaciones();
   }, []);
 
   const ciudades = Object.keys(ubicacionesPorCiudad);
@@ -86,7 +87,7 @@ function Registro({ isModal = false, onClose }) {
       return;
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    if (!validateEmail(email.trim())) {
       setMensaje("Ingresa un correo electrónico válido");
       return;
     }
@@ -199,8 +200,9 @@ function Registro({ isModal = false, onClose }) {
 
         {paso === 1 && (
           <>
-            <label>Nombre completo</label>
+            <label htmlFor="registro-nombre">Nombre completo</label>
             <input
+              id="registro-nombre"
               name="nombre"
               autoComplete="name"
               type="text"
@@ -208,8 +210,9 @@ function Registro({ isModal = false, onClose }) {
               onChange={(e) => setNombre(e.target.value)}
             />
 
-            <label>Correo electrónico</label>
+            <label htmlFor="registro-email">Correo electrónico</label>
             <input
+              id="registro-email"
               name="email"
               autoComplete="email"
               type="email"
@@ -217,8 +220,9 @@ function Registro({ isModal = false, onClose }) {
               onChange={(e) => setEmail(e.target.value)}
             />
 
-            <label>Tipo de documento</label>
+            <label htmlFor="registro-tipo-documento">Tipo de documento</label>
             <select
+              id="registro-tipo-documento"
               value={tipo}
               onChange={(e) => setTipo(e.target.value)}
             >
@@ -228,8 +232,9 @@ function Registro({ isModal = false, onClose }) {
               <option value="ce">Cédula de Extranjería</option>
             </select>
 
-            <label>Número de documento</label>
+            <label htmlFor="registro-documento">Número de documento</label>
             <input
+              id="registro-documento"
               name="documento"
               autoComplete="off"
               type="text"
@@ -238,8 +243,9 @@ function Registro({ isModal = false, onClose }) {
               onChange={(e) => setDocumento(e.target.value)}
             />
 
-            <label>Número teléfono</label>
+            <label htmlFor="registro-telefono">Número teléfono</label>
             <input
+              id="registro-telefono"
               name="telefono"
               autoComplete="tel"
               type="text"
@@ -247,8 +253,9 @@ function Registro({ isModal = false, onClose }) {
               onChange={(e) => setTelefono(e.target.value)}
             />
 
-            <label>Contraseña</label>
+            <label htmlFor="registro-password">Contraseña</label>
             <input
+              id="registro-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -262,8 +269,9 @@ function Registro({ isModal = false, onClose }) {
 
         {paso === 2 && (
           <>
-            <label>Ciudad</label>
+            <label htmlFor="registro-ciudad">Ciudad</label>
             <select
+              id="registro-ciudad"
               value={ciudad}
               disabled={cargandoUbicaciones || !!errorUbicaciones}
               onChange={(e) => {
@@ -286,8 +294,9 @@ function Registro({ isModal = false, onClose }) {
               ))}
             </select>
 
-            <label>Localidad</label>
+            <label htmlFor="registro-localidad">Localidad</label>
             <select
+              id="registro-localidad"
               value={localidad}
               onChange={(e) => {
                 setLocalidad(e.target.value);
@@ -303,8 +312,9 @@ function Registro({ isModal = false, onClose }) {
               ))}
             </select>
 
-            <label>Barrio</label>
+            <label htmlFor="registro-barrio">Barrio</label>
             <select
+              id="registro-barrio"
               value={barrio}
               onChange={(e) => setBarrio(e.target.value)}
               disabled={!localidad}
@@ -323,8 +333,9 @@ function Registro({ isModal = false, onClose }) {
               </p>
             )}
 
-            <label>Código postal </label>
+            <label htmlFor="registro-codigo-postal">Código postal </label>
             <input
+              id="registro-codigo-postal"
               name="codigoPostal"
               autoComplete="postal-code"
               type="text"
@@ -336,8 +347,9 @@ function Registro({ isModal = false, onClose }) {
               )}
             />
 
-            <label>Dirección</label>
+            <label htmlFor="registro-direccion">Dirección</label>
             <input
+              id="registro-direccion"
               name="direccion"
               autoComplete="street-address"
               type="text"

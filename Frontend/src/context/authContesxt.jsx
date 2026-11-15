@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     };
 
-    initializeAuth();
+    void initializeAuth();
   }, []);
 
   // Función global para iniciar sesión

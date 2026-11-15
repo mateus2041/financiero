@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import AsistenteMovil from "../components/AsistenteMovil";
+import { activateOnEnterOrSpace } from "../utils/helpers";
 import "../styles/desbloquearTarjeta.css";
 import "../styles/navegacionMovil.css";
 
@@ -38,7 +39,7 @@ function DesbloquearTarjeta() {
     }, []);
 
     useEffect(() => {
-        cargarTarjeta();
+        void cargarTarjeta();
     }, []);
 
     const cargarTarjeta = async () => {
@@ -214,8 +215,14 @@ function DesbloquearTarjeta() {
 
                         <div
                             className="menu-item"
-                            onClick={() =>
-                                setOpenTransfer(!openTransfer)
+                            role="button"
+                            tabIndex={0}
+                            aria-expanded={openTransfer}
+                            onClick={() => setOpenTransfer((isOpen) => !isOpen)}
+                            onKeyDown={(event) =>
+                                activateOnEnterOrSpace(event, () =>
+                                    setOpenTransfer((isOpen) => !isOpen)
+                                )
                             }
                         >
                             💳 Otros

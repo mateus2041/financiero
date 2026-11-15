@@ -117,10 +117,10 @@ function Recuperacion({ isModal = false, onClose }) {
         {paso === 1 && <>
           <p>Ingresa tu documento y correo registrado para recibir un código temporal.</p>
           <form onSubmit={enviarCodigo}>
-            <label>Número de documento</label>
-            <input type="text" value={documento} onChange={(e) => setDocumento(e.target.value)} required />
-            <label>Correo electrónico</label>
-            <input type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} required />
+            <label htmlFor="recuperacion-documento">Número de documento</label>
+            <input id="recuperacion-documento" type="text" value={documento} onChange={(e) => setDocumento(e.target.value)} required />
+            <label htmlFor="recuperacion-correo">Correo electrónico</label>
+            <input id="recuperacion-correo" type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} required />
             <button type="submit" className="btn">Enviar código</button>
           </form>
         </>}
@@ -128,8 +128,8 @@ function Recuperacion({ isModal = false, onClose }) {
         {paso === 2 && <>
           <p>Escribe el código de 6 dígitos enviado a tu correo.</p>
           <form onSubmit={verificarCodigo}>
-            <label>Código temporal</label>
-            <input type="text" inputMode="numeric" maxLength="6" value={codigo} onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ""))} required />
+            <label htmlFor="recuperacion-codigo">Código temporal</label>
+            <input id="recuperacion-codigo" type="text" inputMode="numeric" maxLength="6" value={codigo} onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ""))} required />
             <button type="submit" className="btn">Verificar código</button>
           </form>
         </>}
@@ -137,8 +137,9 @@ function Recuperacion({ isModal = false, onClose }) {
         {paso === 3 && <>
           <p>Verifica los datos de tu tarjeta para continuar.</p>
           <form onSubmit={cambiarPassword}>
-            <label>6 últimos dígitos de la tarjeta</label>
+            <label htmlFor="recuperacion-digitos-tarjeta">6 últimos dígitos de la tarjeta</label>
             <input
+              id="recuperacion-digitos-tarjeta"
               type="text"
               inputMode="numeric"
               maxLength="6"
@@ -147,8 +148,9 @@ function Recuperacion({ isModal = false, onClose }) {
               onChange={(e) => setUltimosDigitos(e.target.value.replace(/\D/g, "").slice(0, 6))}
               required
             />
-            <label>Fecha de expiración de la tarjeta</label>
+            <label htmlFor="recuperacion-fecha-tarjeta">Fecha de expiración de la tarjeta</label>
             <input
+              id="recuperacion-fecha-tarjeta"
               type="text"
               inputMode="numeric"
               maxLength="5"
@@ -160,8 +162,9 @@ function Recuperacion({ isModal = false, onClose }) {
               }}
               required
             />
-            <label>Código de seguridad (CVV)</label>
+            <label htmlFor="recuperacion-cvv">Código de seguridad (CVV)</label>
             <input
+              id="recuperacion-cvv"
               type="text"
               inputMode="numeric"
               maxLength="3"
@@ -177,8 +180,9 @@ function Recuperacion({ isModal = false, onClose }) {
         {paso === 4 && <>
           <p>Ingresa la nueva contraseña de tu cuenta.</p>
           <form onSubmit={actualizarPassword}>
-            <label>Nueva contraseña</label>
+            <label htmlFor="recuperacion-nueva-password">Nueva contraseña</label>
             <input
+              id="recuperacion-nueva-password"
               type="password"
               minLength="8"
               value={password}

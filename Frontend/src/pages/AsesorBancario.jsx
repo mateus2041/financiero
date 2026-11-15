@@ -110,7 +110,7 @@ export default function AsesorBancario() {
       }
     };
 
-    cargarEstadisticas();
+    void cargarEstadisticas();
   }, [navigate, rolActual]);
 
   const handleLogout = () => {
@@ -427,14 +427,15 @@ export default function AsesorBancario() {
         <div
           className="modal-mensaje-admin-overlay"
           role="presentation"
-          onClick={() => setMostrarMensajeAdmin(false)}
+          onMouseDown={(evento) => {
+            if (evento.target === evento.currentTarget) setMostrarMensajeAdmin(false);
+          }}
         >
           <section
             className="modal-mensaje-admin"
             role="dialog"
             aria-modal="true"
             aria-labelledby="titulo-mensaje-admin"
-            onClick={(evento) => evento.stopPropagation()}
           >
             <div className="modal-mensaje-admin-header">
               <h2 id="titulo-mensaje-admin">Mensaje para el administrador</h2>
@@ -523,13 +524,16 @@ export default function AsesorBancario() {
       {mostrarRegistro && (
         <div
           className="registro-asesor-modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setMostrarRegistro(false)}
+          role="presentation"
+          onMouseDown={(evento) => {
+            if (evento.target === evento.currentTarget) setMostrarRegistro(false);
+          }}
         >
           <div
             className="registro-asesor-modal"
-            onClick={(evento) => evento.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Registrar usuario"
           >
             <Registro isModal />
           </div>
@@ -539,14 +543,16 @@ export default function AsesorBancario() {
       {mostrarGrafica && (
         <div
           className="modal-grafica-asesor-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="titulo-grafica-asesor"
-          onClick={() => setMostrarGrafica(false)}
+          role="presentation"
+          onMouseDown={(evento) => {
+            if (evento.target === evento.currentTarget) setMostrarGrafica(false);
+          }}
         >
           <section
             className="modal-grafica-asesor"
-            onClick={(evento) => evento.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-grafica-asesor"
           >
             <div className="modal-grafica-header">
               <h3 id="titulo-grafica-asesor">Resumen estadístico</h3>
@@ -591,14 +597,16 @@ export default function AsesorBancario() {
       {usuarioSeleccionado && (
         <div
           className="detalle-usuario-asesor-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="titulo-detalle-usuario-asesor"
-          onClick={() => setUsuarioSeleccionado(null)}
+          role="presentation"
+          onMouseDown={(evento) => {
+            if (evento.target === evento.currentTarget) setUsuarioSeleccionado(null);
+          }}
         >
           <section
             className="detalle-usuario-asesor-modal"
-            onClick={(evento) => evento.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-detalle-usuario-asesor"
           >
             <div className="detalle-usuario-asesor-header">
               <h2 id="titulo-detalle-usuario-asesor">Información del usuario</h2>

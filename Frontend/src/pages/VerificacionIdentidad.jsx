@@ -86,26 +86,29 @@ function VerificacionIdentidad() {
           Solicita la verificación de identidad de tu cuenta.
         </p>
 
-        <label>Documento</label>
+        <label htmlFor="verificacion-documento">Documento</label>
 
         <input
+          id="verificacion-documento"
           type="text"
           value={documento}
           onChange={(e) => setDocumento(e.target.value)}
           placeholder="Número de documento"
         />
 
-        <label>Motivo de la solicitud</label>
+        <label htmlFor="verificacion-motivo">Motivo de la solicitud</label>
 
         <textarea
+          id="verificacion-motivo"
           value={motivo}
           onChange={(e) => setMotivo(e.target.value)}
           placeholder="Explica por qué deseas verificar tu identidad"
           rows="4"
         />
 
-        <label>Código de verificación (4 dígitos)</label>
+        <label htmlFor="verificacion-codigo">Código de verificación (4 dígitos)</label>
         <input
+          id="verificacion-codigo"
           type="text"
           value={codigoVerificacion}
           onChange={(e) =>

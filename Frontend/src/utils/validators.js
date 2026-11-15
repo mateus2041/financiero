@@ -1,3 +1,5 @@
+import { validateEmail as hasValidEmailFormat } from "./helpers";
+
 /**
  * VALIDATORS.JS (React Web)
  * Reglas de validación para formularios.
@@ -11,8 +13,7 @@ export const validateEmail = (email) => {
   if (!email || email.trim() === '') {
     return { isValid: false, message: 'El correo electrónico es obligatorio.' };
   }
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
+  if (!hasValidEmailFormat(email)) {
     return { isValid: false, message: 'El formato del correo no es válido (ej: usuario@dominio.com).' };
   }
   return { isValid: true, message: '' };

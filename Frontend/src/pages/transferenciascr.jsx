@@ -3,6 +3,7 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import ChatIA from "./ChatIA";
 import AsistenteMovil from "../components/AsistenteMovil";
+import { activateOnEnterOrSpace } from "../utils/helpers";
 import "../styles/transferencias.css";
 import "../styles/navegacionMovil.css";
 
@@ -84,7 +85,7 @@ export default function RegistrarLlaveBreB({ isModal = false }) {
             }
         };
 
-        cargarCuentas();
+        void cargarCuentas();
     }, []);
 
     const handleLogout = () => {
@@ -276,8 +277,14 @@ export default function RegistrarLlaveBreB({ isModal = false }) {
                     <li>
                         <div
                             className="menu-item"
-                            onClick={() =>
-                                setOpenTransfer(!openTransfer)
+                            role="button"
+                            tabIndex={0}
+                            aria-expanded={openTransfer}
+                            onClick={() => setOpenTransfer((isOpen) => !isOpen)}
+                            onKeyDown={(event) =>
+                                activateOnEnterOrSpace(event, () =>
+                                    setOpenTransfer((isOpen) => !isOpen)
+                                )
                             }
                         >
                             💳 Otros{" "}
@@ -360,14 +367,15 @@ export default function RegistrarLlaveBreB({ isModal = false }) {
                 <div
                     className="modal-certificado-overlay"
                     role="presentation"
-                    onClick={() => setOpenCertificado(false)}
+                    onMouseDown={(evento) => {
+                        if (evento.target === evento.currentTarget) setOpenCertificado(false);
+                    }}
                 >
                     <section
                         className="modal-certificado"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="certificado-modal-title"
-                        onClick={(evento) => evento.stopPropagation()}
                     >
                         <button
                             type="button"
@@ -411,14 +419,16 @@ export default function RegistrarLlaveBreB({ isModal = false }) {
             {asistenteAbierto && (
                 <div
                     className="asistente-modal-overlay"
-                    onClick={() => setAsistenteAbierto(false)}
+                    role="presentation"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget) setAsistenteAbierto(false);
+                    }}
                 >
                     <div
                         className="asistente-modal"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="asistente-titulo"
-                        onClick={(event) => event.stopPropagation()}
                     >
                         <ChatIA onClose={() => setAsistenteAbierto(false)} />
                     </div>

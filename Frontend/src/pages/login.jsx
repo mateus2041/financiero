@@ -345,10 +345,11 @@ function Login({ isModal = false }) {
                   />
                 </div>
 
-                <label>Contraseña</label>
+                <label htmlFor="login-password">Contraseña</label>
 
                 <div className="input-icon">
                   <input
+                    id="login-password"
                     type={mostrarPass ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}

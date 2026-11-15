@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import ChatIA from "./ChatIA";
 import AsistenteMovil from "../components/AsistenteMovil";
+import { activateOnEnterOrSpace } from "../utils/helpers";
 import "../styles/corriente.css";
 import "../styles/navegacionMovil.css";
 
@@ -168,7 +169,7 @@ export default function Transferencia() {
   // =====================================================
 
   useEffect(() => {
-    obtenerSaldos();
+    void obtenerSaldos();
   }, []);
 
   // =====================================================
@@ -479,8 +480,14 @@ export default function Transferencia() {
 
             <div
               className="menu-item"
-              onClick={() =>
-                setOpenTransfer(!openTransfer)
+              role="button"
+              tabIndex={0}
+              aria-expanded={openTransfer}
+              onClick={() => setOpenTransfer((isOpen) => !isOpen)}
+              onKeyDown={(event) =>
+                activateOnEnterOrSpace(event, () =>
+                  setOpenTransfer((isOpen) => !isOpen)
+                )
               }
             >
               💳 Otros{" "}
@@ -566,11 +573,12 @@ export default function Transferencia() {
 
           <form onSubmit={transferir}>
 
-            <label>
+            <label htmlFor="transferencia-cuenta-origen">
               Cuenta origen
             </label>
 
             <select
+              id="transferencia-cuenta-origen"
               name="origen"
               value={form.origen}
               onChange={cambiar}
@@ -588,11 +596,12 @@ export default function Transferencia() {
               </option>
             </select>
 
-            <label>
+            <label htmlFor="transferencia-llave-destino">
               Llave Bre-B del destinatario
             </label>
 
             <input
+              id="transferencia-llave-destino"
               ref={llaveInputRef}
               type="text"
               name="llave"
@@ -629,11 +638,12 @@ export default function Transferencia() {
               </div>
             )}
 
-            <label>
+            <label htmlFor="transferencia-monto">
               Monto
             </label>
 
             <input
+              id="transferencia-monto"
               type="text"
               name="monto"
               value={
@@ -657,11 +667,12 @@ export default function Transferencia() {
               )}
             </div>
 
-            <label>
+            <label htmlFor="transferencia-descripcion">
               Descripción
             </label>
 
             <textarea
+              id="transferencia-descripcion"
               name="descripcion"
               value={form.descripcion}
               onChange={cambiar}
@@ -731,14 +742,16 @@ export default function Transferencia() {
       {asistenteAbierto && (
         <div
           className="asistente-modal-overlay"
-          onClick={() => setAsistenteAbierto(false)}
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setAsistenteAbierto(false);
+          }}
         >
           <div
             className="asistente-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="asistente-titulo"
-            onClick={(event) => event.stopPropagation()}
           >
             <ChatIA onClose={() => setAsistenteAbierto(false)} />
           </div>

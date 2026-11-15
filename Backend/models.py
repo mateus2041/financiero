@@ -14,9 +14,13 @@ from sqlalchemy import (
 )
 
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 from Backend.database.database import Base
+
+
+def utc_now_naive():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 # =========================================================
@@ -149,7 +153,7 @@ class Usuario(Base):
 
     fecha_creacion = Column(
         DateTime,
-        default=datetime.utcnow
+        default=utc_now_naive
     )
 
     # =====================================================
@@ -224,7 +228,7 @@ class Administrador(Base):
     fecha_ingreso = Column(
         DateTime,
         nullable=False,
-        default=datetime.utcnow,
+        default=utc_now_naive,
         server_default=text("CURRENT_TIMESTAMP")
     )
 
@@ -249,7 +253,7 @@ class AsesorBanco(Base):
     fecha_ingreso = Column(
         DateTime,
         nullable=False,
-        default=datetime.utcnow,
+        default=utc_now_naive,
         server_default=text("CURRENT_TIMESTAMP")
     )
 
@@ -390,7 +394,7 @@ class Transaccion(Base):
 
     fecha = Column(
         DateTime,
-        default=datetime.utcnow
+        default=utc_now_naive
     )
 
     descripcion = Column(
@@ -445,7 +449,7 @@ class Notificacion(Base):
 
     fecha = Column(
         DateTime,
-        default=datetime.utcnow
+        default=utc_now_naive
     )
 
     usuario = relationship(
@@ -568,7 +572,7 @@ class LlaveBreb(Base):
 
     fecha_creacion = Column(
         DateTime,
-        default=datetime.utcnow
+        default=utc_now_naive
     )
 
     usuario = relationship(
@@ -664,7 +668,7 @@ class TransferenciaBreb(Base):
 
     fecha_transferencia = Column(
         DateTime,
-        default=datetime.utcnow
+        default=utc_now_naive
     )
 
     transaccion = relationship(
@@ -712,7 +716,7 @@ class ControlTopeBreb(Base):
 
     fecha = Column(
         DateTime,
-        default=datetime.utcnow
+        default=utc_now_naive
     )
 
     total_enviado = Column(

@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import ChatIA from "./ChatIA";
 import AsistenteMovil from "../components/AsistenteMovil";
+import { activateOnEnterOrSpace } from "../utils/helpers";
 import "../styles/corriente.css";
 import "../styles/navegacionMovil.css";
 
@@ -198,7 +199,7 @@ export default function Transferencia() {
   // =====================================================
 
   useEffect(() => {
-    obtenerSaldos();
+    void obtenerSaldos();
   }, []);
 
   // =====================================================
@@ -492,8 +493,14 @@ export default function Transferencia() {
           <li>
             <div
               className="menu-item"
-              onClick={() =>
-                setOpenTransfer(!openTransfer)
+              role="button"
+              tabIndex={0}
+              aria-expanded={openTransfer}
+              onClick={() => setOpenTransfer((isOpen) => !isOpen)}
+              onKeyDown={(event) =>
+                activateOnEnterOrSpace(event, () =>
+                  setOpenTransfer((isOpen) => !isOpen)
+                )
               }
             >
               💳 Otros{" "}
@@ -604,15 +611,15 @@ export default function Transferencia() {
 
             {/* CUENTA ORIGEN */}
 
-            <label>
+            <label htmlFor="transferencia-origen">
               {desdeAsistente
                 ? "¿De qué cuenta quieres transferir?"
                 : "Cuenta origen"}
             </label>
 
             <select
+              id="transferencia-origen"
               ref={origenInputRef}
-              autoFocus={desdeAsistente}
               value={form.origen}
               onChange={cambiarOrigen}
               required
@@ -631,11 +638,12 @@ export default function Transferencia() {
 
             {/* CUENTA DESTINO */}
 
-            <label>
+            <label htmlFor="transferencia-destino">
               Cuenta destino
             </label>
 
             <select
+              id="transferencia-destino"
               value={form.destino}
               disabled
             >
@@ -660,16 +668,16 @@ export default function Transferencia() {
 
             {/* MONTO */}
 
-            <label>
+            <label htmlFor="transferencia-monto">
               {desdeAsistente ? "¿De cuánto será el monto?" : "Monto"}
             </label>
 
             <input
+              id="transferencia-monto"
               ref={montoInputRef}
               type="text"
               name="monto"
               disabled={desdeAsistente && !form.origen}
-              autoFocus={desdeAsistente}
               value={
                 form.monto
                   ? formatoMoneda(
@@ -705,11 +713,12 @@ export default function Transferencia() {
 
             {/* DESCRIPCIÓN */}
 
-            <label>
+            <label htmlFor="transferencia-descripcion">
               Descripción
             </label>
 
             <textarea
+              id="transferencia-descripcion"
               name="descripcion"
               value={form.descripcion}
               onChange={cambiarDescripcion}
@@ -785,14 +794,16 @@ export default function Transferencia() {
       {asistenteAbierto && (
         <div
           className="asistente-modal-overlay"
-          onClick={() => setAsistenteAbierto(false)}
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setAsistenteAbierto(false);
+          }}
         >
           <div
             className="asistente-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="asistente-titulo"
-            onClick={(event) => event.stopPropagation()}
           >
             <ChatIA onClose={() => setAsistenteAbierto(false)} />
           </div>

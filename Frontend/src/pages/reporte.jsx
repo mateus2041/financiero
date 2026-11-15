@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import ChatIA from "./ChatIA";
 import AsistenteMovil from "../components/AsistenteMovil";
+import { activateOnEnterOrSpace } from "../utils/helpers";
 import "../styles/reporta.css";
 import "../styles/navegacionMovil.css";
 
@@ -266,11 +267,15 @@ function Reporte() {
               <div
   
                 className="menu-item"
-  
-                onClick={() =>
-                  setOpenTransfer(!openTransfer)
+                role="button"
+                tabIndex={0}
+                aria-expanded={openTransfer}
+                onClick={() => setOpenTransfer((isOpen) => !isOpen)}
+                onKeyDown={(event) =>
+                  activateOnEnterOrSpace(event, () =>
+                    setOpenTransfer((isOpen) => !isOpen)
+                  )
                 }
-  
               >
   
                 💳 Otros 
@@ -525,14 +530,15 @@ function Reporte() {
         <div
           className="modal-certificado-overlay"
           role="presentation"
-          onClick={() => setOpenCertificado(false)}
+          onMouseDown={(evento) => {
+            if (evento.target === evento.currentTarget) setOpenCertificado(false);
+          }}
         >
           <section
             className="modal-contenido"
             role="dialog"
             aria-modal="true"
             aria-labelledby="reporte-certificado-titulo"
-            onClick={(evento) => evento.stopPropagation()}
           >
             <button
               type="button"
@@ -573,14 +579,16 @@ function Reporte() {
       {asistenteAbierto && (
         <div
           className="asistente-modal-overlay"
-          onClick={() => setAsistenteAbierto(false)}
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setAsistenteAbierto(false);
+          }}
         >
           <div
             className="asistente-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="asistente-titulo"
-            onClick={(event) => event.stopPropagation()}
           >
             <ChatIA onClose={() => setAsistenteAbierto(false)} />
           </div>

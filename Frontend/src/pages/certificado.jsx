@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
+import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import html2pdf from "html2pdf.js";
 import ChatIA from "./ChatIA";
 import AsistenteMovil from "../components/AsistenteMovil";
+import { activateOnEnterOrSpace } from "../utils/helpers";
 import "../styles/Certificado.css";
 import "../styles/navegacionMovil.css";
 
@@ -86,23 +88,21 @@ const CertificadoBancario = () => {
   // 🔥 Obtener datos desde la base de datos
   useEffect(() => {
     const documentoGuardado = localStorage.getItem("documento");
+    const token = localStorage.getItem("token");
 
-    if (!documentoGuardado) {
+    if (!documentoGuardado || !token) {
       navigate("/inicio");
       return;
     }
 
     const obtenerUsuario = async () => {
       try {
-        const response = await fetch(
-          `http://127.0.0.1:8000/usuario-documento/${documentoGuardado}`
-        );
-
-        if (!response.ok) {
-          throw new Error("No se pudo obtener usuario");
-        }
-
-        const data = await response.json();
+        const response = await axios.get("/usuario", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = response.data;
         const tipoCuenta = data.tipo_cuenta
           ? data.tipo_cuenta.toLowerCase()
           : "ahorros";
@@ -139,7 +139,7 @@ const CertificadoBancario = () => {
       }
     };
 
-    obtenerUsuario();
+    void obtenerUsuario();
   }, [navigate]);
 
   const tipoCuentaSeleccionado = (
@@ -214,7 +214,7 @@ const CertificadoBancario = () => {
       }
     };
 
-    obtenerNumeroCuenta();
+    void obtenerNumeroCuenta();
 
     return () => {
       consultaCancelada = true;
@@ -352,8 +352,14 @@ const CertificadoBancario = () => {
 
             <div
               className="menu-item"
-              onClick={() =>
-                setOpenTransfer(!openTransfer)
+              role="button"
+              tabIndex={0}
+              aria-expanded={openTransfer}
+              onClick={() => setOpenTransfer((isOpen) => !isOpen)}
+              onKeyDown={(event) =>
+                activateOnEnterOrSpace(event, () =>
+                  setOpenTransfer((isOpen) => !isOpen)
+                )
               }
             >
               💳 Otros{" "}
@@ -589,14 +595,16 @@ const CertificadoBancario = () => {
       {edicionAbierta && (
         <div
           className="certificado-editar-overlay"
-          onClick={() => setEdicionAbierta(false)}
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setEdicionAbierta(false);
+          }}
         >
           <form
             className="certificado-editar-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="certificado-editar-titulo"
-            onClick={(event) => event.stopPropagation()}
             onSubmit={guardarCertificado}
           >
             <div className="certificado-editar-encabezado">
@@ -755,14 +763,16 @@ const CertificadoBancario = () => {
       {asistenteAbierto && (
         <div
           className="asistente-modal-overlay"
-          onClick={() => setAsistenteAbierto(false)}
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setAsistenteAbierto(false);
+          }}
         >
           <div
             className="asistente-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="asistente-titulo"
-            onClick={(event) => event.stopPropagation()}
           >
             <ChatIA onClose={() => setAsistenteAbierto(false)} />
           </div>
