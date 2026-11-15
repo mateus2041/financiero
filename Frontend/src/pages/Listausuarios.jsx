@@ -53,6 +53,10 @@ export default function ListaUsuarios() {
   const [menuAbierto, setMenuAbierto] = useState(true);
   const [registroAbierto, setRegistroAbierto] = useState(false);
   const [mostrarMensajeAdmin, setMostrarMensajeAdmin] = useState(false);
+  const [mensajeAdmin, setMensajeAdmin] = useState("");
+  const [imagenMensaje, setImagenMensaje] = useState(null);
+  const [previewImagenMensaje, setPreviewImagenMensaje] = useState("");
+  const [errorMensajeAdmin, setErrorMensajeAdmin] = useState("");
   const [editandoUsuario, setEditandoUsuario] = useState(false);
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
   const [errorEdicion, setErrorEdicion] = useState("");
@@ -589,6 +593,98 @@ export default function ListaUsuarios() {
     arrastreInicioRef.current = null;
   };
 
+  const cerrarModalMensajeAdmin = () => {
+    setMostrarMensajeAdmin(false);
+    setMensajeAdmin("");
+    setImagenMensaje(null);
+    setPreviewImagenMensaje("");
+    setErrorMensajeAdmin("");
+  };
+
+  const convertirArchivoADataUrl = (archivo) =>
+    new Promise((resolver, rechazar) => {
+      const lector = new FileReader();
+      lector.onload = () => {
+        if (typeof lector.result === "string") {
+          resolver(lector.result);
+        } else {
+          rechazar(new Error("No se pudo leer la imagen"));
+        }
+      };
+      lector.onerror = () => rechazar(new Error("No se pudo leer la imagen"));
+      lector.readAsDataURL(archivo);
+    });
+
+  const handleImagenMensajeChange = async (evento) => {
+    const archivo = evento.target.files?.[0];
+    if (!archivo) return;
+
+    if (!archivo.type.startsWith("image/")) {
+      setErrorMensajeAdmin("El archivo adjunto debe ser una imagen.");
+      setImagenMensaje(null);
+      setPreviewImagenMensaje("");
+      evento.target.value = "";
+      return;
+    }
+
+    try {
+      const dataUrl = await convertirArchivoADataUrl(archivo);
+      setImagenMensaje({ nombre: archivo.name, dataUrl });
+      setPreviewImagenMensaje(dataUrl);
+      setErrorMensajeAdmin("");
+    } catch (error) {
+      console.error("Error al cargar la imagen del mensaje:", error);
+      setErrorMensajeAdmin("No se pudo cargar la imagen.");
+      setImagenMensaje(null);
+      setPreviewImagenMensaje("");
+    }
+  };
+
+  const enviarMensajeAdmin = (evento) => {
+    evento.preventDefault();
+    const texto = mensajeAdmin.trim();
+    if (!texto && !imagenMensaje) return;
+
+    try {
+      const mensajesGuardados = JSON.parse(
+        localStorage.getItem("mensajes_admin") || "[]"
+      );
+      if (!Array.isArray(mensajesGuardados)) {
+        throw new Error("El formato de mensajes guardados no es válido");
+      }
+
+      const ahora = new Date();
+      const textoFinal = texto || "Imagen adjunta";
+      const nuevoMensaje = {
+        id: Date.now(),
+        id_notificacion: Date.now(),
+        nombre_asesor:
+          localStorage.getItem("nombre_asesor") ||
+          localStorage.getItem("nombre_usuario") ||
+          "Sin nombre",
+        texto: textoFinal,
+        mensaje: textoFinal,
+        descripcion: textoFinal,
+        titulo: "Mensaje para el administrador",
+        tipo: "mensaje",
+        imagen: imagenMensaje?.dataUrl || null,
+        imagen_data_url: imagenMensaje?.dataUrl || null,
+        fecha: ahora.toLocaleString("es-CO"),
+        fecha_creacion: ahora.toISOString(),
+        leida: false,
+      };
+
+      localStorage.setItem(
+        "mensajes_admin",
+        JSON.stringify([nuevoMensaje, ...mensajesGuardados])
+      );
+      cerrarModalMensajeAdmin();
+    } catch (error) {
+      console.error("Error al guardar el mensaje para el administrador:", error);
+      setErrorMensajeAdmin("No se pudo enviar el mensaje.");
+    }
+  };
+
   return (
     <div className="asesor-container">
       <div className="panel-financiero">
@@ -900,40 +996,74 @@ export default function ListaUsuarios() {
 
           {mostrarMensajeAdmin && (
             <div
-              className="modal-registro-overlay"
-              role="dialog"
-              aria-modal="true"
+              className="modal-mensaje-listausuarios-overlay"
+              role="presentation"
               onMouseDown={(evento) => {
                 if (evento.target === evento.currentTarget) {
-                  setMostrarMensajeAdmin(false);
+                  cerrarModalMensajeAdmin();
                 }
               }}
             >
-              <div className="modal-registro-contenido">
-
-                <div className="modal-registro-cabecera">
-                  <h2>Mensaje</h2>
-
+              <section
+                className="modal-mensaje-listausuarios"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="titulo-mensaje-listausuarios"
+              >
+                <header className="modal-mensaje-listausuarios-header">
+                  <h2 id="titulo-mensaje-listausuarios">
+                    Mensaje para el administrador
+                  </h2>
                   <button
                     type="button"
-                    className="cerrar-modal-registro"
-                    onClick={() =>
-                      setMostrarMensajeAdmin(false)
-                    }
-                    aria-label="Cerrar mensaje"
+                    className="cerrar-modal-mensaje-listausuarios"
+                    onClick={cerrarModalMensajeAdmin}
+                    aria-label="Cerrar mensaje para el administrador"
                   >
-                    X
+                    ×
                   </button>
-                </div>
-
-                <div className="contenido-mensaje-admin">
-                  <p>
-                    Aquí puedes agregar el sistema de mensajes
-                    entre usuarios, asesores y administradores.
-                  </p>
-                </div>
-
-              </div>
+                </header>
+                <form onSubmit={enviarMensajeAdmin}>
+                  <label htmlFor="mensaje-admin-listausuarios">
+                    Código de mensaje:
+                  </label>
+                  <input
+                    id="mensaje-admin-listausuarios"
+                    type="text"
+                    value={mensajeAdmin}
+                    onChange={(evento) => setMensajeAdmin(evento.target.value)}
+                    placeholder="Escribe un mensaje"
+                    autoComplete="off"
+                  />
+                  <label htmlFor="imagen-admin-listausuarios">
+                    Imagen adjunta:
+                  </label>
+                  <input
+                    id="imagen-admin-listausuarios"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImagenMensajeChange}
+                  />
+                  {previewImagenMensaje && (
+                    <img
+                      className="preview-imagen-mensaje-listausuarios"
+                      src={previewImagenMensaje}
+                      alt="Vista previa de la imagen adjunta"
+                    />
+                  )}
+                  {errorMensajeAdmin && (
+                    <p className="error-mensaje-listausuarios" role="alert">
+                      {errorMensajeAdmin}
+                    </p>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={!mensajeAdmin.trim() && !imagenMensaje}
+                  >
+                    Enviar
+                  </button>
+                </form>
+              </section>
             </div>
           )}
 
