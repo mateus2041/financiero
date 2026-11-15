@@ -13,30 +13,11 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u\"$$MYSQL_USER\" -p\"$$MYSQL_PASSWORD\" --silent"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 20s
-    networks:
-      - billetera_net
-
-  migrate:
-    build:
-      context: .
-      dockerfile: Backend/Dockerfile
-    restart: "no"
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      DB_USER: ${DB_USER:-app_user}
-      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the root .env file}
-      DB_HOST: db
-      DB_PORT: 3306
-      DB_NAME: ${DB_NAME:-billetera}
-      PYTHONPATH: /app
-    command: ["alembic", "-c", "Backend/alembic.ini", "upgrade", "head"]
     networks:
       - billetera_net
 
@@ -47,8 +28,8 @@ services:
     container_name: backend_billetera
     restart: unless-stopped
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      db:
+        condition: service_healthy
     environment:
       DB_USER: ${DB_USER:-app_user}
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the root .env file}
@@ -71,7 +52,7 @@ services:
     volumes:
       - .:/app
     working_dir: /app
-    command: uvicorn Backend.main:app --host 0.0.0.0 --port 8000 --reload
+    command: ["sh", "-c", "alembic -c Backend/alembic.ini upgrade a8c139d27e4f && alembic -c Backend/alembic.ini upgrade heads && exec uvicorn Backend.main:app --host 0.0.0.0 --port 8000 --reload"]
     healthcheck:
       test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
       interval: 15s
