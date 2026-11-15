@@ -2,18 +2,33 @@ services:
   db:
     image: mysql:8.4
     container_name: mysql_billetera
+<<<<<<< HEAD
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in the root .env file}
       MYSQL_DATABASE: ${DB_NAME:-billetera}
       MYSQL_USER: ${DB_USER:-app_user}
       MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the root .env file}
+=======
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in the root .env file}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE:-billetera}"
+      MYSQL_USER: "${MYSQL_APP_USER:-app_user}"
+      MYSQL_PASSWORD: "${MYSQL_APP_PASSWORD:?Set MYSQL_APP_PASSWORD in the root .env file}"
+
+>>>>>>> 37fa596c1605a4d561e0ff704b1b6cba5c5ab799
     ports:
       - "127.0.0.1:${MYSQL_PORT:-3307}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
+<<<<<<< HEAD
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u\"$$MYSQL_USER\" -p\"$$MYSQL_PASSWORD\" --silent"]
+=======
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$${MYSQL_ROOT_PASSWORD}\" mysqladmin ping -h 127.0.0.1 -uroot --silent"]
+
+>>>>>>> 37fa596c1605a4d561e0ff704b1b6cba5c5ab799
       interval: 10s
       timeout: 5s
       retries: 10
@@ -31,6 +46,7 @@ services:
       db:
         condition: service_healthy
     environment:
+<<<<<<< HEAD
       DB_USER: ${DB_USER:-app_user}
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the root .env file}
       DB_HOST: db
@@ -46,19 +62,80 @@ services:
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_FALLBACK_API_KEY: ${LLM_FALLBACK_API_KEY:-}
+=======
+
+      DB_USER: "${MYSQL_APP_USER:-app_user}"
+      DB_PASSWORD: "${MYSQL_APP_PASSWORD:?Set MYSQL_APP_PASSWORD in the root .env file}"
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: "${MYSQL_DATABASE:-billetera}"
+
+      ASESOR_REGISTRATION_CODE: ${ASESOR_REGISTRATION_CODE:-}
+      APP_ENV: "${APP_ENV:-development}"
+      SECRET_KEY: "${SECRET_KEY:-}"
+      CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}"
+>>>>>>> 37fa596c1605a4d561e0ff704b1b6cba5c5ab799
       PYTHONPATH: /app
     ports:
       - "127.0.0.1:8000:8000"
     volumes:
       - .:/app
     working_dir: /app
+<<<<<<< HEAD
     command: ["sh", "-c", "alembic -c Backend/alembic.ini upgrade a8c139d27e4f && alembic -c Backend/alembic.ini upgrade heads && exec uvicorn Backend.main:app --host 0.0.0.0 --port 8000 --reload"]
     healthcheck:
       test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
+=======
+
+    command: uvicorn Backend.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)"]
+>>>>>>> 37fa596c1605a4d561e0ff704b1b6cba5c5ab799
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 30s
+<<<<<<< HEAD
+=======
+    networks:
+      - billetera_net
+
+
+  migrate:
+
+    profiles:
+      - maintenance
+
+    build:
+
+      context: .
+
+      dockerfile: Backend/Dockerfile
+
+    depends_on:
+
+      db:
+
+        condition: service_healthy
+
+    environment:
+
+      DB_USER: "${MYSQL_APP_USER:-app_user}"
+      DB_PASSWORD: "${MYSQL_APP_PASSWORD:?Set MYSQL_APP_PASSWORD in the root .env file}"
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: "${MYSQL_DATABASE:-billetera}"
+      PYTHONPATH: /app
+
+    volumes:
+
+      - .:/app
+
+    working_dir: /app
+
+    command: ["alembic", "-c", "Backend/alembic.ini", "upgrade", "head"]
+
+>>>>>>> 37fa596c1605a4d561e0ff704b1b6cba5c5ab799
     networks:
       - billetera_net
 
@@ -71,6 +148,10 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+<<<<<<< HEAD
+=======
+
+>>>>>>> 37fa596c1605a4d561e0ff704b1b6cba5c5ab799
     working_dir: /app
     volumes:
       - ./Frontend:/app
@@ -84,6 +165,15 @@ services:
     stdin_open: true
     tty: true
     command: npm start
+<<<<<<< HEAD
+=======
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+>>>>>>> 37fa596c1605a4d561e0ff704b1b6cba5c5ab799
     networks:
       - billetera_net
 

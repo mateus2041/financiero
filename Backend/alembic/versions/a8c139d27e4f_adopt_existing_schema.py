@@ -13,7 +13,7 @@ depends_on = None
 
 _REQUIRED_COLUMNS = {
     "administradores": {"id_usuario"},
-    "asesores_banco": {"id_usuario", "tipo_documento"},
+    "asesores_banco": {"tipo_documento"},
     "cuentas": {"id_cuenta", "numero_cuenta", "saldo", "estado", "fecha_estado"},
     "notificaciones": {"leido"},
     "tarjetas": {"estado"},
@@ -65,19 +65,24 @@ def _validate_existing_schema(connection):
             "No se puede exigir email no nulo; hay usuarios sin correo."
         )
 
-    duplicate_advisors = connection.execute(
-        sa.text(
-            "SELECT COUNT(*) FROM ("
-            "SELECT id_usuario FROM asesores_banco "
-            "WHERE id_usuario IS NOT NULL "
-            "GROUP BY id_usuario HAVING COUNT(*) > 1"
-            ") AS duplicados"
-        )
-    ).scalar_one()
-    if duplicate_advisors:
-        raise RuntimeError(
-            "No se puede crear el índice único; hay asesores con id_usuario repetido."
-        )
+    advisor_columns = {
+        column["name"] for column in inspector.get_columns("asesores_banco")
+    }
+    if "id_usuario" in advisor_columns:
+        duplicate_advisors = connection.execute(
+            sa.text(
+                "SELECT COUNT(*) FROM ("
+                "SELECT id_usuario FROM asesores_banco "
+                "WHERE id_usuario IS NOT NULL "
+                "GROUP BY id_usuario HAVING COUNT(*) > 1"
+                ") AS duplicados"
+            )
+        ).scalar_one()
+        if duplicate_advisors:
+            raise RuntimeError(
+                "No se puede crear el índice único; hay asesores con "
+                "id_usuario repetido."
+            )
 
     return inspector
 
@@ -129,18 +134,22 @@ def upgrade():
         inspector, "usuario", "email", sa.String(length=100), False
     )
 
-    advisor_indexes = inspector.get_indexes("asesores_banco")
-    has_advisor_unique_index = any(
-        index["unique"] and index["column_names"] == ["id_usuario"]
-        for index in advisor_indexes
-    )
-    if not has_advisor_unique_index:
-        op.create_index(
-            "id_usuario",
-            "asesores_banco",
-            ["id_usuario"],
-            unique=True,
+    advisor_columns = {
+        column["name"] for column in inspector.get_columns("asesores_banco")
+    }
+    if "id_usuario" in advisor_columns:
+        advisor_indexes = inspector.get_indexes("asesores_banco")
+        has_advisor_unique_index = any(
+            index["unique"] and index["column_names"] == ["id_usuario"]
+            for index in advisor_indexes
         )
+        if not has_advisor_unique_index:
+            op.create_index(
+                "id_usuario",
+                "asesores_banco",
+                ["id_usuario"],
+                unique=True,
+            )
 
 
 def downgrade():

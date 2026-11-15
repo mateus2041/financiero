@@ -25,8 +25,8 @@ El modelo incluye campos sensibles de tarjeta, incluido `codigo_seguridad`. Esto
 
 - El archivo Compose declara MySQL `8.4` y un volumen persistente llamado `mysql_data`.
 - El backend define modelos SQLAlchemy.
-- Hay configuración de Alembic en `Backend/alembic.ini` y dos revisiones en `Backend/alembic/versions/`: esquema inicial y normalización de datos.
-- La documentación heredada sobre migraciones no es completamente coherente con la configuración actual. `Backend/docs/migraciones.md` habla de un job `migrate`, pero `compose.yml` no declara ese servicio. No se verificó aquí una migración real ni el estado de una base local.
+- Hay configuración de Alembic y seis revisiones, incluida una revisión de merge para unificar las ramas históricas.
+- Compose ofrece `migrate` bajo el perfil `maintenance`, invocado explícitamente para no ejecutar DDL automáticamente. El grafo se comprueba en pruebas; la aplicación de migraciones sobre una instancia MySQL real sigue pendiente de ensayo aislado.
 - El script `mysql_billetera.session.sql` no debe tratarse como respaldo completo sin verificar contenido y cobertura.
 
 ## Reglas de integridad a validar
