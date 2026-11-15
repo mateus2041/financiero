@@ -1,14 +1,20 @@
-﻿from passlib.context import CryptContext
+from passlib.context import CryptContext
 import bcrypt
 from jose import JWTError, jwt
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timedelta, timezone
+<<<<<<< HEAD
 import os
 
 from dotenv import load_dotenv
 
 load_dotenv()
+=======
+import logging
+import os
+import secrets
+>>>>>>> 37fa596c1605a4d561e0ff704b1b6cba5c5ab799
 
 
 # =========================
@@ -25,9 +31,24 @@ pwd_context = CryptContext(
 # JWT CONFIG
 # =========================
 
+<<<<<<< HEAD
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 if not SECRET_KEY or len(SECRET_KEY) < 32:
     raise RuntimeError("JWT_SECRET_KEY must be configured with at least 32 characters.")
+=======
+logger = logging.getLogger(__name__)
+APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
+SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
+if not SECRET_KEY:
+    if APP_ENV != "development":
+        raise RuntimeError("SECRET_KEY es obligatoria fuera de desarrollo.")
+    SECRET_KEY = secrets.token_urlsafe(48)
+    logger.warning(
+        "SECRET_KEY no configurada; se usara una clave temporal de desarrollo."
+    )
+elif len(SECRET_KEY.encode("utf-8")) < 32:
+    raise RuntimeError("SECRET_KEY debe contener al menos 32 bytes.")
+>>>>>>> 37fa596c1605a4d561e0ff704b1b6cba5c5ab799
 
 ALGORITHM = "HS256"
 
