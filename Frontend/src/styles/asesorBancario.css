@@ -1847,6 +1847,14 @@ button:hover {
    ============================== */
 
 @media (max-width: 650px) {
+  .estadisticas-asesor {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grafica-detallada-asesor {
+    display: none;
+  }
+
   .asesor-container {
     display: block;
   }

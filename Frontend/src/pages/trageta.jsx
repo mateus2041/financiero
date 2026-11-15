@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { parsePositiveInteger } from "../utils/helpers";
+import logoProyecto from "../assets/images/logo.jpeg";
 import "../styles/trageta.css";
 
 const generarDigitos = (longitud) => {
@@ -34,6 +35,12 @@ const generarUltimosDigitos = () => generarDigitos(3);
 const generarCVV = () => generarDigitos(4);
 const generarPrimerosDigitos = () => generarDigitos(13);
 
+const normalizarTexto = (valor) =>
+  String(valor ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
 const generarFechaVencimiento = () => {
   const fecha = new Date();
   const anio = fecha.getFullYear() + 5;
@@ -51,11 +58,6 @@ export default function TarjetasUsuario({
     .toLowerCase();
 
   const esAdministrador = rol === "administrador";
-  const puedeAdministrarTarjetas =
-    esAdministrador || rol === "asesor" || esAsesor;
-  const idUsuarioActual = parsePositiveInteger(
-    id_usuario ?? localStorage.getItem("usuario_id")
-  );
 
   const [tarjetas, setTarjetas] = useState([]);
   const [tarjetasPorUsuario, setTarjetasPorUsuario] = useState({});
@@ -63,10 +65,15 @@ export default function TarjetasUsuario({
   const [errorTarjetas, setErrorTarjetas] = useState(false);
   const [tarjetaActualizando, setTarjetaActualizando] = useState(null);
   const [usuarios, setUsuarios] = useState([]);
+  const [busquedaUsuario, setBusquedaUsuario] = useState("");
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
   const [tarjetaEditando, setTarjetaEditando] = useState(null);
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [mostrarMensajeAdmin, setMostrarMensajeAdmin] = useState(false);
+  const [mensajeAdmin, setMensajeAdmin] = useState("");
+  const [imagenMensaje, setImagenMensaje] = useState(null);
+  const [previewImagenMensaje, setPreviewImagenMensaje] = useState("");
+  const [errorMensajeAdmin, setErrorMensajeAdmin] = useState("");
   const [esMovil, setEsMovil] = useState(false);
   const [mostrarCVV, setMostrarCVV] = useState(false);
 
@@ -79,6 +86,20 @@ export default function TarjetasUsuario({
   });
 
   const [mensaje, setMensaje] = useState("");
+  const terminoBusqueda = normalizarTexto(busquedaUsuario.trim());
+  const usuariosFiltrados = usuarios.filter((usuario) =>
+    [usuario.nombre, usuario.direccion, usuario.codigo_postal].some((dato) =>
+      normalizarTexto(dato).includes(terminoBusqueda)
+    )
+  );
+
+  useEffect(() => {
+    if (id_usuario) {
+      void obtenerTarjetas();
+    }
+
+    void obtenerUsuarios();
+  }, [id_usuario]);
 
   useEffect(() => {
     const comprobarPantalla = () => {
@@ -93,11 +114,13 @@ export default function TarjetasUsuario({
     };
   }, []);
 
-  const obtenerTarjetas = useCallback(async () => {
-    const usuarioId = idUsuarioActual;
-    if (usuarioId === null) return;
+  const obtenerTarjetas = async () => {
+    const usuarioId = parsePositiveInteger(id_usuario);
+    if (usuarioId === null) {
+      setMensaje("El identificador del usuario no es válido");
+      return;
+    }
 
-    setCargandoTarjetas(true);
     try {
       const token = localStorage.getItem("token");
 
@@ -118,15 +141,10 @@ export default function TarjetasUsuario({
         error.response?.data?.detail ||
           "No se pudieron obtener las tarjetas"
       );
-    } finally {
-      setCargandoTarjetas(false);
     }
-  }, [idUsuarioActual]);
+  };
 
-  const obtenerUsuarios = useCallback(async () => {
-    setCargandoTarjetas(true);
-    setErrorTarjetas(false);
-
+  const obtenerUsuarios = async () => {
     try {
       const token = localStorage.getItem("token");
 
@@ -144,11 +162,12 @@ export default function TarjetasUsuario({
         error.response?.data?.detail ||
           "No se pudieron obtener los usuarios"
       );
-      setErrorTarjetas(true);
       setCargandoTarjetas(false);
       return;
     }
 
+    setCargandoTarjetas(true);
+    setErrorTarjetas(false);
     setTarjetasPorUsuario({});
 
     try {
@@ -183,23 +202,7 @@ export default function TarjetasUsuario({
     } finally {
       setCargandoTarjetas(false);
     }
-  }, []);
-
-  useEffect(() => {
-    if (puedeAdministrarTarjetas) {
-      void obtenerUsuarios();
-    } else if (idUsuarioActual !== null) {
-      void obtenerTarjetas();
-    } else {
-      setMensaje("No se pudo identificar al usuario");
-      setCargandoTarjetas(false);
-    }
-  }, [
-    idUsuarioActual,
-    obtenerTarjetas,
-    obtenerUsuarios,
-    puedeAdministrarTarjetas,
-  ]);
+  };
 
   const obtenerTarjetasDeUsuario = async (usuario) => {
     const usuarioId = parsePositiveInteger(usuario?.id_usuario);
@@ -233,10 +236,15 @@ export default function TarjetasUsuario({
   };
 
   const manejarCambio = (e) => {
-    setFormulario({
-      ...formulario,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    setFormulario((formularioActual) => ({
+      ...formularioActual,
+      [name]: value,
+    }));
+
+    if (name === "cvv" && tarjetaEditando && !formulario.cvv) {
+      setMostrarCVV(true);
+    }
   };
 
   const agregarTarjeta = async (e) => {
@@ -258,7 +266,10 @@ export default function TarjetasUsuario({
       return;
     }
 
-    if (!tarjetaEditando && !/^\d{4}$/.test(formulario.cvv)) {
+    if (
+      (!tarjetaEditando || formulario.cvv) &&
+      !/^\d{4}$/.test(formulario.cvv)
+    ) {
       setMensaje("El CVV debe tener exactamente 4 dígitos");
       return;
     }
@@ -272,12 +283,16 @@ export default function TarjetasUsuario({
 
       try {
         const token = localStorage.getItem("token");
+        const datosActualizacion = {
+          fecha_vencimiento: formulario.fecha_vencimiento,
+        };
+        if (formulario.cvv) {
+          datosActualizacion.cvv = formulario.cvv;
+        }
 
         await axios.patch(
           `/tarjetas/${tarjetaId}`,
-          {
-            fecha_vencimiento: formulario.fecha_vencimiento,
-          },
+          datosActualizacion,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -334,7 +349,7 @@ export default function TarjetasUsuario({
 
       setUsuarioSeleccionado(null);
 
-      if (idUsuarioActual === usuarioId) {
+      if (id_usuario === usuarioSeleccionado.id_usuario) {
         void obtenerTarjetas();
       }
 
@@ -535,6 +550,99 @@ export default function TarjetasUsuario({
     window.location.href = "/";
   };
 
+  const cerrarModalMensajeAdmin = () => {
+    setMostrarMensajeAdmin(false);
+    setMensajeAdmin("");
+    setImagenMensaje(null);
+    setPreviewImagenMensaje("");
+    setErrorMensajeAdmin("");
+  };
+
+  const convertirArchivoADataUrl = (archivo) =>
+    new Promise((resolver, rechazar) => {
+      const lector = new FileReader();
+      lector.onload = () => {
+        if (typeof lector.result === "string") {
+          resolver(lector.result);
+        } else {
+          rechazar(new Error("No se pudo leer la imagen"));
+        }
+      };
+      lector.onerror = () => rechazar(new Error("No se pudo leer la imagen"));
+      lector.readAsDataURL(archivo);
+    });
+
+  const handleImagenMensajeChange = async (evento) => {
+    const archivo = evento.target.files?.[0];
+    if (!archivo) return;
+
+    if (!archivo.type.startsWith("image/")) {
+      setErrorMensajeAdmin("El archivo adjunto debe ser una imagen.");
+      setImagenMensaje(null);
+      setPreviewImagenMensaje("");
+      evento.target.value = "";
+      return;
+    }
+
+    try {
+      const dataUrl = await convertirArchivoADataUrl(archivo);
+      setImagenMensaje({ nombre: archivo.name, dataUrl });
+      setPreviewImagenMensaje(dataUrl);
+      setErrorMensajeAdmin("");
+    } catch (error) {
+      console.error("Error al cargar la imagen del mensaje:", error);
+      setErrorMensajeAdmin("No se pudo cargar la imagen.");
+      setImagenMensaje(null);
+      setPreviewImagenMensaje("");
+    }
+  };
+
+  const enviarMensajeAdmin = (evento) => {
+    evento.preventDefault();
+    const texto = mensajeAdmin.trim();
+    if (!texto && !imagenMensaje) return;
+
+    try {
+      const mensajesGuardados = JSON.parse(
+        localStorage.getItem("mensajes_admin") || "[]"
+      );
+      if (!Array.isArray(mensajesGuardados)) {
+        throw new Error("El formato de mensajes guardados no es válido");
+      }
+
+      const ahora = new Date();
+      const textoFinal = texto || "Imagen adjunta";
+      const nuevoMensaje = {
+        id: Date.now(),
+        id_notificacion: Date.now(),
+        nombre_asesor:
+          localStorage.getItem("nombre_asesor") ||
+          localStorage.getItem("nombre_usuario") ||
+          "Sin nombre",
+        texto: textoFinal,
+        mensaje: textoFinal,
+        descripcion: textoFinal,
+        titulo: "Mensaje para el administrador",
+        tipo: "mensaje",
+        imagen: imagenMensaje?.dataUrl || null,
+        imagen_data_url: imagenMensaje?.dataUrl || null,
+        fecha: ahora.toLocaleString("es-CO"),
+        fecha_creacion: ahora.toISOString(),
+        leida: false,
+      };
+
+      localStorage.setItem(
+        "mensajes_admin",
+        JSON.stringify([nuevoMensaje, ...mensajesGuardados])
+      );
+      setMensaje("Mensaje enviado correctamente");
+      cerrarModalMensajeAdmin();
+    } catch (error) {
+      console.error("Error al guardar el mensaje para el administrador:", error);
+      setErrorMensajeAdmin("No se pudo enviar el mensaje");
+    }
+  };
+
   return (
     <div className="contenedor-lista-cuentas">
       {esMovil && (
@@ -549,6 +657,15 @@ export default function TarjetasUsuario({
         >
           ☰
         </button>
+      )}
+
+      {esMovil && menuAbierto && (
+        <button
+          type="button"
+          className="fondo-menu-cuentas"
+          onClick={() => setMenuAbierto(false)}
+          aria-label="Cerrar menú"
+        />
       )}
 
       <aside
@@ -625,7 +742,7 @@ export default function TarjetasUsuario({
           
           <li>
             <Link
-              to="/targeta"
+              to="/trageta"
               onClick={() => setMenuAbierto(false)}
             >
               💳 Tarjetas
@@ -641,6 +758,77 @@ export default function TarjetasUsuario({
         </button>
       </aside>
 
+      {mostrarMensajeAdmin && (
+        <div
+          className="modal-mensaje-tarjeta-overlay"
+          role="presentation"
+          onMouseDown={(evento) => {
+            if (evento.target === evento.currentTarget) {
+              cerrarModalMensajeAdmin();
+            }
+          }}
+        >
+          <section
+            className="modal-mensaje-tarjeta"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-mensaje-tarjeta"
+          >
+            <header className="modal-mensaje-tarjeta-header">
+              <h2 id="titulo-mensaje-tarjeta">
+                Mensaje para el administrador
+              </h2>
+              <button
+                type="button"
+                className="cerrar-modal-mensaje-tarjeta"
+                onClick={cerrarModalMensajeAdmin}
+                aria-label="Cerrar mensaje"
+              >
+                ×
+              </button>
+            </header>
+            <form onSubmit={enviarMensajeAdmin}>
+              <label htmlFor="mensaje-admin-tarjetas">
+                Código de mensaje:
+              </label>
+              <input
+                id="mensaje-admin-tarjetas"
+                type="text"
+                value={mensajeAdmin}
+                onChange={(evento) => setMensajeAdmin(evento.target.value)}
+                placeholder="Escribe tu mensaje"
+                autoComplete="off"
+              />
+              <label htmlFor="imagen-admin-tarjetas">Imagen adjunta:</label>
+              <input
+                id="imagen-admin-tarjetas"
+                type="file"
+                accept="image/*"
+                onChange={handleImagenMensajeChange}
+              />
+              {previewImagenMensaje && (
+                <img
+                  className="preview-imagen-mensaje-tarjeta"
+                  src={previewImagenMensaje}
+                  alt="Vista previa de la imagen adjunta"
+                />
+              )}
+              {errorMensajeAdmin && (
+                <p className="error-mensaje-tarjeta" role="alert">
+                  {errorMensajeAdmin}
+                </p>
+              )}
+              <button
+                type="submit"
+                disabled={!mensajeAdmin.trim() && !imagenMensaje}
+              >
+                Enviar
+              </button>
+            </form>
+          </section>
+        </div>
+      )}
+
       <main
         style={{
           flex: 1,
@@ -648,37 +836,34 @@ export default function TarjetasUsuario({
           boxSizing: "border-box",
         }}
       >
-        <h2
-          style={{
-            color: "#EAB94B",
-            textAlign: "center",
-            width: "100%",
-          }}
-        >
-          {puedeAdministrarTarjetas
-            ? "Administrar tarjetas de clientes"
-            : "Mis tarjetas"}
-        </h2>
+        <header className="encabezado-tarjetas">
+          <div className="marca-tarjetas">
+            <img src={logoProyecto} alt="Logo de Financiero" />
+            <span>FINANCIERO</span>
+          </div>
+          <div className="titulos-tarjetas">
+            <h2>Añadir tarjetas de clientes</h2>
+            <h3>Nuevas tarjetas para los clientes</h3>
+          </div>
+        </header>
 
-        {puedeAdministrarTarjetas && (
-          <h3
-            style={{
-              color: "#9EA1A7",
-              textAlign: "center",
-              width: "100%",
-            }}
-          >
-            Nuevas tarjetas para los clientes
-          </h3>
-        )}
+        <div className="buscador-tarjetas">
+          <span aria-hidden="true">🔍</span>
+          <input
+            type="search"
+            value={busquedaUsuario}
+            onChange={(evento) => setBusquedaUsuario(evento.target.value)}
+            placeholder="Buscar usuario por nombre, dirección o código postal..."
+            aria-label="Buscar usuario por nombre, dirección o código postal"
+          />
+        </div>
 
         {mensaje && <p>{mensaje}</p>}
 
-        {puedeAdministrarTarjetas && (
-          <div
-            className="tabla-asesores-contenedor"
-            style={{ marginTop: "24px" }}
-          >
+        <div
+          className="tabla-asesores-contenedor"
+          style={{ marginTop: "24px" }}
+        >
           <table className="tabla-asesores">
             <thead>
               <tr>
@@ -686,76 +871,103 @@ export default function TarjetasUsuario({
                 <th>Número de documento</th>
                 <th>Dirección</th>
                 <th>Código postal</th>
+                <th>Estado de tarjeta</th>
                 <th>Acciones</th>
               </tr>
             </thead>
 
             <tbody>
-              {usuarios.map((usuario) => (
-                <tr key={usuario.id_usuario}>
-                  <td>{usuario.nombre || "No registrado"}</td>
-                  <td>
-                    {usuario.documento || "No registrado"}
-                  </td>
-                  <td>
-                    {usuario.direccion || "No registrada"}
-                  </td>
-                  <td>
-                    {usuario.codigo_postal || "No registrado"}
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="boton-anadir-tarjeta"
-                      onClick={() => abrirModalTarjeta(usuario)}
-                    >
-                      Añadir tarjeta
-                    </button>
-                    <button
-                      type="button"
-                      className="boton-anadir-tarjeta"
-                      onClick={() => editarTarjetaDeUsuario(usuario)}
-                    >
-                      Editar tarjeta
-                    </button>
-                    {cargandoTarjetas ? (
-                      <button
-                        type="button"
-                        className="boton-anadir-tarjeta"
-                        disabled
-                      >
-                        Consultando tarjeta...
-                      </button>
-                    ) : errorTarjetas ? (
-                      <span>Estado no disponible</span>
-                    ) : tarjetasPorUsuario[usuario.id_usuario]?.[0] ? (
-                      <button
-                        type="button"
-                        className="boton-anadir-tarjeta"
-                        onClick={() => cambiarEstadoTarjeta(usuario)}
-                        disabled={
-                          tarjetaActualizando ===
-                          tarjetasPorUsuario[usuario.id_usuario][0].id_tarjeta
-                        }
-                      >
-                        {tarjetaActualizando ===
-                        tarjetasPorUsuario[usuario.id_usuario][0].id_tarjeta
-                          ? "Actualizando..."
-                          : tarjetasPorUsuario[usuario.id_usuario][0].estado ===
-                            "activa"
-                          ? "Inhabilitar tarjeta"
-                          : "Habilitar tarjeta"}
-                      </button>
-                    ) : (
-                      <span>Sin tarjeta</span>
-                    )}
-                  </td>
+              {usuariosFiltrados.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>No se encontraron usuarios.</td>
                 </tr>
-              ))}
+              ) : (
+                usuariosFiltrados.map((usuario) => {
+                const tarjeta =
+                  tarjetasPorUsuario[usuario.id_usuario]?.[0];
+                const actualizando =
+                  tarjeta && tarjetaActualizando === tarjeta.id_tarjeta;
+
+                return (
+                  <tr key={usuario.id_usuario}>
+                    <td data-label="Nombre">
+                      {usuario.nombre || "No registrado"}
+                    </td>
+                    <td data-label="Número de documento">
+                      {usuario.documento || "No registrado"}
+                    </td>
+                    <td data-label="Dirección">
+                      {usuario.direccion || "No registrada"}
+                    </td>
+                    <td data-label="Código postal">
+                      {usuario.codigo_postal || "No registrado"}
+                    </td>
+                    <td data-label="Estado de tarjeta">
+                      {cargandoTarjetas ? (
+                        "Consultando..."
+                      ) : errorTarjetas ? (
+                        "No disponible"
+                      ) : tarjeta ? (
+                        <span
+                          className={`estado-badge ${
+                            tarjeta.estado === "activa" ? "activo" : "inactivo"
+                          }`}
+                        >
+                          {tarjeta.estado === "activa"
+                            ? "Activa"
+                            : "Inhabilitada"}
+                        </span>
+                      ) : (
+                        <span className="estado-badge sin-tarjeta">
+                          Sin tarjeta
+                        </span>
+                      )}
+                    </td>
+                    <td data-label="Acciones">
+                      <button
+                        type="button"
+                        className="boton-anadir-tarjeta"
+                        onClick={() => abrirModalTarjeta(usuario)}
+                      >
+                        Añadir tarjeta
+                      </button>
+                      <button
+                        type="button"
+                        className="boton-anadir-tarjeta"
+                        onClick={() => editarTarjetaDeUsuario(usuario)}
+                      >
+                        Editar tarjeta
+                      </button>
+                      {cargandoTarjetas ? (
+                        <button
+                          type="button"
+                          className="boton-anadir-tarjeta"
+                          disabled
+                        >
+                          Consultando tarjeta...
+                        </button>
+                      ) : tarjeta && !errorTarjetas ? (
+                        <button
+                          type="button"
+                          className="boton-anadir-tarjeta"
+                          onClick={() => cambiarEstadoTarjeta(usuario)}
+                          disabled={actualizando}
+                        >
+                          {actualizando
+                            ? "Actualizando..."
+                            : tarjeta.estado === "activa"
+                            ? "Inhabilitar tarjeta"
+                            : "Habilitar tarjeta"}
+                        </button>
+                      ) : null}
+                    </td>
+                  </tr>
+                );
+                })
+              )}
             </tbody>
           </table>
-          </div>
-        )}
+        </div>
 
         {usuarioSeleccionado && (
           <div
@@ -878,14 +1090,23 @@ export default function TarjetasUsuario({
                     maxLength={4}
                     inputMode="numeric"
                     pattern="[0-9]{4}"
-                    readOnly
-                    placeholder={tarjetaEditando ? "No editable" : undefined}
-                    aria-label="CVV de 4 dígitos, generado automáticamente y no editable"
+                    onChange={manejarCambio}
+                    readOnly={!tarjetaEditando}
+                    placeholder={
+                      tarjetaEditando && !formulario.cvv ? "••••" : undefined
+                    }
+                    aria-label={
+                      tarjetaEditando
+                        ? "CVV nuevo opcional, deje vacío para conservar el actual"
+                        : "CVV de 4 dígitos, generado automáticamente y no editable"
+                    }
                   />
                   <button
                     type="button"
                     className="boton-mostrar-cvv"
-                    onClick={() => setMostrarCVV(!mostrarCVV)}
+                    onClick={() =>
+                      setMostrarCVV((mostrarActual) => !mostrarActual)
+                    }
                     aria-label={mostrarCVV ? "Ocultar CVV" : "Mostrar CVV"}
                     title={mostrarCVV ? "Ocultar CVV" : "Mostrar CVV"}
                   >
@@ -896,6 +1117,12 @@ export default function TarjetasUsuario({
                     </svg>
                   </button>
                 </div>
+                {tarjetaEditando && (
+                  <small className="ayuda-cvv">
+                    El CVV nuevo se muestra al escribirlo. Usa el ojo para
+                    ocultarlo; deja el campo vacío para conservar el actual.
+                  </small>
+                )}
               </div>
 
               <button type="submit">
@@ -905,12 +1132,7 @@ export default function TarjetasUsuario({
           </div>
         )}
 
-        {!puedeAdministrarTarjetas && !cargandoTarjetas &&
-          tarjetas.length === 0 && !mensaje && (
-            <p>No tienes tarjetas registradas.</p>
-          )}
-
-        {!puedeAdministrarTarjetas &&
+        {tarjetas.length > 0 &&
           tarjetas.map((tarjeta) => (
             <div key={tarjeta.id_tarjeta}>
               <p>

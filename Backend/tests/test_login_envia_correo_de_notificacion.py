@@ -33,17 +33,6 @@ def test_notificacion_no_se_envia_si_falla_el_codigo(monkeypatch):
     assert asuntos_enviados == ["Código de verificación"]
 
 
-<<<<<<< HEAD
-def test_email_service_lee_credenciales_de_entorno(monkeypatch):
-    import Backend.email_service.email_service as email_service
-
-    monkeypatch.setenv("EMAIL_USER", "prueba@example.com")
-    monkeypatch.setenv("EMAIL_PASS", "test-app-password")
-    remitente, password = email_service.obtener_credenciales_correo()
-
-    assert remitente == "prueba@example.com"
-    assert password == "test-app-password"
-=======
 def test_email_service_lee_credenciales_desde_backend_env(monkeypatch, tmp_path):
     backend_dir = Path(__file__).resolve().parents[1]
     env_path = backend_dir / ".env"
@@ -65,7 +54,6 @@ def test_email_service_lee_credenciales_desde_backend_env(monkeypatch, tmp_path)
         assert password == "app-password"
     finally:
         env_path.unlink(missing_ok=True)
->>>>>>> 37fa596c1605a4d561e0ff704b1b6cba5c5ab799
 
 
 def test_email_service_devuelve_none_si_faltan_credenciales(monkeypatch):
@@ -75,15 +63,7 @@ def test_email_service_devuelve_none_si_faltan_credenciales(monkeypatch):
     monkeypatch.delenv("EMAIL_PASS", raising=False)
     monkeypatch.delenv("MAIL_USER", raising=False)
     monkeypatch.delenv("MAIL_PASSWORD", raising=False)
-<<<<<<< HEAD
     monkeypatch.setattr(email_service, "_cargar_env_backend", lambda: None)
-=======
-    monkeypatch.setenv("PYTHON_DOTENV_DISABLED", "1")
-
-    import importlib
-    import Backend.email_service.email_service as email_service
-    importlib.reload(email_service)
->>>>>>> 37fa596c1605a4d561e0ff704b1b6cba5c5ab799
 
     assert email_service.obtener_credenciales_correo() is None
 
