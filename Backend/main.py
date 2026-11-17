@@ -115,6 +115,7 @@ from Backend.models import (
     Tarjeta,
     Transaccion,
     LlaveBreb,
+    TransferenciaBreb,
     Notificacion
 )
 from Backend.dependencias import get_db
@@ -4028,6 +4029,106 @@ def transacciones_usuario(
 
     ).all()
 
+    cuentas_usuario = db.query(Cuenta).filter(
+        Cuenta.id_usuario == current_user
+    ).all()
+    cuentas_por_id = {
+        cuenta.id_cuenta: cuenta
+        for cuenta in cuentas_usuario
+    }
+
+    transferencias_breb_recibidas = db.query(
+        TransferenciaBreb
+    ).filter(
+        TransferenciaBreb.id_cuenta_destino.in_(
+            db.query(Cuenta.id_cuenta).filter(
+                Cuenta.id_usuario == current_user
+            )
+        )
+    ).all()
+
+    def obtener_origen(transaccion):
+        if transaccion.transferencia_breb:
+            return "Llave Bre-B"
+
+        descripcion = (transaccion.descripcion or "").lower()
+        for transferencia in transferencias_breb_recibidas:
+            if (
+                transaccion.tipo != "Ingreso"
+                or transferencia.id_cuenta_destino != transaccion.id_cuenta
+                or transferencia.monto != transaccion.monto
+                or not transaccion.fecha
+                or not transferencia.fecha_transferencia
+                or abs(
+                    (
+                        transaccion.fecha - transferencia.fecha_transferencia
+                    ).total_seconds()
+                ) > 120
+            ):
+                continue
+
+            descripcion_transferencia = (
+                transferencia.descripcion or ""
+            ).lower()
+            if (
+                descripcion == descripcion_transferencia
+                or "bre-b" in descripcion
+                or "bre-b" in descripcion_transferencia
+            ):
+                return "Llave Bre-B"
+
+        if transaccion.tipo in ["Ingreso", "Transferencia"]:
+            return "Transferencia entre cuentas"
+        return "-"
+
+    def nombre_tipo_cuenta(cuenta):
+        if not cuenta:
+            return "Cuenta de destino"
+        return (
+            "Cuenta de Ahorros"
+            if cuenta.tipo_cuenta == "ahorros"
+            else "Cuenta Corriente"
+        )
+
+    def obtener_destino(transaccion):
+        origen = obtener_origen(transaccion)
+        if origen == "Llave Bre-B":
+            transferencia = transaccion.transferencia_breb
+            if transferencia and transaccion.tipo == "Transferencia":
+                llave = transferencia.llave_destino
+                nombre = llave.usuario.nombre if llave and llave.usuario else ""
+                partes_destino = [
+                    nombre,
+                    nombre_tipo_cuenta(transferencia.cuenta_destino),
+                    f"Llave Bre-B: {llave.llave}" if llave else "",
+                ]
+                return " · ".join(parte for parte in partes_destino if parte)
+            return nombre_tipo_cuenta(cuentas_por_id.get(transaccion.id_cuenta))
+
+        if transaccion.tipo == "Transferencia":
+            cuenta_origen = cuentas_por_id.get(transaccion.id_cuenta)
+            if not cuenta_origen:
+                return "-"
+            tipo_destino = (
+                "ahorros"
+                if cuenta_origen.tipo_cuenta == "corriente"
+                else "corriente"
+            )
+            cuenta_destino = next(
+                (
+                    cuenta
+                    for cuenta in cuentas_usuario
+                    if cuenta.tipo_cuenta == tipo_destino
+                ),
+                None,
+            )
+            return nombre_tipo_cuenta(cuenta_destino)
+
+        if transaccion.tipo == "Ingreso":
+            return nombre_tipo_cuenta(cuentas_por_id.get(transaccion.id_cuenta))
+
+        return "-"
+
     return [
 
         {
@@ -4049,6 +4150,12 @@ def transacciones_usuario(
 
             "descripcion":
             transaccion.descripcion,
+
+            "origen":
+            obtener_origen(transaccion),
+
+            "destino":
+            obtener_destino(transaccion),
 
         }
 
@@ -5167,10 +5274,6 @@ def transferencia_bre_b(
 
         )
 
-        # ==================================================
-        # TRANSACCIÓN ENTRADA
-        # ==================================================
-
         transaccion_entrada = Transaccion(
 
             id_cuenta=
@@ -5188,12 +5291,24 @@ def transferencia_bre_b(
 
         )
 
-        db.add(
-            transaccion_salida
-        )
+        db.add_all([
+            transaccion_salida,
+            transaccion_entrada,
+        ])
+        db.flush()
 
         db.add(
-            transaccion_entrada
+            TransferenciaBreb(
+                id_transaccion=transaccion_salida.id_transaccion,
+                id_cuenta_origen=cuenta_origen.id_cuenta,
+                id_cuenta_destino=cuenta_destino.id_cuenta,
+                id_llave_destino=llave_breb.id_llave,
+                monto=data.monto,
+                descripcion=data.descripcion or "Transferencia Bre-B",
+                estado="procesada",
+                referencia=f"BREB-{secrets.token_hex(8).upper()}",
+                fecha_transferencia=datetime.now(timezone.utc).replace(tzinfo=None),
+            )
         )
 
         # ==================================================
