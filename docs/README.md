@@ -1,4 +1,4 @@
-# Plan de trabajo — Billetera Financiera
+# Plan de trabajo — Financiera
 
 **Estado del documento:** actualizado el 14 de noviembre de 2026
 **Producto:** aplicación web de billetera financiera
