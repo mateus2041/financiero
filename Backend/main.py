@@ -138,12 +138,16 @@ app = FastAPI(
 )
 
 codigos_recuperacion = {}
+cors_origin_setting = (
+    os.getenv("CORS_ALLOWED_ORIGINS")
+    or os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000",
+    )
+)
 cors_allowed_origins = [
     origin.strip()
-    for origin in os.getenv(
-        "CORS_ALLOWED_ORIGINS",
-        "http://localhost:3000,http://127.0.0.1:3000",
-    ).split(",")
+    for origin in cors_origin_setting.split(",")
     if origin.strip()
 ]
 if not cors_allowed_origins or "*" in cors_allowed_origins:
@@ -173,18 +177,9 @@ def readiness(db: Session = Depends(get_db)):
 # CORS
 # ==========================================================
 
-cors_origins = [
-    origin.strip()
-    for origin in os.getenv(
-        "CORS_ORIGINS",
-        "http://localhost:3000,http://127.0.0.1:3000",
-    ).split(",")
-    if origin.strip()
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_allowed_origins or cors_origins,
+    allow_origins=cors_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -29,6 +29,28 @@ export const parsePositiveInteger = (value) => {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
+export const sanitizeLocalName = (value) => {
+  if (typeof value !== "string") return "Sin nombre";
+
+  const name = value.normalize("NFKC").trim();
+  return name.length <= 100 && /^[\p{L}\p{M}\p{N} .,'’-]+$/u.test(name)
+    ? name
+    : "Sin nombre";
+};
+
+export const groupDigitsByThousands = (digits) => {
+  let grouped = "";
+
+  for (let index = 0; index < digits.length; index += 1) {
+    if (index > 0 && (digits.length - index) % 3 === 0) {
+      grouped += ".";
+    }
+    grouped += digits[index];
+  }
+
+  return grouped;
+};
+
 export const activateOnEnterOrSpace = (event, action) => {
   if (event.key === "Enter" || event.key === " ") {
     event.preventDefault();
