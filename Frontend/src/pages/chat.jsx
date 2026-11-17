@@ -3,10 +3,13 @@ import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import Historial from "./historial";
 import RegistrarLlaveBreB from "./transferenciascr";
+import ChatIARegistrado from "./ChatIA";
 import "../styles/chatIA.css";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 const ULTIMO_MENSAJE_CHAT_KEY = "ultimo_mensaje_asistente";
+const NUEVO_USUARIO_CHAT_KEY = "nuevo_usuario_chat_inicio";
+const ESPERA_CAMBIO_CHAT_MS = 24 * 60 * 60 * 1000;
 const MENSAJE_SEGUIMIENTO = "¿Qué más necesitas de mi asistencia virtual de Financiero?";
 const PASOS_INICIAR_CUENTA =
   "Para iniciar sesión en tu cuenta:\n1. Abre la aplicación.\n2. Selecciona «Iniciar sesión».\n3. Escribe tu número de documento y contraseña.\n4. Pulsa «Ingresar» para entrar a tu cuenta.";
@@ -22,11 +25,9 @@ const obtenerUltimoMensajeChat = () => {
 };
 
 const crearMensajeBienvenida = () => {
-  const nombreUsuario = localStorage.getItem("nombre_usuario")?.trim();
-
   return {
     tipo: "ia",
-    texto: `Hola${nombreUsuario ? ` ${nombreUsuario}` : ""}, soy el asistente virtual de Financiero. ¿En qué puedo ayudarte hoy?`,
+    texto: "Buenas tardes, bienvenido a financiero. ¿En qué puedo ayudarle hoy con nuestros productos o servicios?",
   };
 };
 
@@ -86,7 +87,7 @@ const OPCIONES_CUENTA_ORIGEN = [
 ];
 
 const MENSAJE_SALUDO =
-  "¡Hola! Soy tu asistente financiero. ¿En qué puedo ayudarte hoy?";
+  "Buenas tardes, bienvenido a financiero. ¿En qué puedo ayudarle hoy con nuestros productos o servicios?";
 
 const OPCIONES_ASISTENTE = [
   {
@@ -147,6 +148,41 @@ function ChatIA({ onClose, compacto = false }) {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [tipoOpciones, setTipoOpciones] = useState("inicio");
+  const [usarChatIARegistrado, setUsarChatIARegistrado] = useState(false);
+
+  useEffect(() => {
+    const esNuevoUsuario =
+      !localStorage.getItem("token") && !localStorage.getItem("usuario_id");
+
+    if (!esNuevoUsuario) {
+      setUsarChatIARegistrado(false);
+      return undefined;
+    }
+
+    let inicio = Number(localStorage.getItem(NUEVO_USUARIO_CHAT_KEY));
+
+    if (!Number.isFinite(inicio) || inicio <= 0) {
+      inicio = Date.now();
+      localStorage.setItem(NUEVO_USUARIO_CHAT_KEY, String(inicio));
+    }
+
+    const comprobarCambio = () => {
+      const transcurrido = Date.now() - inicio;
+      if (transcurrido >= ESPERA_CAMBIO_CHAT_MS) {
+        setUsarChatIARegistrado(true);
+        return true;
+      }
+      return false;
+    };
+
+    if (comprobarCambio()) return undefined;
+
+    const temporizador = window.setInterval(() => {
+      if (comprobarCambio()) window.clearInterval(temporizador);
+    }, 60 * 1000);
+
+    return () => window.clearInterval(temporizador);
+  }, []);
 
   useEffect(() => {
     const ultimoMensaje = [...mensajes]
@@ -303,6 +339,31 @@ function ChatIA({ onClose, compacto = false }) {
       .trim();
 
     if (tipoOpciones === "confirmacionGeneral" && confirmacionPendiente) {
+      if (confirmacionPendiente.tipo === "porcentajeDinero") {
+        if (textoNormalizado === "si" || textoNormalizado === "s") {
+          setConfirmacionPendiente(null);
+          setTipoOpciones(null);
+          void mostrarResumenDinero("Porcentaje de dinero");
+          return;
+        }
+
+        if (textoNormalizado === "no" || textoNormalizado === "n") {
+          setMensajes((prev) => [
+            ...prev,
+            { tipo: "usuario", texto },
+            {
+              tipo: "ia",
+              texto:
+                "Para consultar tu porcentaje de dinero necesitas tener una cuenta:\n1. Selecciona «Registro» en la parte superior de la aplicación.\n2. Completa tus datos personales y crea tu usuario.\n3. Espera la aprobación de tu solicitud.\n4. Inicia sesión y consulta tus ingresos y gastos desde «Porcentaje de dinero».",
+            },
+          ]);
+          setConfirmacionPendiente(null);
+          setTipoOpciones("inicio");
+          setPregunta("");
+          return;
+        }
+      }
+
       if (confirmacionPendiente.tipo === "cuenta" && (textoNormalizado === "si" || textoNormalizado === "s")) {
         setMensajes((prev) => [
           ...prev,
@@ -438,7 +499,18 @@ function ChatIA({ onClose, compacto = false }) {
 
   const seleccionarOpcion = (opcion) => {
     if (opcion.tipo === "resumenDinero") {
-      void mostrarResumenDinero(opcion.etiqueta || opcion.titulo);
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "usuario", texto: opcion.etiqueta || opcion.titulo || "Porcentaje de dinero" },
+        { tipo: "ia", texto: "¿Ya tienes una cuenta?" },
+      ]);
+      setConfirmacionPendiente({
+        pasosSi: "",
+        pasosNo:
+          "Para consultar tu porcentaje de dinero necesitas tener una cuenta:\n1. Selecciona «Registro» en la parte superior de la aplicación.\n2. Completa tus datos personales y crea tu usuario.\n3. Espera la aprobación de tu solicitud.\n4. Inicia sesión y consulta tus ingresos y gastos desde «Porcentaje de dinero».",
+        tipo: "porcentajeDinero",
+      });
+      setTipoOpciones("confirmacionGeneral");
       return;
     }
 
@@ -510,6 +582,13 @@ function ChatIA({ onClose, compacto = false }) {
 
     if (opcion.tipo === "confirmarSi") {
       if (!confirmacionPendiente) return;
+
+      if (confirmacionPendiente.tipo === "porcentajeDinero") {
+        setConfirmacionPendiente(null);
+        setTipoOpciones(null);
+        void mostrarResumenDinero("Porcentaje de dinero");
+        return;
+      }
 
       if (confirmacionPendiente.tipo === "transferenciasCuenta") {
         setMensajes((prev) => [
@@ -634,7 +713,7 @@ function ChatIA({ onClose, compacto = false }) {
         pasosSi:
           "Para consultar tus certificados banacario:\n1. inicia sesión.\n2. Seleccione incresar.\n3. espara que te lleve un codigo de confirmación para incresar. \n4. incresa el codigo que te llego a tu correo electronico.\n5. dirijete al menu del lado izquierdo y selecciona «certificados»; allí encontrarás la opción para consultar tu certificado bancario y descargarlo.",
         pasosNo:
-          "para consultar tus certificados: \n1. Selecciona «Registro» y completa todos los campos marcados.\n2. Espera a que se procese tu solicitud.\n3. Cuando sea aprobada, cuando alla cido aporvada de darle clip en iniciar sesión.\n4. Espera el código de confirmación.\n5. ingresa el codigo que te llego a tu correo electronico.\n6. dirijete al menu del lado izquierdo y selecciona «certificados»; allí encontrarás la opción para consultar tu certificado bancario y descargarlo.",
+          "para consultar tus certificados: \n1. Selecciona «Registro» y completa todos los campos marcados.\n2. Espera a que se procese tu solicitud.\n3. Cuando sea aprobada, cuando alla cido aporvada de darle clip en iniciar sesión.\n4. Espera el código de confirmación.\n5. ingresa el codigo que te llego a tu correo electronico.",
       });
       return;
     }
@@ -728,11 +807,15 @@ function ChatIA({ onClose, compacto = false }) {
     void enviarPregunta(opcion.pregunta);
   };
 
+  if (usarChatIARegistrado) {
+    return <ChatIARegistrado compacto={compacto} onClose={onClose} />;
+  }
+
   return (
     <>
     <div className="chat-container">
       <div className="chat-header">
-        <span id="asistente-titulo">Asistente IA 🤖</span>
+        <span id="asistente-titulo">Asistente de atención</span>
         {onClose && (
           <button
             type="button"
