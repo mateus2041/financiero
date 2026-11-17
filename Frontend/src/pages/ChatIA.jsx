@@ -20,11 +20,9 @@ const obtenerUltimoMensajeChat = () => {
 };
 
 const crearMensajeBienvenida = () => {
-  const nombreUsuario = localStorage.getItem("nombre_usuario")?.trim();
-
   return {
     tipo: "ia",
-    texto: `Hola${nombreUsuario ? ` ${nombreUsuario}` : ""}, soy el asistente virtual de Financiero. ¿En qué puedo ayudarte hoy?`,
+    texto: "Buenas tardes, bienvenido a financiero. ¿En qué puedo ayudarle hoy con nuestros productos o servicios?",
   };
 };
 
@@ -79,7 +77,7 @@ const OPCIONES_CUENTA_ORIGEN = [
 ];
 
 const MENSAJE_SALUDO =
-  "¡Hola! Soy tu asistente financiero. ¿En qué puedo ayudarte hoy?";
+  "Buenas tardes, bienvenido a financiero. ¿En qué puedo ayudarle hoy con nuestros productos o servicios?";
 
 const OPCIONES_ASISTENTE = [
   {
