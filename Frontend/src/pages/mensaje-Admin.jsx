@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { parsePositiveInteger } from "../utils/helpers";
+import {
+  parsePositiveInteger,
+  sanitizeLocalName,
+} from "../utils/helpers";
 import "../styles/mensajeAdmin.css";
 
 export default function Mensajes() {
@@ -82,7 +85,9 @@ export default function Mensajes() {
     const nuevoMensaje = {
       id: Date.now(),
       id_notificacion: Date.now(),
-      nombre_asesor: localStorage.getItem("nombre_usuario") || "Sin nombre",
+      nombre_asesor: sanitizeLocalName(
+        localStorage.getItem("nombre_usuario")
+      ),
       texto: textoMensaje,
       mensaje: textoMensaje,
       descripcion: textoMensaje,

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
+import { groupDigitsByThousands } from "../utils/helpers";
 import "../styles/ListaCuentas.css";
 import logoProyecto from "../assets/images/logo.jpeg";
 
@@ -295,10 +296,7 @@ export default function ListaCuentas() {
       .replace(/\./g, "")
       .replace(/[^\d,]/g, "")
       .split(",");
-    const enteroAgrupado = parteEntera.replace(
-      /\B(?=(\d{3})+(?!\d))/g,
-      "."
-    );
+    const enteroAgrupado = groupDigitsByThousands(parteEntera);
 
     return parteDecimal === undefined
       ? enteroAgrupado

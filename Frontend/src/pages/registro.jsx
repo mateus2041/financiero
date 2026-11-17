@@ -359,16 +359,22 @@ function Registro({ isModal = false, onClose }) {
               onChange={(e) => setDireccion(e.target.value)}
             />
 
-            <label>Fecha de expedición del documento</label>
+            <label htmlFor="registro-fecha-expedicion">
+              Fecha de expedición del documento
+            </label>
             <input
+              id="registro-fecha-expedicion"
               name="fecha_expedicion"
               type="date"
               value={fechaExpedicion}
               onChange={(e) => setFechaExpedicion(e.target.value)}
             />
 
-            <label>Fecha de nacimiento</label>
+            <label htmlFor="registro-fecha-nacimiento">
+              Fecha de nacimiento
+            </label>
             <input
+              id="registro-fecha-nacimiento"
               name="fecha_nacimiento"
               type="date"
               value={fechaNacimiento}

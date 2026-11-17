@@ -1,7 +1,9 @@
 import {
   formatCurrency,
   activateOnEnterOrSpace,
+  groupDigitsByThousands,
   parsePositiveInteger,
+  sanitizeLocalName,
   validateEmail,
 } from "./helpers";
 
@@ -25,6 +27,18 @@ describe("validation helpers", () => {
     expect(parsePositiveInteger("1.5")).toBeNull();
     expect(parsePositiveInteger(Number.MAX_SAFE_INTEGER + 1)).toBeNull();
     expect(parsePositiveInteger(null)).toBeNull();
+  });
+
+  test("validates names read from browser storage before reuse", () => {
+    expect(sanitizeLocalName(" María O'Connor ")).toBe("María O'Connor");
+    expect(sanitizeLocalName("<img src=x onerror=alert(1)>")).toBe("Sin nombre");
+    expect(sanitizeLocalName("a".repeat(101))).toBe("Sin nombre");
+  });
+
+  test("groups digit strings without a backtracking expression", () => {
+    expect(groupDigitsByThousands("123")).toBe("123");
+    expect(groupDigitsByThousands("1234")).toBe("1.234");
+    expect(groupDigitsByThousands("123456789")).toBe("123.456.789");
   });
 
   test("activates keyboard controls only with Enter or Space", () => {
