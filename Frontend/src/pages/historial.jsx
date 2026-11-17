@@ -17,6 +17,9 @@ function Historial({ isModal = false }) {
     const [busqueda, setBusqueda] = useState("");
 
     const [usuario, setUsuario] = useState("");
+    const [fotoPerfil, setFotoPerfil] = useState(
+        () => localStorage.getItem("fotoPerfil") || ""
+    );
     const [openTransfer, setOpenTransfer] = useState(false);
     const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
     const [asistenteAbierto, setAsistenteAbierto] = useState(false);
@@ -35,6 +38,20 @@ function Historial({ isModal = false }) {
         window.addEventListener("resize", actualizarEstadoMenu);
 
         return () => window.removeEventListener("resize", actualizarEstadoMenu);
+    }, []);
+
+    useEffect(() => {
+        const actualizarFotoPerfil = () => {
+            setFotoPerfil(localStorage.getItem("fotoPerfil") || "");
+        };
+
+        window.addEventListener("storage", actualizarFotoPerfil);
+        window.addEventListener("fotoPerfilCambio", actualizarFotoPerfil);
+
+        return () => {
+            window.removeEventListener("storage", actualizarFotoPerfil);
+            window.removeEventListener("fotoPerfilCambio", actualizarFotoPerfil);
+        };
     }, []);
 
     useEffect(() => {
@@ -386,6 +403,15 @@ function Historial({ isModal = false }) {
                          🚫 bloque de trajeta 
                         </Link>
                     </li>
+                    <li>
+                            <button
+                            type="button"
+                            className="btn-nav asistente-sidebar-trigger"
+                            onClick={() => setAsistenteAbierto(true)}
+                    >
+                            🤖 Asistente IA
+                        </button>
+                    </li>
 
                 </ul>
 
@@ -408,10 +434,13 @@ function Historial({ isModal = false }) {
                         </h2>
 
                         <div className="profile">
-                            <img
-                                src="https://i.pinimg.com/736x/e0/06/16/e00616c1e181f83b35b157f9281bd36e.jpg"
-                                alt="Usuario"
-                            />
+                            {fotoPerfil ? (
+                                <img src={fotoPerfil} alt="Foto de perfil" />
+                            ) : (
+                                <span className="profile-fallback" aria-label="Sin foto de perfil">
+                                    {usuario.charAt(0).toUpperCase() || "U"}
+                                </span>
+                            )}
                         </div>
 
                     </header>
