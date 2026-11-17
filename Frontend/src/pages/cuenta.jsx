@@ -222,8 +222,13 @@ const Cuenta = () => {
 
   useEffect(() => {
 
-    const cargarDatosFinancieros = async () => {
-      setActualizando(true);
+    let cargaEnCurso = false;
+
+    const cargarDatosFinancieros = async (mostrarIndicador = true) => {
+      if (cargaEnCurso) return;
+      cargaEnCurso = true;
+      if (mostrarIndicador) setActualizando(true);
+
       try {
         const [respuestaSaldos, respuestaTransacciones] = await Promise.all([
           fetch("http://127.0.0.1:8000/cuentas/saldos", {
@@ -273,32 +278,40 @@ const Cuenta = () => {
         aplicarTipoCuentaCorriente(nuevoTipoCorriente);
 
         const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
-        const fechas = Array.from({ length: 7 }, (_, indice) => {
-          const fecha = new Date(hoy);
-          fecha.setDate(hoy.getDate() - (6 - indice));
-          return fecha;
+        const meses = Array.from({ length: 6 }, (_, indice) => {
+          const mes = new Date(hoy.getFullYear(), hoy.getMonth() - (5 - indice), 1);
+          return {
+            clave: `${mes.getFullYear()}-${String(mes.getMonth() + 1).padStart(2, "0")}`,
+            fecha: mes
+          };
         });
-        const clavesFechas = fechas.map((fecha) => fecha.toISOString().slice(0, 10));
-        const ingresosPorDia = Array(7).fill(0);
-        const gastosPorDia = Array(7).fill(0);
+        const indicesMeses = new Map(meses.map((mes, indice) => [mes.clave, indice]));
+        const ingresosPorMes = Array(6).fill(0);
+        const gastosPorMes = Array(6).fill(0);
         let ingresos = 0;
         let gastos = 0;
 
         transacciones.forEach((transaccion) => {
-          const fecha = new Date(transaccion.fecha);
+          const fechaTexto = String(transaccion.fecha || "");
+          const coincidenciaFecha = fechaTexto.match(/^(\d{4}-\d{2})/);
+          const fecha = coincidenciaFecha ? null : new Date(transaccion.fecha);
+          const claveMes = coincidenciaFecha
+            ? coincidenciaFecha[1]
+            : Number.isNaN(fecha.getTime())
+              ? null
+              : `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`;
           const tipo = String(transaccion.tipo || "").toLowerCase();
           const monto = Number(transaccion.monto || 0);
-          const indice = clavesFechas.indexOf(fecha.toISOString().slice(0, 10));
+          const indice = claveMes === null ? undefined : indicesMeses.get(claveMes);
 
           if (tipo.includes("ingreso")) {
             ingresos += monto;
-            if (indice >= 0) ingresosPorDia[indice] += monto;
+            if (indice !== undefined) ingresosPorMes[indice] += monto;
           }
 
           if (tipo.includes("gasto") || tipo.includes("transfer")) {
             gastos += monto;
-            if (indice >= 0) gastosPorDia[indice] += monto;
+            if (indice !== undefined) gastosPorMes[indice] += monto;
           }
         });
 
@@ -308,51 +321,70 @@ const Cuenta = () => {
         const canvas = document.getElementById("salesChart");
         if (!canvas) return;
 
-        if (window.chart) window.chart.destroy();
+        const etiquetasMeses = meses.map(({ fecha }) =>
+          fecha.toLocaleDateString("es-CO", { month: "short", year: "numeric" })
+        );
 
-        window.chart = new Chart(canvas.getContext("2d"), {
-          type: "line",
-          data: {
-            labels: fechas.map((fecha) =>
-              fecha.toLocaleDateString("es-CO", { weekday: "short" })
-            ),
-            datasets: [
-              {
-                label: "Ingresos",
-                data: ingresosPorDia,
-                tension: 0.4,
-                fill: true
-              },
-              {
-                label: "Gastos",
-                data: gastosPorDia,
-                tension: 0.4,
-                fill: true
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false
-          }
-        });
+        if (window.chart) {
+          window.chart.data.labels = etiquetasMeses;
+          window.chart.data.datasets[0].data = ingresosPorMes;
+          window.chart.data.datasets[1].data = gastosPorMes;
+          window.chart.update();
+        } else {
+          window.chart = new Chart(canvas.getContext("2d"), {
+            type: "line",
+            data: {
+              labels: etiquetasMeses,
+              datasets: [
+                {
+                  label: "Ingresos",
+                  data: ingresosPorMes,
+                  tension: 0.4,
+                  fill: true
+                },
+                {
+                  label: "Gastos",
+                  data: gastosPorMes,
+                  tension: 0.4,
+                  fill: true
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false
+            }
+          });
+        }
       } catch (error) {
         console.error(error);
       } finally {
-        setActualizando(false);
+        cargaEnCurso = false;
+        if (mostrarIndicador) setActualizando(false);
       }
     };
 
     void cargarDatosFinancieros();
 
     const actualizarCuentas = () => cargarDatosFinancieros();
+    const actualizarSiVisible = () => {
+      if (document.visibilityState === "visible") {
+        void cargarDatosFinancieros(false);
+      }
+    };
+    const intervaloActualizacion = window.setInterval(actualizarSiVisible, 5000);
 
     window.addEventListener("cuentas-actualizadas", actualizarCuentas);
     window.addEventListener("storage", actualizarCuentas);
+    window.addEventListener("focus", actualizarSiVisible);
+    document.addEventListener("visibilitychange", actualizarSiVisible);
 
     return () => {
+      window.clearInterval(intervaloActualizacion);
       window.removeEventListener("cuentas-actualizadas", actualizarCuentas);
       window.removeEventListener("storage", actualizarCuentas);
+      window.removeEventListener("focus", actualizarSiVisible);
+      document.removeEventListener("visibilitychange", actualizarSiVisible);
 
       if (window.chart) {
         window.chart.destroy();
@@ -703,7 +735,7 @@ const Cuenta = () => {
             <h3>Gastos</h3>
 
 
-            <span>${totalGastos}</span>
+            <span>${totalGastos === 0 ? 0 : -Math.abs(totalGastos)}</span>
 
 
           </div>
@@ -723,7 +755,7 @@ const Cuenta = () => {
 
 
           <div className="chart-header">
-            <h3>Porcentaje de dinero</h3>
+            <h3>Porcentaje de mes a mes</h3>
             <button
               type="button"
               className="refresh-button"
