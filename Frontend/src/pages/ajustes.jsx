@@ -432,6 +432,12 @@ function AjustesPerfil() {
                 </li>
 
                 <li>
+                  <Link to="/transferencias-scr">
+                    📤 Registrar Llave Bre-B
+                  </Link>
+                </li>
+
+                <li>
                   <Link to="/corriente">
                     🧾 Transferir
                   </Link>
@@ -459,6 +465,15 @@ function AjustesPerfil() {
               className="btn-nav"
             >
               ⚙️ Ajustes
+            </Link>
+          </li>
+
+          <li>
+            <Link
+              to="/desbloquear-cuenta"
+                className="btn-nav"            
+              >
+                🚫 bloque de trajeta 
             </Link>
           </li>
 
