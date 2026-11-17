@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
-import { parsePositiveInteger } from "../utils/helpers";
+import {
+  parsePositiveInteger,
+  sanitizeLocalName,
+} from "../utils/helpers";
 import logoProyecto from "../assets/images/logo.jpeg";
 import "../styles/trageta.css";
 
@@ -615,10 +618,10 @@ export default function TarjetasUsuario({
       const nuevoMensaje = {
         id: Date.now(),
         id_notificacion: Date.now(),
-        nombre_asesor:
+        nombre_asesor: sanitizeLocalName(
           localStorage.getItem("nombre_asesor") ||
-          localStorage.getItem("nombre_usuario") ||
-          "Sin nombre",
+            localStorage.getItem("nombre_usuario")
+        ),
         texto: textoFinal,
         mensaje: textoFinal,
         descripcion: textoFinal,
