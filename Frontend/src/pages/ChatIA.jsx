@@ -1,111 +1,29 @@
 import React, { useEffect, useRef, useState } from "react";
-import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
-import Historial from "./historial";
-import RegistrarLlaveBreB from "./transferenciascr";
+import ChatAssistantDialogs from "../components/ChatAssistantDialogs";
+import { ChatComposer, ChatTranscript } from "../components/ChatAssistantView";
+import {
+  crearMensajeBienvenida,
+  crearHistorialChat,
+  fetchAssistantResponse,
+  fetchMoneySummary,
+  getAssistantErrorMessage,
+  MENSAJE_SALUDO,
+  MENSAJE_SEGUIMIENTO,
+  normalizarTextoAsistente,
+  obtenerUltimoMensajeChat,
+  OPCIONES_ASISTENTE_REGISTRADO,
+  OPCIONES_CHAT,
+  OPCIONES_CUENTA_ORIGEN,
+  OPCIONES_TRANSFERENCIA,
+  OPCIONES_USO_APLICACION,
+  PASOS_NAVEGACION,
+} from "../utils/chatAssistant";
+import useModalDismissal from "../hooks/useModalDismissal";
+import usePersistAssistantMessage from "../hooks/usePersistAssistantMessage";
 import "../styles/chatIA.css";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
-const ULTIMO_MENSAJE_CHAT_KEY = "ultimo_mensaje_asistente";
-const MENSAJE_SEGUIMIENTO = "¿Qué más necesitas de mi asistencia virtual de Financiero?";
-
-const obtenerUltimoMensajeChat = () => {
-  try {
-    const texto = sessionStorage.getItem(ULTIMO_MENSAJE_CHAT_KEY);
-    return texto?.trim() ? { tipo: "ia", texto } : null;
-  } catch (error) {
-    console.error("No fue posible recuperar el último mensaje del asistente:", error);
-    return null;
-  }
-};
-
-const crearMensajeBienvenida = () => {
-  return {
-    tipo: "ia",
-    texto: "Buenas tardes, bienvenido a financiero. ¿En qué puedo ayudarle hoy con nuestros productos o servicios?",
-  };
-};
-
-const OPCIONES_CHAT = [
-  { etiqueta: "Cuentas", pregunta: "Quiero información sobre cuentas de ahorro y corrientes." },
-  { etiqueta: "Transferencias", tipo: "transferencias" },
-  { etiqueta: "Historial", pregunta: "Quiero saber cómo consultar mi historial de transacciones." },
-  { etiqueta: "Llaves Bre-B", pregunta: "Quiero información sobre las llaves Bre-B." },
-  { etiqueta: "Certificados", pregunta: "Quiero saber cómo obtener un certificado bancario." },
-  { etiqueta: "Porcentaje de dinero", tipo: "resumenDinero" },
-  { etiqueta: "¿Cómo uso la aplicación?", pregunta: "Necesito ayuda para usar la aplicación." },
-];
-
-const OPCIONES_USO_APLICACION = [
-  { etiqueta: "Transferencias", tipo: "transferencias" },
-  { etiqueta: "Historial", pregunta: "Quiero saber cómo consultar mi historial de transacciones." },
-  { etiqueta: "Llaves Bre-B", pregunta: "Quiero información sobre las llaves Bre-B." },
-  { etiqueta: "Certificados", pregunta: "Quiero saber cómo obtener un certificado bancario." },
-];
-
-const PASOS_NAVEGACION = {
-  Transferencias:
-    "1. Abre el menú lateral y entra en «Otros».\n2. Elige «Enviar dinero» para transferir entre tus cuentas, o «Transferir» para iniciar otro tipo de transferencia.",
-  Historial:
-    "1. Abre el menú lateral.\n2. Selecciona «Historial Monetario» para consultar tus movimientos.",
-  "Llaves Bre-B":
-    "1. Abre el menú lateral y entra en «Otros».\n2. Selecciona «Registrar Llave Bre-B» para gestionar tus llaves.",
-  Certificados:
-    "1. Abre el menú lateral.\n2. Selecciona «Certificado Bancario» para consultar o descargar tu certificado.",
-};
-
-const OPCIONES_TRANSFERENCIA = [
-  {
-    etiqueta: "Entre mis cuentas",
-    tipo: "transferenciaEntreCuentas",
-    pregunta: "Necesito ayuda para transferir dinero entre mis propias cuentas.",
-  },
-  {
-    etiqueta: "A otra persona con Bre-B",
-    tipo: "transferenciaBreB",
-    pregunta: "Necesito información para enviar dinero a otra persona usando una llave Bre-B.",
-  },
-  {
-    etiqueta: "Otro tipo de transferencia",
-    pregunta: "Necesito ayuda con otro tipo de transferencia.",
-  },
-];
-
-const OPCIONES_CUENTA_ORIGEN = [
-  { etiqueta: "Cuenta corriente", tipo: "cuentaOrigen", cuenta: "corriente" },
-  { etiqueta: "Cuenta de ahorros", tipo: "cuentaOrigen", cuenta: "ahorro" },
-];
-
-const MENSAJE_SALUDO =
-  "Buenas tardes, bienvenido a financiero. ¿En qué puedo ayudarle hoy con nuestros productos o servicios?";
-
-const OPCIONES_ASISTENTE = [
-  {
-    titulo: "Mis cuentas y saldos",
-    descripcion: "Consulta tus cuentas y aprende a organizar tu dinero.",
-    pregunta: "¿Cómo puedo consultar y organizar los saldos de mis cuentas?",
-  },
-  {
-    titulo: "Transferencias",
-    descripcion: "Resuelve dudas sobre cómo enviar dinero.",
-    pregunta: "¿Cómo puedo hacer una transferencia entre mis cuentas?",
-  },
-  {
-    titulo: "Movimientos",
-    descripcion: "Entiende y revisa el historial de tus transacciones.",
-    pregunta: "¿Cómo reviso mis movimientos y transacciones recientes?",
-  },
-  {
-    titulo: "Ahorro y presupuesto",
-    descripcion: "Encuentra formas de ahorrar y planificar tus gastos.",
-    pregunta: "¿Cómo puedo crear un presupuesto y ahorrar cada mes?",
-  },
-  {
-    titulo: "Porcentaje de dinero",
-    descripcion: "Consulta cuánto dinero ha ingresado y cuánto has gastado.",
-    tipo: "resumenDinero",
-  },
-];
 
 function ChatIA({ onClose, compacto = false }) {
   const navigate = useNavigate();
@@ -138,33 +56,9 @@ function ChatIA({ onClose, compacto = false }) {
   const [isLoading, setIsLoading] = useState(false);
   const [tipoOpciones, setTipoOpciones] = useState("inicio");
 
-  useEffect(() => {
-    const ultimoMensaje = [...mensajes]
-      .reverse()
-      .find((mensaje) => mensaje.tipo === "ia" && !mensaje.esSeguimiento);
-
-    if (!ultimoMensaje) return;
-
-    try {
-      sessionStorage.setItem(ULTIMO_MENSAJE_CHAT_KEY, ultimoMensaje.texto);
-    } catch (error) {
-      console.error("No fue posible guardar el último mensaje del asistente:", error);
-    }
-  }, [mensajes]);
-
-  useEffect(() => {
-    if (!mostrarHistorial && !mostrarLlaveBreB) return undefined;
-
-    const cerrarConEscape = (event) => {
-      if (event.key === "Escape") {
-        setMostrarHistorial(false);
-        setMostrarLlaveBreB(false);
-      }
-    };
-
-    document.addEventListener("keydown", cerrarConEscape);
-    return () => document.removeEventListener("keydown", cerrarConEscape);
-  }, [mostrarHistorial, mostrarLlaveBreB]);
+  usePersistAssistantMessage(mensajes);
+  useModalDismissal(mostrarHistorial, setMostrarHistorial);
+  useModalDismissal(mostrarLlaveBreB, setMostrarLlaveBreB);
 
   useEffect(() => {
     if (escrituraDesbloqueada) {
@@ -180,64 +74,10 @@ function ChatIA({ onClose, compacto = false }) {
 
     try {
       const token = localStorage.getItem("token");
-      const respuesta = await axios.get(`${API_BASE_URL}/transacciones`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const datos = respuesta.data;
-      const transacciones = Array.isArray(datos)
-        ? datos
-        : datos?.transacciones || datos?.data;
-
-      if (!Array.isArray(transacciones)) {
-        throw new Error("El servidor devolvió un historial de transacciones inválido.");
-      }
-
-      const totales = transacciones.reduce(
-        (acumulado, transaccion) => {
-          const tipo = String(transaccion.tipo || "")
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .toLowerCase();
-          const monto = Number(transaccion.monto ?? transaccion.valor ?? 0);
-
-          if (!Number.isFinite(monto)) {
-            throw new Error("No fue posible calcular el resumen: hay un monto inválido.");
-          }
-
-          if (tipo.includes("ingreso") || tipo.includes("recib")) {
-            acumulado.ingresos += monto;
-          } else if (tipo.includes("gasto") || tipo.includes("transfer")) {
-            acumulado.gastos += monto;
-          }
-
-          return acumulado;
-        },
-        { ingresos: 0, gastos: 0 }
-      );
-
-      const formatoDinero = (monto) =>
-        new Intl.NumberFormat("es-CO", {
-          style: "currency",
-          currency: "COP",
-          maximumFractionDigits: 2,
-        }).format(monto);
-      const porcentajeGastado =
-        totales.ingresos > 0
-          ? `${((totales.gastos / totales.ingresos) * 100).toFixed(2)}%`
-          : "No disponible (no hay ingresos registrados)";
-
+      const resumen = await fetchMoneySummary(API_BASE_URL, token);
       setMensajes((prev) => [
         ...prev,
-        {
-          tipo: "ia",
-          texto: [
-            "Resumen de todos tus movimientos registrados:",
-            `Ingresos: ${formatoDinero(totales.ingresos)}`,
-            `Gastos y transferencias enviadas: ${formatoDinero(totales.gastos)}`,
-            `Gastado respecto a tus ingresos: ${porcentajeGastado}`,
-            `Diferencia entre ingresos y gastos: ${formatoDinero(totales.ingresos - totales.gastos)}`,
-          ].join("\n"),
-        },
+        { tipo: "ia", texto: resumen },
       ]);
     } catch (error) {
       const detalle =
@@ -288,12 +128,7 @@ function ChatIA({ onClose, compacto = false }) {
       return;
     }
 
-    const textoNormalizado = texto
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[¿?¡!.,]/g, "")
-      .trim();
+    const textoNormalizado = normalizarTextoAsistente(texto);
 
     if (
       textoNormalizado === "necesito ayuda para usar la aplicacion" ||
@@ -310,18 +145,7 @@ function ChatIA({ onClose, compacto = false }) {
     }
 
     const token = localStorage.getItem("token");
-    const historial = mensajes
-      .filter(
-        (msg) =>
-          msg &&
-          !msg.esSeguimiento &&
-          typeof msg.texto === "string" &&
-          msg.texto.trim()
-      )
-      .map((msg) => ({
-        role: msg.tipo === "usuario" ? "user" : "assistant",
-        content: msg.texto.trim(),
-      }));
+    const historial = crearHistorialChat(mensajes);
 
     setMensajes((prev) => [...prev, { tipo: "usuario", texto }]);
     setTipoOpciones(null);
@@ -329,39 +153,21 @@ function ChatIA({ onClose, compacto = false }) {
     setIsLoading(true);
 
     try {
-      const res = await axios.post(
-        `${API_BASE_URL}/ia/chat`,
-        { mensaje: texto, historial },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        }
+      const respuesta = await fetchAssistantResponse(
+        API_BASE_URL,
+        texto,
+        historial,
+        token
       );
-
       setMensajes((prev) => [
         ...prev,
-        {
-          tipo: "ia",
-          texto: res.data?.respuesta || "No pude generar una respuesta.",
-        },
+        { tipo: "ia", texto: respuesta },
       ]);
     } catch (error) {
-      let mensaje = "Error al conectar con la IA.";
-
-      if (error.response?.data?.detail) {
-        mensaje =
-          typeof error.response.data.detail === "string"
-            ? error.response.data.detail
-            : "El asistente bancario no está disponible en este momento.";
-      } else if (error.request) {
-        mensaje = "No hay respuesta del servidor.";
-      } else if (error.message) {
-        mensaje = error.message;
-      }
-
-      setMensajes((prev) => [...prev, { tipo: "ia", texto: mensaje }]);
+      setMensajes((prev) => [
+        ...prev,
+        { tipo: "ia", texto: getAssistantErrorMessage(error) },
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -522,7 +328,7 @@ function ChatIA({ onClose, compacto = false }) {
   };
   const opcionesAsistente = (
     <div className="chat-sugerencias">
-      {OPCIONES_ASISTENTE.map((opcion) => (
+      {OPCIONES_ASISTENTE_REGISTRADO.map((opcion) => (
         <button
           key={opcion.titulo}
           type="button"
@@ -557,11 +363,25 @@ function ChatIA({ onClose, compacto = false }) {
         )}
       </div>
 
-      <div className="chat-body">
-        {mensajes.map((msg, index) => {
+      <ChatTranscript
+        messages={mensajes}
+        options={
+          tipoOpciones === "transferencias"
+            ? OPCIONES_TRANSFERENCIA
+            : tipoOpciones === "cuentaOrigen" || tipoOpciones === "cuentaOrigenBreB"
+              ? OPCIONES_CUENTA_ORIGEN
+              : tipoOpciones === "usoAplicacion"
+                ? OPCIONES_USO_APLICACION
+                : tipoOpciones
+                  ? OPCIONES_CHAT
+                  : null
+        }
+        onSelectOption={seleccionarOpcion}
+        isLoading={isLoading}
+        renderMessage={(msg) => {
           if (compacto && msg.tipo === "ia" && msg.texto === MENSAJE_SALUDO) {
             return (
-              <div key={index} className="chat-respuesta-asistente">
+              <div className="chat-respuesta-asistente">
                 <span className="chat-avatar" aria-hidden="true">🤖</span>
                 <div className="chat-respuesta-contenido">
                   <div className="chat-burbuja-asistente">{msg.texto}</div>
@@ -572,146 +392,31 @@ function ChatIA({ onClose, compacto = false }) {
           }
 
           return (
-            <div
-              key={index}
-              className={msg.tipo === "usuario" ? "usuario" : "ia"}
-            >
+            <div className={msg.tipo === "usuario" ? "usuario" : "ia"}>
               {msg.texto}
             </div>
           );
-        })}
-
-        {tipoOpciones && (
-          <div className="chat-opciones" role="group" aria-label="Opciones de ayuda">
-            {(tipoOpciones === "transferencias"
-              ? OPCIONES_TRANSFERENCIA
-              : tipoOpciones === "cuentaOrigen" || tipoOpciones === "cuentaOrigenBreB"
-                ? OPCIONES_CUENTA_ORIGEN
-                : tipoOpciones === "usoAplicacion"
-                  ? OPCIONES_USO_APLICACION
-                : OPCIONES_CHAT
-            ).map((opcion) => (
-              <button
-                key={opcion.etiqueta}
-                type="button"
-                onClick={() => seleccionarOpcion(opcion)}
-                disabled={isLoading}
-              >
-                {opcion.etiqueta}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {isLoading && <div className="ia">Escribiendo...</div>}
-      </div>
-
-      <div className="chat-footer">
-        <input
-          className="chat-input"
-          type="text"
-          placeholder={
-            esperandoLlaveBreB
-              ? "Escribe la llave Bre-B de la persona..."
-              : escrituraDesbloqueada
-              ? "Escribe una pregunta..."
-              : "Pulsa «Desbloquear escritura» para escribir..."
-          }
-          value={pregunta}
-          disabled={(!escrituraDesbloqueada && !esperandoLlaveBreB) || isLoading}
-          ref={preguntaInputRef}
-          onChange={(event) => setPregunta(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && (escrituraDesbloqueada || esperandoLlaveBreB)) {
-              void enviarPregunta();
-            }
-          }}
-          aria-label={
-            esperandoLlaveBreB
-              ? "Escribe la llave Bre-B del destinatario"
-              : escrituraDesbloqueada
-              ? "Escribe una pregunta para el asistente"
-              : "Escritura bloqueada; pulsa Desbloquear escritura para activarla"
-          }
-        />
-        <button
-          type="button"
-          className="chat-unlock-button"
-          onClick={() => setEscrituraDesbloqueada(true)}
-          disabled={isLoading}
-          aria-pressed={escrituraDesbloqueada}
-        >
-          {escrituraDesbloqueada ? "Escritura habilitada" : "Desbloquear escritura"}
-        </button>
-        <button
-          type="button"
-          onClick={() => enviarPregunta()}
-          disabled={(!escrituraDesbloqueada && !esperandoLlaveBreB) || isLoading}
-        >
-          {esperandoLlaveBreB ? "Continuar" : "Enviar"}
-        </button>
-      </div>
+        }}
+      />
+      <ChatComposer
+        question={pregunta}
+        setQuestion={setPregunta}
+        inputRef={preguntaInputRef}
+        sendQuestion={enviarPregunta}
+        isLoading={isLoading}
+        writeEnabled={escrituraDesbloqueada}
+        waitingForKey={esperandoLlaveBreB}
+        onUnlock={() => setEscrituraDesbloqueada(true)}
+        lockedPlaceholder="Pulsa «Desbloquear escritura» para escribir..."
+        lockedAriaLabel="Escritura bloqueada; pulsa Desbloquear escritura para activarla"
+      />
     </div>
-    {mostrarHistorial && (
-      <div
-        className="historial-asistente-overlay"
-        role="presentation"
-        onMouseDown={(event) => {
-          if (event.target === event.currentTarget) setMostrarHistorial(false);
-        }}
-      >
-        <div
-          className="historial-asistente-modal"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="historial-asistente-titulo"
-        >
-          <div className="historial-asistente-header">
-            <h2 id="historial-asistente-titulo">Historial de transacciones</h2>
-            <button
-              type="button"
-              onClick={() => setMostrarHistorial(false)}
-              aria-label="Cerrar historial"
-            >
-              ×
-            </button>
-          </div>
-          <div className="historial-asistente-body">
-            <Historial isModal />
-          </div>
-        </div>
-      </div>
-    )}
-    {mostrarLlaveBreB && (
-      <div
-        className="historial-asistente-overlay"
-        role="presentation"
-        onMouseDown={(event) => {
-          if (event.target === event.currentTarget) setMostrarLlaveBreB(false);
-        }}
-      >
-        <section
-          className="llave-breb-asistente-modal"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="llave-breb-asistente-titulo"
-        >
-          <div className="historial-asistente-header">
-            <h2 id="llave-breb-asistente-titulo">Registrar llave Bre-B</h2>
-            <button
-              type="button"
-              onClick={() => setMostrarLlaveBreB(false)}
-              aria-label="Cerrar registro de llave Bre-B"
-            >
-              ×
-            </button>
-          </div>
-          <div className="llave-breb-asistente-body">
-            <RegistrarLlaveBreB isModal />
-          </div>
-        </section>
-      </div>
-    )}
+    <ChatAssistantDialogs
+      mostrarHistorial={mostrarHistorial}
+      onCloseHistorial={() => setMostrarHistorial(false)}
+      mostrarLlaveBreB={mostrarLlaveBreB}
+      onCloseLlaveBreB={() => setMostrarLlaveBreB(false)}
+    />
     </>
   );
 }
