@@ -134,6 +134,12 @@ export default function Transferencia() {
           id_transaccion: `local-${Date.now()}`,
           tipo: "Transferencia",
           monto: transferencia.monto,
+          origen: "Transferencia entre cuentas",
+          destino:
+            transferencia.destino ||
+            (form.destino === "ahorro"
+              ? "Cuenta de Ahorros"
+              : "Cuenta Corriente"),
           descripcion: transferencia.descripcion,
           estado: transferencia.estado,
           fecha: new Date().toISOString(),

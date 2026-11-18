@@ -100,7 +100,7 @@ function Reporte() {
 
       setMensaje(
         historialCompleto.length > 0
-          ? "Reporte generado con los movimientos guardados localmente."
+          ? "Reporte generado localmente. Los movimientos antiguos pueden no tener el destino guardado."
           : error.response?.data?.detail ||
             "No se pudo obtener el reporte."
       );
@@ -142,32 +142,6 @@ function Reporte() {
       : "Salida";
   };
 
-  const obtenerEstado = (transaccion) => {
-    const estado = String(
-      transaccion.estado ||
-        transaccion.estado_transferencia ||
-        "completada"
-    ).toLowerCase();
-
-    if (
-      ["rechazada", "fallida", "cancelada", "error"].some((valor) =>
-        estado.includes(valor)
-      )
-    ) {
-      return "Rechazada";
-    }
-
-    if (
-      ["pendiente", "procesando"].some((valor) =>
-        estado.includes(valor)
-      )
-    ) {
-      return "Pendiente";
-    }
-
-    return "Procesada";
-  };
-
   const obtenerDescripcion = (transaccion) => {
     return (
       transaccion.descripcion ||
@@ -179,6 +153,35 @@ function Reporte() {
     );
   };
 
+  const obtenerOrigen = (transaccion) => {
+    const origen = String(transaccion.origen || "").toLowerCase();
+    const tipo = String(transaccion.tipo || "").toLowerCase();
+    const descripcion = String(transaccion.descripcion || "").toLowerCase();
+    const estado = String(transaccion.estado || "").toLowerCase();
+
+    if (
+      origen.includes("bre-b") ||
+      origen.includes("llave") ||
+      descripcion.includes("bre-b") ||
+      descripcion.includes("llave") ||
+      estado === "procesada"
+    ) {
+      return "Llave Bre-B";
+    }
+
+    if (
+      origen.includes("cuenta") ||
+      estado === "exitosa" ||
+      tipo.includes("transferencia") ||
+      tipo.includes("ingreso") ||
+      descripcion.includes("transferencia")
+    ) {
+      return "Transferencia entre cuentas";
+    }
+
+    return "-";
+  };
+
   const obtenerMonto = (transaccion) =>
     Number(
       transaccion.monto ||
@@ -186,6 +189,24 @@ function Reporte() {
         transaccion.amount ||
         0
     );
+
+  const obtenerDestino = (transaccion) => {
+    const destino =
+      transaccion.destino ||
+      transaccion.cuenta_destino ||
+      transaccion.destinatario ||
+      transaccion.llave_destino;
+
+    if (destino) return destino;
+
+    const origen = obtenerOrigen(transaccion);
+    if (origen === "Llave Bre-B") return "Destinatario no guardado";
+    if (origen === "Transferencia entre cuentas") {
+      return "Cuenta destino no guardada";
+    }
+
+    return "-";
+  };
 
   const formatoDinero = (valor) => {
     return new Intl.NumberFormat("es-CO", {
@@ -453,7 +474,6 @@ function Reporte() {
                   <th>Origen</th>
                   <th>Destino</th>
                   <th>Monto</th>
-                  <th>Estado</th>
                 </tr>
               </thead>
 
@@ -491,11 +511,11 @@ function Reporte() {
                       </td>
 
                       <td>
-                        {transaccion.origen || "-"}
+                        {obtenerOrigen(transaccion)}
                       </td>
 
                       <td>
-                        {transaccion.destino || "-"}
+                        {obtenerDestino(transaccion)}
                       </td>
 
                       <td>
@@ -503,12 +523,6 @@ function Reporte() {
                           obtenerMonto(
                             transaccion
                           )
-                        )}
-                      </td>
-
-                      <td>
-                        {obtenerEstado(
-                          transaccion
                         )}
                       </td>
 
