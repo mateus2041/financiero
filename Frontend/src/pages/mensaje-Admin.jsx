@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   parsePositiveInteger,
   sanitizeLocalName,
+  sanitizeLocalText,
 } from "../utils/helpers";
 import "../styles/mensajeAdmin.css";
 
@@ -27,14 +28,16 @@ export default function Mensajes() {
       return guardados
         .filter((item) => item && typeof item === "object" && !Array.isArray(item))
         .map((item, index) => {
-          const texto = [item.texto, item.mensaje, item.descripcion].find(
-            (valor) => typeof valor === "string"
-          ) || "";
+          const texto = sanitizeLocalText(
+            [item.texto, item.mensaje, item.descripcion].find(
+              (valor) => typeof valor === "string"
+            ) || ""
+          );
           const fechaCreacion = typeof item.fecha_creacion === "string"
-            ? item.fecha_creacion.slice(0, 64)
+            ? sanitizeLocalText(item.fecha_creacion, 64)
             : new Date().toISOString();
           const fecha = typeof item.fecha === "string"
-            ? item.fecha.slice(0, 100)
+            ? sanitizeLocalText(item.fecha, 100)
             : new Date(fechaCreacion).toLocaleString("es-CO");
           const id = parsePositiveInteger(item.id ?? item.id_notificacion)
             ?? Date.now() + index;
@@ -42,19 +45,20 @@ export default function Mensajes() {
           return {
             id,
             id_notificacion: id,
-            nombre_asesor: [
+            nombre_asesor: sanitizeLocalName([
               item.nombre_asesor,
               item.nombre,
               localStorage.getItem("nombre_asesor"),
-            ].find((valor) => typeof valor === "string")?.slice(0, 100)
-              || "Sin nombre",
-            texto: texto.slice(0, 500),
-            mensaje: texto.slice(0, 500),
-            descripcion: texto.slice(0, 500),
+            ].find((valor) => typeof valor === "string")),
+            texto,
+            mensaje: texto,
+            descripcion: texto,
             titulo: typeof item.titulo === "string"
-              ? item.titulo.slice(0, 100)
+              ? sanitizeLocalText(item.titulo, 100)
               : "Mensaje para el administrador",
-            tipo: typeof item.tipo === "string" ? item.tipo.slice(0, 50) : "mensaje",
+            tipo: typeof item.tipo === "string"
+              ? sanitizeLocalText(item.tipo, 50)
+              : "mensaje",
             fecha,
             fecha_creacion: fechaCreacion,
             leida: Boolean(item.leida),
@@ -81,7 +85,8 @@ export default function Mensajes() {
     }
 
     const ahora = new Date();
-    const textoMensaje = mensaje.trim().slice(0, 500);
+    const textoMensaje = sanitizeLocalText(mensaje);
+    if (!textoMensaje) return;
     const nuevoMensaje = {
       id: Date.now(),
       id_notificacion: Date.now(),

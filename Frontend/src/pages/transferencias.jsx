@@ -3,7 +3,10 @@ import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import ChatIA from "./ChatIA";
 import AsistenteMovil from "../components/AsistenteMovil";
-import { activateOnEnterOrSpace } from "../utils/helpers";
+import {
+  activateOnEnterOrSpace,
+  sanitizeLocalText,
+} from "../utils/helpers";
 import "../styles/corriente.css";
 import "../styles/navegacionMovil.css";
 
@@ -123,9 +126,31 @@ export default function Transferencia() {
   // =====================================================
 
   const guardarEnHistorial = (transferencia) => {
-    const historial = JSON.parse(
+    const historialGuardado = JSON.parse(
       localStorage.getItem(HISTORIAL_LOCAL_KEY) || "[]"
     );
+    if (!Array.isArray(historialGuardado)) {
+      throw new TypeError("El historial local debe ser una lista");
+    }
+
+    const historial = historialGuardado
+      .filter((item) => item && typeof item === "object" && !Array.isArray(item))
+      .filter((item) =>
+        (typeof item.monto === "number" ||
+          (typeof item.monto === "string" && item.monto.trim() !== "")) &&
+        Number.isFinite(Number(item.monto)) &&
+        Number(item.monto) >= 0
+      )
+      .map((item) => ({
+        id_transaccion: sanitizeLocalText(item.id_transaccion, 100),
+        tipo: sanitizeLocalText(item.tipo, 50),
+        monto: Number(item.monto),
+        origen: sanitizeLocalText(item.origen, 100),
+        destino: sanitizeLocalText(item.destino, 200),
+        descripcion: sanitizeLocalText(item.descripcion),
+        estado: sanitizeLocalText(item.estado, 50),
+        fecha: sanitizeLocalText(item.fecha, 64),
+      }));
 
     localStorage.setItem(
       HISTORIAL_LOCAL_KEY,
@@ -133,15 +158,17 @@ export default function Transferencia() {
         {
           id_transaccion: `local-${Date.now()}`,
           tipo: "Transferencia",
-          monto: transferencia.monto,
+          monto: Number(transferencia.monto),
           origen: "Transferencia entre cuentas",
-          destino:
+          destino: sanitizeLocalText(
             transferencia.destino ||
             (form.destino === "ahorro"
               ? "Cuenta de Ahorros"
               : "Cuenta Corriente"),
-          descripcion: transferencia.descripcion,
-          estado: transferencia.estado,
+            200
+          ),
+          descripcion: sanitizeLocalText(transferencia.descripcion),
+          estado: sanitizeLocalText(transferencia.estado, 50),
           fecha: new Date().toISOString(),
         },
         ...historial,

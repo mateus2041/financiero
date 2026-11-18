@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import {
   parsePositiveInteger,
   sanitizeLocalName,
+  sanitizeLocalText,
 } from "../utils/helpers";
 import logoProyecto from "../assets/images/logo.jpeg";
 import "../styles/trageta.css";
@@ -614,7 +615,40 @@ export default function TarjetasUsuario({
       }
 
       const ahora = new Date();
-      const textoFinal = texto || "Imagen adjunta";
+      const textoFinal = sanitizeLocalText(texto || "Imagen adjunta");
+      if (!textoFinal && !imagenMensaje) {
+        setErrorMensajeAdmin("El mensaje no contiene texto válido.");
+        return;
+      }
+
+      const mensajesAnteriores = mensajesGuardados
+        .filter((item) => item && typeof item === "object" && !Array.isArray(item))
+        .map((item, index) => {
+          const textoAnterior = [item.texto, item.mensaje, item.descripcion]
+            .find((valor) => typeof valor === "string");
+          const id = parsePositiveInteger(item.id ?? item.id_notificacion)
+            ?? Date.now() + index;
+          const imagen = typeof item.imagen === "string" &&
+            /^data:image\/(?:png|jpeg|gif|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(item.imagen)
+            ? item.imagen
+            : null;
+
+          return {
+            id,
+            id_notificacion: id,
+            nombre_asesor: sanitizeLocalName(item.nombre_asesor),
+            texto: sanitizeLocalText(textoAnterior || ""),
+            mensaje: sanitizeLocalText(textoAnterior || ""),
+            descripcion: sanitizeLocalText(textoAnterior || ""),
+            titulo: sanitizeLocalText(item.titulo, 100) || "Mensaje para el administrador",
+            tipo: sanitizeLocalText(item.tipo, 50) || "mensaje",
+            imagen,
+            imagen_data_url: imagen,
+            fecha: sanitizeLocalText(item.fecha, 100),
+            fecha_creacion: sanitizeLocalText(item.fecha_creacion, 64),
+            leida: item.leida === true,
+          };
+        });
       const nuevoMensaje = {
         id: Date.now(),
         id_notificacion: Date.now(),
@@ -636,7 +670,7 @@ export default function TarjetasUsuario({
 
       localStorage.setItem(
         "mensajes_admin",
-        JSON.stringify([nuevoMensaje, ...mensajesGuardados])
+        JSON.stringify([nuevoMensaje, ...mensajesAnteriores])
       );
       setMensaje("Mensaje enviado correctamente");
       cerrarModalMensajeAdmin();
