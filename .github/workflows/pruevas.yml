@@ -15,7 +15,7 @@ jobs:
      
 uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Requiere historial completo para cálculo de diferencias y métricas de Sonar
+          fetch-depth: 0 
      
 name: SonarCloud Scan Action
         uses: SonarSource/sonarcloud-github-action@master
