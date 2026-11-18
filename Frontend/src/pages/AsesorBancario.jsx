@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import Registro from "./registro";
+import { crearMensajeAdmin } from "../utils/adminMessages";
 import logo from "../assets/images/logo.jpeg";
 import "../styles/asesorBancario.css";
 
@@ -164,26 +165,11 @@ export default function AsesorBancario() {
       return;
     }
 
-    const ahora = new Date();
     const textoFinal = texto || "Imagen adjunta";
-    const nuevoMensaje = {
-      id: Date.now(),
-      id_notificacion: Date.now(),
-      nombre_asesor:
-        localStorage.getItem("nombre_asesor") ||
-        localStorage.getItem("nombre_usuario") ||
-        "Sin nombre",
+    const nuevoMensaje = crearMensajeAdmin({
       texto: textoFinal,
-      mensaje: textoFinal,
-      descripcion: textoFinal,
-      titulo: "Mensaje para el administrador",
-      tipo: "mensaje",
-      imagen: imagenMensaje?.dataUrl || null,
-      imagen_data_url: imagenMensaje?.dataUrl || null,
-      fecha: ahora.toLocaleString("es-CO"),
-      fecha_creacion: ahora.toISOString(),
-      leida: false,
-    };
+      imagen: imagenMensaje?.dataUrl,
+    });
 
     const mensajesGuardados = JSON.parse(
       localStorage.getItem("mensajes_admin") || "[]"

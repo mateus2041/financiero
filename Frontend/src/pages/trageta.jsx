@@ -6,6 +6,7 @@ import {
   sanitizeLocalName,
   sanitizeLocalText,
 } from "../utils/helpers";
+import useAdminMessageImage from "../hooks/useAdminMessageImage";
 import logoProyecto from "../assets/images/logo.jpeg";
 import "../styles/trageta.css";
 
@@ -562,44 +563,11 @@ export default function TarjetasUsuario({
     setErrorMensajeAdmin("");
   };
 
-  const convertirArchivoADataUrl = (archivo) =>
-    new Promise((resolver, rechazar) => {
-      const lector = new FileReader();
-      lector.onload = () => {
-        if (typeof lector.result === "string") {
-          resolver(lector.result);
-        } else {
-          rechazar(new Error("No se pudo leer la imagen"));
-        }
-      };
-      lector.onerror = () => rechazar(new Error("No se pudo leer la imagen"));
-      lector.readAsDataURL(archivo);
-    });
-
-  const handleImagenMensajeChange = async (evento) => {
-    const archivo = evento.target.files?.[0];
-    if (!archivo) return;
-
-    if (!archivo.type.startsWith("image/")) {
-      setErrorMensajeAdmin("El archivo adjunto debe ser una imagen.");
-      setImagenMensaje(null);
-      setPreviewImagenMensaje("");
-      evento.target.value = "";
-      return;
-    }
-
-    try {
-      const dataUrl = await convertirArchivoADataUrl(archivo);
-      setImagenMensaje({ nombre: archivo.name, dataUrl });
-      setPreviewImagenMensaje(dataUrl);
-      setErrorMensajeAdmin("");
-    } catch (error) {
-      console.error("Error al cargar la imagen del mensaje:", error);
-      setErrorMensajeAdmin("No se pudo cargar la imagen.");
-      setImagenMensaje(null);
-      setPreviewImagenMensaje("");
-    }
-  };
+  const handleImagenMensajeChange = useAdminMessageImage({
+    setImage: setImagenMensaje,
+    setPreview: setPreviewImagenMensaje,
+    setError: setErrorMensajeAdmin,
+  });
 
   const enviarMensajeAdmin = (evento) => {
     evento.preventDefault();

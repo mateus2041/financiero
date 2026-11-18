@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import ChatIA from "./ChatIA";
 import AsistenteMovil from "../components/AsistenteMovil";
-import { activateOnEnterOrSpace } from "../utils/helpers";
+import FinancialSidebar from "../components/FinancialSidebar";
+import AssistantModal from "../components/AssistantModal";
+import useResponsiveMenu from "../hooks/useResponsiveMenu";
+import useModalDismissal from "../hooks/useModalDismissal";
 import "../styles/historial.css";
 import "../styles/navegacionMovil.css";
 
@@ -20,24 +21,12 @@ function Historial({ isModal = false }) {
     const [fotoPerfil, setFotoPerfil] = useState(
         () => localStorage.getItem("fotoPerfil") || ""
     );
-    const [openTransfer, setOpenTransfer] = useState(false);
-    const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
+    const [menuAbierto, setMenuAbierto] = useResponsiveMenu();
     const [asistenteAbierto, setAsistenteAbierto] = useState(false);
 
     useEffect(() => {
         void cargarTransacciones();
         void cargarUsuario();
-    }, []);
-
-    useEffect(() => {
-        const actualizarEstadoMenu = () => {
-            setMenuAbierto(window.innerWidth > 768);
-        };
-
-        actualizarEstadoMenu();
-        window.addEventListener("resize", actualizarEstadoMenu);
-
-        return () => window.removeEventListener("resize", actualizarEstadoMenu);
     }, []);
 
     useEffect(() => {
@@ -54,16 +43,7 @@ function Historial({ isModal = false }) {
         };
     }, []);
 
-    useEffect(() => {
-        if (!asistenteAbierto) return undefined;
-
-        const cerrarConEscape = (event) => {
-            if (event.key === "Escape") setAsistenteAbierto(false);
-        };
-
-        document.addEventListener("keydown", cerrarConEscape);
-        return () => document.removeEventListener("keydown", cerrarConEscape);
-    }, [asistenteAbierto]);
+    useModalDismissal(asistenteAbierto, setAsistenteAbierto);
 
     const cargarUsuario = async () => {
         try {
@@ -312,116 +292,13 @@ function Historial({ isModal = false }) {
             {!isModal && <AsistenteMovil onClick={() => setAsistenteAbierto(true)} />}
 
             {!isModal && (
-            <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
-                <ul>
-
-                    <li>
-                        <Link
-                            to="/cuenta"
-                            className="active"
-                        >
-                            💷 Cuenta
-                        </Link>
-                    </li>
-
-                    <li>
-                        <Link to="/historial">
-                            📜 Historial Monetario
-                        </Link>
-                    </li>
-
-                    <li>
-                        <Link to="/reporte">
-                            📜 reportes
-                        </Link>
-                    </li>
-
-                    <li>
-                        <div
-                            className="menu-item"
-                            role="button"
-                            tabIndex={0}
-                            aria-expanded={openTransfer}
-                            onClick={() => setOpenTransfer((isOpen) => !isOpen)}
-                            onKeyDown={(event) =>
-                                activateOnEnterOrSpace(event, () =>
-                                    setOpenTransfer((isOpen) => !isOpen)
-                                )
-                            }
-                        >
-                            💳 Otros{" "}
-                            {openTransfer ? "▲" : "▼"}
-                        </div>
-
-                        {openTransfer && (
-                            <ul className="submenu">
-
-                                <li>
-                                    <Link to="/transferencias">
-                                        ➡ Enviar dinero
-                                    </Link>
-                                </li>
-
-                                <li>
-                                    <Link to="/corriente">
-                                        🧾 Transferir
-                                    </Link>
-                                </li>
-                                <li>
-                                <Link to="/transferencias-scr">
-                                 📤 Registrar Llave Bre-B
-                                </Link>             
-                                </li>
-
-                            </ul>
-                        )}
-                    </li>
-
-                    <li>
-                        <Link
-                            to="/certificado"
-                            className="btn-nav"
-                        >
-                            📄 Certificado Bancario
-                        </Link>
-                    </li>
-
-                    <li>
-                        <Link
-                            to="/ajustes"
-                            className="btn-nav"
-                        >
-                            ⚙️ Ajustes
-                        </Link>
-                    </li>
-                    
-                    <li>
-                     <Link
-                        to="/desbloquear-cuenta"
-                        className="btn-nav"            
-                        >
-                         🚫 bloque de trajeta 
-                        </Link>
-                    </li>
-                    <li>
-                            <button
-                            type="button"
-                            className="btn-nav asistente-sidebar-trigger"
-                            onClick={() => setAsistenteAbierto(true)}
-                    >
-                            🤖 Asistente IA
-                        </button>
-                    </li>
-
-                </ul>
-
-                <button
-                    className="logout"
-                    onClick={handleLogout}
-                >
-                    🚪 Cerrar sesión
-                </button>
-            </aside>
+                <FinancialSidebar
+                    menuAbierto={menuAbierto}
+                    onLogout={handleLogout}
+                    onAssistantOpen={() => setAsistenteAbierto(true)}
+                    reportLabel="📜 reportes"
+                    certificateClassName="btn-nav"
+                />
             )}
 
             <main className="main">
@@ -654,22 +531,7 @@ function Historial({ isModal = false }) {
             </main>
 
             {asistenteAbierto && (
-                <div
-                    className="asistente-modal-overlay"
-                    role="presentation"
-                    onMouseDown={(event) => {
-                        if (event.target === event.currentTarget) setAsistenteAbierto(false);
-                    }}
-                >
-                    <div
-                        className="asistente-modal"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="asistente-titulo"
-                    >
-                        <ChatIA onClose={() => setAsistenteAbierto(false)} />
-                    </div>
-                </div>
+                <AssistantModal onClose={() => setAsistenteAbierto(false)} />
             )}
 
         </div>

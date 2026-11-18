@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
-import ChatIA from "./ChatIA";
 import AsistenteMovil from "../components/AsistenteMovil";
-import {
-  activateOnEnterOrSpace,
-  sanitizeLocalText,
-} from "../utils/helpers";
+import { sanitizeLocalText } from "../utils/helpers";
+import FinancialSidebar from "../components/FinancialSidebar";
+import AssistantModal from "../components/AssistantModal";
+import useResponsiveMenu from "../hooks/useResponsiveMenu";
+import useModalDismissal from "../hooks/useModalDismissal";
 import "../styles/corriente.css";
 import "../styles/navegacionMovil.css";
 
@@ -29,38 +29,11 @@ export default function Transferencia() {
   // ESTADOS DEL MENÚ
   // =====================================================
 
-  const [openTransfer, setOpenTransfer] = useState(false);
   const [openCertificado, setOpenCertificado] = useState(false);
   const [asistenteAbierto, setAsistenteAbierto] = useState(false);
-  const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
+  const [menuAbierto, setMenuAbierto] = useResponsiveMenu();
 
-  useEffect(() => {
-    if (!asistenteAbierto) return undefined;
-
-    const overflowAnterior = document.body.style.overflow;
-    const cerrarConEscape = (event) => {
-      if (event.key === "Escape") setAsistenteAbierto(false);
-    };
-
-    document.body.style.overflow = "hidden";
-    document.addEventListener("keydown", cerrarConEscape);
-
-    return () => {
-      document.body.style.overflow = overflowAnterior;
-      document.removeEventListener("keydown", cerrarConEscape);
-    };
-  }, [asistenteAbierto]);
-
-  useEffect(() => {
-    const actualizarEstadoMenu = () => {
-      setMenuAbierto(window.innerWidth > 768);
-    };
-
-    actualizarEstadoMenu();
-    window.addEventListener("resize", actualizarEstadoMenu);
-
-    return () => window.removeEventListener("resize", actualizarEstadoMenu);
-  }, []);
+  useModalDismissal(asistenteAbierto, setAsistenteAbierto, true);
 
   useEffect(() => {
     if (!desdeAsistente) return;
@@ -487,138 +460,11 @@ export default function Transferencia() {
 
       <AsistenteMovil onClick={() => setAsistenteAbierto(true)} />
 
-      {/* =================================================
-          BARRA LATERAL
-      ================================================= */}
-
-      <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
-        <ul>
-
-          {/* CUENTA */}
-
-          <li>
-            <Link
-              to="/cuenta"
-              className="active"
-            >
-              💷 Cuenta
-            </Link>
-          </li>
-
-          {/* HISTORIAL */}
-
-          <li>
-            <Link to="/historial">
-              📜 Historial Monetario
-            </Link>
-          </li>
-
-          {/* REPORTES */}
-
-          <li>
-            <Link to="/reporte">
-              📊 Reportes
-            </Link>
-          </li>
-
-          {/* OTROS */}
-
-          <li>
-            <div
-              className="menu-item"
-              role="button"
-              tabIndex={0}
-              aria-expanded={openTransfer}
-              onClick={() => setOpenTransfer((isOpen) => !isOpen)}
-              onKeyDown={(event) =>
-                activateOnEnterOrSpace(event, () =>
-                  setOpenTransfer((isOpen) => !isOpen)
-                )
-              }
-            >
-              💳 Otros{" "}
-              {openTransfer ? "▲" : "▼"}
-            </div>
-
-            {openTransfer && (
-              <ul className="submenu">
-
-                <li>
-                  <Link to="/transferencias">
-                    ➡ Enviar dinero
-                  </Link>
-                </li>
-
-                <li>
-                  <Link to="/corriente">
-                    🧾 Transferir
-                  </Link>
-                </li>
-
-                <li>
-                  <Link to="/transferencias-scr">
-                    📤 Registrar Llave Bre-B
-                  </Link>
-                </li>
-
-              </ul>
-            )}
-          </li>
-
-          {/* CERTIFICADO */}
-
-          <li>
-            <Link
-              className="sidebar-link"
-              to="/certificado"
-            >
-              📄 Certificado Bancario
-            </Link>
-          </li>
-
-          {/* AJUSTES */}
-
-          <li>
-            <Link
-              to="/ajustes"
-              className="btn-nav"
-            >
-              ⚙️ Ajustes
-            </Link>
-          </li>
-          
-          <li>
-            <Link
-              to="/desbloquear-cuenta"
-              className="btn-nav"
-            >
-              🚫 bloque de trajeta 
-            </Link>
-          </li>
-
-          {/* ASISTENTE IA */}
-
-          <li>
-            <button
-              type="button"
-              className="btn-nav asistente-sidebar-trigger"
-              onClick={() => setAsistenteAbierto(true)}
-            >
-              🤖 Asistente IA
-            </button>
-          </li>
-
-        </ul>
-
-        {/* CERRAR SESIÓN */}
-
-        <button
-          className="logout"
-          onClick={handleLogout}
-        >
-          🚪 Cerrar sesión
-        </button>
-      </aside>
+      <FinancialSidebar
+        menuAbierto={menuAbierto}
+        onLogout={handleLogout}
+        onAssistantOpen={() => setAsistenteAbierto(true)}
+      />
 
       {/* =================================================
           CONTENIDO DE TRANSFERENCIA
@@ -825,22 +671,7 @@ export default function Transferencia() {
       )}
 
       {asistenteAbierto && (
-        <div
-          className="asistente-modal-overlay"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setAsistenteAbierto(false);
-          }}
-        >
-          <div
-            className="asistente-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="asistente-titulo"
-          >
-            <ChatIA onClose={() => setAsistenteAbierto(false)} />
-          </div>
-        </div>
+        <AssistantModal onClose={() => setAsistenteAbierto(false)} />
       )}
 
     </div>

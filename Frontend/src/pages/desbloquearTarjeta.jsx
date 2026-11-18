@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import ChatIA from "./ChatIA";
 import AsistenteMovil from "../components/AsistenteMovil";
-import { activateOnEnterOrSpace } from "../utils/helpers";
+import FinancialSidebar from "../components/FinancialSidebar";
+import AssistantModal from "../components/AssistantModal";
+import useResponsiveMenu from "../hooks/useResponsiveMenu";
+import useModalDismissal from "../hooks/useModalDismissal";
 import "../styles/desbloquearTarjeta.css";
 import "../styles/navegacionMovil.css";
 
@@ -24,42 +26,15 @@ function DesbloquearTarjeta() {
         codigoSeguridad: "000"
     });
 
-    const [openTransfer, setOpenTransfer] = useState(false);
     const [openCertificado, setOpenCertificado] = useState(false);
-    const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
+    const [menuAbierto, setMenuAbierto] = useResponsiveMenu();
     const [asistenteAbierto, setAsistenteAbierto] = useState(false);
-
-    useEffect(() => {
-        const actualizarEstadoMenu = () => {
-            setMenuAbierto(window.innerWidth > 768);
-        };
-
-        actualizarEstadoMenu();
-        window.addEventListener("resize", actualizarEstadoMenu);
-
-        return () => window.removeEventListener("resize", actualizarEstadoMenu);
-    }, []);
 
     useEffect(() => {
         void cargarTarjeta();
     }, []);
 
-    useEffect(() => {
-        if (!asistenteAbierto) return undefined;
-
-        const overflowAnterior = document.body.style.overflow;
-        const cerrarConEscape = (evento) => {
-            if (evento.key === "Escape") setAsistenteAbierto(false);
-        };
-
-        document.body.style.overflow = "hidden";
-        document.addEventListener("keydown", cerrarConEscape);
-
-        return () => {
-            document.body.style.overflow = overflowAnterior;
-            document.removeEventListener("keydown", cerrarConEscape);
-        };
-    }, [asistenteAbierto]);
+    useModalDismissal(asistenteAbierto, setAsistenteAbierto, true);
 
     const cargarTarjeta = async () => {
         try {
@@ -205,131 +180,13 @@ function DesbloquearTarjeta() {
 
             <AsistenteMovil onClick={() => setAsistenteAbierto(true)} />
 
-            <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
-
-                <ul>
-
-                    <li>
-                        <Link
-                            to="/cuenta"
-                            className="active"
-                        >
-                            💷 Cuenta
-                        </Link>
-                    </li>
-
-                    <li>
-                        <Link to="/historial">
-                            📜 Historial Monetario
-                        </Link>
-                    </li>
-
-                    <li>
-                        <Link to="/reporte">
-                            📜 Reportes
-                        </Link>
-                    </li>
-
-                    <li>
-
-                        <div
-                            className="menu-item"
-                            role="button"
-                            tabIndex={0}
-                            aria-expanded={openTransfer}
-                            onClick={() => setOpenTransfer((isOpen) => !isOpen)}
-                            onKeyDown={(event) =>
-                                activateOnEnterOrSpace(event, () =>
-                                    setOpenTransfer((isOpen) => !isOpen)
-                                )
-                            }
-                        >
-                            💳 Otros
-
-                            {openTransfer ? "▲" : "▼"}
-                        </div>
-
-                        {openTransfer && (
-                            <ul className="submenu">
-
-                                <li>
-                                    <Link to="/transferencias">
-                                        ➡ Enviar dinero
-                                    </Link>
-                                </li>
-
-                                <li>
-                                    <Link to="/corriente">
-                                        🧾 Transferir
-                                    </Link>
-                                </li>
-
-                                <li>
-                                    <Link to="/transferencias-scr">
-                                        📤 Registrar Llave Bre-B
-                                    </Link>
-                                </li>
-
-                            </ul>
-                        )}
-
-                    </li>
-
-                    <li>
-
-                        <Link
-                            className="sidebar-link"
-                            to="/certificado"
-                        >
-                            📄 Certificado Bancario
-                        </Link>
-
-                    </li>
-
-                    <li>
-
-                        <Link
-                            to="/ajustes"
-                            className="btn-nav"
-                        >
-                            ⚙️ Ajustes
-                        </Link>
-
-                    </li>
-
-                    <li>
-
-                        <Link
-                            to="/desbloquear-cuenta"
-                            className="btn-nav"
-                        >
-                            🚫 Bloqueo de tarjeta
-                        </Link>
-
-                    </li>
-
-                    <li>
-
-                        <button
-                            type="button"
-                            className="btn-nav asistente-sidebar-trigger"
-                            onClick={() => setAsistenteAbierto(true)}
-                        >
-                            🤖 Asistente IA
-                        </button>
-
-                    </li>
-
-                </ul>
-
-                <button
-                    className="logout"
-                    onClick={handleLogout}
-                >
-                    🚪 Cerrar sesión
-                </button>
-
-            </aside>
+            <FinancialSidebar
+                menuAbierto={menuAbierto}
+                onLogout={handleLogout}
+                onAssistantOpen={() => setAsistenteAbierto(true)}
+                reportLabel="📜 Reportes"
+                cardLabel="🚫 Bloqueo de tarjeta"
+            />
 
             <main className="tarjeta-container">
 
@@ -572,24 +429,7 @@ function DesbloquearTarjeta() {
             )}
 
             {asistenteAbierto && (
-                <div
-                    className="asistente-modal-overlay"
-                    role="presentation"
-                    onMouseDown={(evento) => {
-                        if (evento.target === evento.currentTarget) {
-                            setAsistenteAbierto(false);
-                        }
-                    }}
-                >
-                    <div
-                        className="asistente-modal"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="asistente-titulo"
-                    >
-                        <ChatIA onClose={() => setAsistenteAbierto(false)} />
-                    </div>
-                </div>
+                <AssistantModal onClose={() => setAsistenteAbierto(false)} />
             )}
 
         </div>

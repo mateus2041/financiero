@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import Registro from "./registro";
+import useAdminMessageImage from "../hooks/useAdminMessageImage";
+import { crearMensajeAdmin } from "../utils/adminMessages";
 import "../styles/Administradores.css";
 import logoProyecto from "../assets/images/logo.jpeg";
 
@@ -601,44 +603,11 @@ export default function ListaUsuarios() {
     setErrorMensajeAdmin("");
   };
 
-  const convertirArchivoADataUrl = (archivo) =>
-    new Promise((resolver, rechazar) => {
-      const lector = new FileReader();
-      lector.onload = () => {
-        if (typeof lector.result === "string") {
-          resolver(lector.result);
-        } else {
-          rechazar(new Error("No se pudo leer la imagen"));
-        }
-      };
-      lector.onerror = () => rechazar(new Error("No se pudo leer la imagen"));
-      lector.readAsDataURL(archivo);
-    });
-
-  const handleImagenMensajeChange = async (evento) => {
-    const archivo = evento.target.files?.[0];
-    if (!archivo) return;
-
-    if (!archivo.type.startsWith("image/")) {
-      setErrorMensajeAdmin("El archivo adjunto debe ser una imagen.");
-      setImagenMensaje(null);
-      setPreviewImagenMensaje("");
-      evento.target.value = "";
-      return;
-    }
-
-    try {
-      const dataUrl = await convertirArchivoADataUrl(archivo);
-      setImagenMensaje({ nombre: archivo.name, dataUrl });
-      setPreviewImagenMensaje(dataUrl);
-      setErrorMensajeAdmin("");
-    } catch (error) {
-      console.error("Error al cargar la imagen del mensaje:", error);
-      setErrorMensajeAdmin("No se pudo cargar la imagen.");
-      setImagenMensaje(null);
-      setPreviewImagenMensaje("");
-    }
-  };
+  const handleImagenMensajeChange = useAdminMessageImage({
+    setImage: setImagenMensaje,
+    setPreview: setPreviewImagenMensaje,
+    setError: setErrorMensajeAdmin,
+  });
 
   const enviarMensajeAdmin = (evento) => {
     evento.preventDefault();
@@ -653,26 +622,11 @@ export default function ListaUsuarios() {
         throw new Error("El formato de mensajes guardados no es válido");
       }
 
-      const ahora = new Date();
       const textoFinal = texto || "Imagen adjunta";
-      const nuevoMensaje = {
-        id: Date.now(),
-        id_notificacion: Date.now(),
-        nombre_asesor:
-          localStorage.getItem("nombre_asesor") ||
-          localStorage.getItem("nombre_usuario") ||
-          "Sin nombre",
+      const nuevoMensaje = crearMensajeAdmin({
         texto: textoFinal,
-        mensaje: textoFinal,
-        descripcion: textoFinal,
-        titulo: "Mensaje para el administrador",
-        tipo: "mensaje",
-        imagen: imagenMensaje?.dataUrl || null,
-        imagen_data_url: imagenMensaje?.dataUrl || null,
-        fecha: ahora.toLocaleString("es-CO"),
-        fecha_creacion: ahora.toISOString(),
-        leida: false,
-      };
+        imagen: imagenMensaje?.dataUrl,
+      });
 
       localStorage.setItem(
         "mensajes_admin",
