@@ -13,7 +13,6 @@ on:
 permissions:
   contents: read
 
-# Nunca dos despliegues a la vez: el segundo espera a que termine el primero.
 concurrency:
   group: produccion
   cancel-in-progress: false
