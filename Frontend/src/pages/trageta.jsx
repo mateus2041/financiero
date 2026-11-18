@@ -329,7 +329,7 @@ export default function TarjetasUsuario({
       const numero_tarjeta =
         formulario.primeros_digitos + formulario.ultimos_digitos;
 
-      await axios.post(
+      const respuesta = await axios.post(
         `/usuarios/${usuarioId}/tarjetas`,
         {
           ...formulario,
@@ -342,6 +342,13 @@ export default function TarjetasUsuario({
         }
       );
 
+      const tarjetaAgregada = respuesta.data
+        ? {
+            ...respuesta.data,
+            id_usuario: usuarioId,
+          }
+        : null;
+
       setMensaje("Tarjeta agregada correctamente");
 
       setFormulario({
@@ -351,6 +358,20 @@ export default function TarjetasUsuario({
         primeros_digitos: generarPrimerosDigitos(),
         ultimos_digitos: generarUltimosDigitos(),
       });
+
+      if (tarjetaAgregada) {
+        setTarjetasPorUsuario((actuales) => ({
+          ...actuales,
+          [usuarioId]: [
+            tarjetaAgregada,
+            ...(actuales[usuarioId] || []).filter(
+              (tarjeta) =>
+                parsePositiveInteger(tarjeta.id_tarjeta) !==
+                parsePositiveInteger(tarjetaAgregada.id_tarjeta)
+            ),
+          ],
+        }));
+      }
 
       setUsuarioSeleccionado(null);
 
@@ -876,7 +897,7 @@ export default function TarjetasUsuario({
                 <th>Número de documento</th>
                 <th>Dirección</th>
                 <th>Código postal</th>
-                <th>Estado de tarjeta</th>
+                <th>Tarjetas</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -888,8 +909,9 @@ export default function TarjetasUsuario({
                 </tr>
               ) : (
                 usuariosFiltrados.map((usuario) => {
-                const tarjeta =
-                  tarjetasPorUsuario[usuario.id_usuario]?.[0];
+                const tarjetasUsuario =
+                  tarjetasPorUsuario[usuario.id_usuario] || [];
+                const tarjeta = tarjetasUsuario[0];
                 const actualizando =
                   tarjeta && tarjetaActualizando === tarjeta.id_tarjeta;
 
@@ -907,21 +929,41 @@ export default function TarjetasUsuario({
                     <td data-label="Código postal">
                       {usuario.codigo_postal || "No registrado"}
                     </td>
-                    <td data-label="Estado de tarjeta">
+                    <td data-label="Tarjetas">
                       {cargandoTarjetas ? (
                         "Consultando..."
                       ) : errorTarjetas ? (
                         "No disponible"
-                      ) : tarjeta ? (
-                        <span
-                          className={`estado-badge ${
-                            tarjeta.estado === "activa" ? "activo" : "inactivo"
-                          }`}
-                        >
-                          {tarjeta.estado === "activa"
-                            ? "Activa"
-                            : "Inhabilitada"}
-                        </span>
+                      ) : tarjetasUsuario.length > 0 ? (
+                        <div className="lista-tarjetas-usuario">
+                          {tarjetasUsuario.map((tarjetaUsuario) => (
+                            <div
+                              className="tarjeta-usuario-item"
+                              key={tarjetaUsuario.id_tarjeta}
+                            >
+                              <strong>
+                                {tarjetaUsuario.numero_tarjeta ||
+                                  "Número no disponible"}
+                              </strong>
+                              {tarjetaUsuario.fecha_vencimiento ? (
+                                <small>
+                                  Vence: {tarjetaUsuario.fecha_vencimiento}
+                                </small>
+                              ) : null}
+                              <span
+                                className={`estado-badge ${
+                                  tarjetaUsuario.estado === "activa"
+                                    ? "activo"
+                                    : "inactivo"
+                                }`}
+                              >
+                                {tarjetaUsuario.estado === "activa"
+                                  ? "Activa"
+                                  : "Inhabilitada"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       ) : (
                         <span className="estado-badge sin-tarjeta">
                           Sin tarjeta

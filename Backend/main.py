@@ -2618,12 +2618,15 @@ def listar_tarjetas_administracion(
         Cuenta.id_usuario == Usuario.id_usuario
     ).filter(
         Usuario.rol == "usuario"
-    ).order_by(Tarjeta.id_tarjeta).all()
+    ).order_by(Tarjeta.id_tarjeta.desc()).all()
 
     return [
         {
             "id_tarjeta": tarjeta.id_tarjeta,
             "id_usuario": id_usuario,
+            "numero_tarjeta": f"**** **** **** {str(tarjeta.numero_tarjeta)[-4:]}",
+            "fecha_vencimiento": tarjeta.fecha_expiracion,
+            "tipo_tarjeta": "debito",
             "estado": tarjeta.estado
         }
         for tarjeta, id_usuario in tarjetas
@@ -2690,7 +2693,7 @@ def consultar_tarjeta(
 
     tarjeta = db.query(Tarjeta).filter(
         Tarjeta.id_cuenta == cuenta.id_cuenta
-    ).first()
+    ).order_by(Tarjeta.id_tarjeta).first()
 
     if not tarjeta:
         numero_tarjeta = f"{secrets.randbelow(10**16):016d}"
@@ -2734,9 +2737,165 @@ def consultar_tarjeta(
         "ultimos_tres": str(tarjeta.numero_tarjeta)[-3:],
         "fecha_expiracion": tarjeta.fecha_expiracion,
         "codigo_seguridad": tarjeta.codigo_seguridad,
+        "cvv_restablecido": tarjeta.cvv_restablecido,
         "numero_cuenta": cuenta.numero_cuenta,
         "tipo_cuenta": cuenta.tipo_cuenta,
         "estado": estado
+    }
+
+
+@app.get("/tarjeta/ultima")
+def consultar_ultima_tarjeta(
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_usuario == current_user,
+        Cuenta.tipo_cuenta == "corriente"
+    ).order_by(Cuenta.id_cuenta).first()
+
+    if not cuenta:
+        raise HTTPException(
+            status_code=404,
+            detail="No tienes una cuenta corriente asociada."
+        )
+
+    tarjeta = db.query(Tarjeta).filter(
+        Tarjeta.id_cuenta == cuenta.id_cuenta
+    ).order_by(Tarjeta.id_tarjeta.desc()).first()
+
+    if not tarjeta:
+        raise HTTPException(
+            status_code=404,
+            detail="El asesor aún no ha creado una tarjeta para tu cuenta."
+        )
+
+    return {
+        "tarjeta": {
+            "id_tarjeta": tarjeta.id_tarjeta,
+            "numero_tarjeta": str(tarjeta.numero_tarjeta),
+            "ultimos_tres": str(tarjeta.numero_tarjeta)[-3:],
+            "fecha_expiracion": tarjeta.fecha_expiracion,
+            "codigo_seguridad": tarjeta.codigo_seguridad,
+            "cvv_restablecido": tarjeta.cvv_restablecido,
+            "estado": (
+                "bloqueada"
+                if cuenta.estado == "bloqueada"
+                else tarjeta.estado
+            )
+        }
+    }
+
+
+@app.put("/tarjetas/{id_tarjeta}/restablecer-cvv")
+def restablecer_cvv_tarjeta_especifica(
+    id_tarjeta: int,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    tarjeta = db.query(Tarjeta).join(Cuenta).filter(
+        Tarjeta.id_tarjeta == id_tarjeta,
+        Cuenta.id_usuario == current_user
+    ).with_for_update().first()
+
+    if not tarjeta:
+        raise HTTPException(status_code=404, detail="Tarjeta no encontrada.")
+
+    if tarjeta.cvv_restablecido:
+        raise HTTPException(
+            status_code=409,
+            detail="El CVV de esta tarjeta ya fue restablecido."
+        )
+
+    nuevo_codigo = f"{secrets.randbelow(1000):03d}"
+    while nuevo_codigo == tarjeta.codigo_seguridad:
+        nuevo_codigo = f"{secrets.randbelow(1000):03d}"
+    tarjeta.codigo_seguridad = nuevo_codigo
+    tarjeta.cvv_restablecido = True
+    db.commit()
+    db.refresh(tarjeta)
+
+    return {
+        "mensaje": "El CVV de tu tarjeta fue restablecido correctamente.",
+        "codigo_seguridad": tarjeta.codigo_seguridad
+    }
+
+
+@app.put("/tarjetas/{id_tarjeta}/bloquear")
+def bloquear_tarjeta_especifica(
+    id_tarjeta: int,
+    datos: ConfirmarContrasena,
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    usuario = db.query(Usuario).filter(
+        Usuario.id_usuario == current_user
+    ).first()
+
+    if not usuario or not check_password(datos.password, usuario.password):
+        raise HTTPException(
+            status_code=401,
+            detail="La contraseña es incorrecta."
+        )
+
+    tarjeta = db.query(Tarjeta).join(Cuenta).filter(
+        Tarjeta.id_tarjeta == id_tarjeta,
+        Cuenta.id_usuario == current_user
+    ).first()
+
+    if not tarjeta:
+        raise HTTPException(status_code=404, detail="Tarjeta no encontrada.")
+
+    tarjeta.estado = "bloqueada"
+    db.commit()
+    db.refresh(tarjeta)
+
+    return {
+        "mensaje": "La tarjeta fue bloqueada correctamente.",
+        "estado": tarjeta.estado
+    }
+
+
+@app.put("/tarjeta/restablecer-cvv")
+def restablecer_cvv_tarjeta(
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_usuario == current_user,
+        Cuenta.tipo_cuenta == "corriente"
+    ).order_by(Cuenta.id_cuenta).first()
+
+    if not cuenta:
+        raise HTTPException(
+            status_code=404,
+            detail="No tienes una cuenta corriente asociada."
+        )
+
+    tarjeta = db.query(Tarjeta).filter(
+        Tarjeta.id_cuenta == cuenta.id_cuenta
+    ).with_for_update().first()
+
+    if not tarjeta:
+        raise HTTPException(status_code=404, detail="Tarjeta no encontrada.")
+
+    if tarjeta.cvv_restablecido:
+        raise HTTPException(
+            status_code=409,
+            detail="El CVV de esta tarjeta ya fue restablecido."
+        )
+
+    nuevo_codigo = f"{secrets.randbelow(1000):03d}"
+    while nuevo_codigo == tarjeta.codigo_seguridad:
+        nuevo_codigo = f"{secrets.randbelow(1000):03d}"
+    tarjeta.codigo_seguridad = nuevo_codigo
+    tarjeta.cvv_restablecido = True
+    db.commit()
+    db.refresh(tarjeta)
+
+    return {
+        "mensaje": "El CVV de tu tarjeta fue restablecido correctamente.",
+        "codigo_seguridad": tarjeta.codigo_seguridad
     }
 
 
