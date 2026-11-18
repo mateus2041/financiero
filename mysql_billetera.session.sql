@@ -681,15 +681,14 @@ SHOW COLUMNS FROM billetera.usuario LIKE 'email';
 ALTER TABLE billetera.usuario
 MODIFY COLUMN email VARCHAR(100) NULL
 AFTER id_usuario;
->>>>>>> feat/pulga-correciones
-=======
+
 -- 2. Eliminar cuentas
 DELETE FROM cuentas
-WHERE id_usuario = 3;
+WHERE id_usuario = 5;
 
 -- 3. Eliminar usuario
 DELETE FROM usuario
-WHERE id_usuario = 3;
+WHERE id_usuario = 5;
 -- SQLBook: Code
 SELECT DATABASE();
 SHOW COLUMNS FROM asesores_banco LIKE 'id_usuario';
@@ -839,9 +838,11 @@ UPDATE usuario
 SET email = 'luisssmateus802@gmail.com'
 WHERE id_usuario = 25;
 -- SQLBook: Code
+-- eliminar un usuario y sus datos relacionados
+
 START TRANSACTION;
 
-SET @id_usuario = 4;
+SET @id_usuario = 5;
 
 DELETE FROM notificaciones
 WHERE id_usuario = @id_usuario;

@@ -495,6 +495,13 @@ class Tarjeta(Base):
         nullable=True
     )
 
+    cvv_restablecido = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("0")
+    )
+
     estado = Column(
         Enum(
             "activa",

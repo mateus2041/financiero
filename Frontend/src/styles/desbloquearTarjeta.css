@@ -20,6 +20,25 @@
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
 }
 
+.tarjetas-lista {
+    width: min(1060px, 100%);
+    max-width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr));
+    gap: 20px;
+    align-items: start;
+}
+
+.tarjetas-lista .tarjeta-box {
+    width: 100%;
+}
+
+.tarjeta-titulo-nueva {
+    margin: 0 0 18px;
+    color: #ffffff;
+    font-size: 22px;
+}
+
 .tarjeta-box h1 {
     margin: 0;
     color: #ffffff;
@@ -220,6 +239,12 @@
     color: #ef4444;
 }
 
+.tarjeta-acciones {
+    display: grid;
+    grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.4fr);
+    gap: 10px;
+}
+
 /* BOTÓN */
 
 .btn-desbloquear {
@@ -243,6 +268,41 @@
 .btn-desbloquear:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+.tarjeta-acciones .btn-bloquear,
+.tarjeta-acciones .btn-desbloquear,
+.btn-accion-tarjeta {
+    width: 100%;
+    min-width: 0;
+    padding: 12px 8px;
+    font-size: 13px;
+}
+
+.btn-accion-tarjeta {
+    border: 1px solid #465676;
+    border-radius: 10px;
+    background: #151f38;
+    color: #ffffff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-accion-tarjeta:hover:not(:disabled) {
+    transform: translateY(-2px);
+    background: #273656;
+}
+
+.btn-accion-tarjeta:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+@media (max-width: 560px) {
+    .tarjeta-acciones {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* MENSAJES */
