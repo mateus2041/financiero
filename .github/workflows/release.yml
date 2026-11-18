@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 # Nunca dos despliegues a la vez: el segundo espera a que termine el primero.
 concurrency:
@@ -27,6 +26,9 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v7
 
@@ -61,6 +63,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment: produccion
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v7
 
