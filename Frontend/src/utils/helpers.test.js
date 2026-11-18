@@ -4,6 +4,7 @@ import {
   groupDigitsByThousands,
   parsePositiveInteger,
   sanitizeLocalName,
+  sanitizeLocalText,
   validateEmail,
 } from "./helpers";
 
@@ -33,6 +34,13 @@ describe("validation helpers", () => {
     expect(sanitizeLocalName(" María O'Connor ")).toBe("María O'Connor");
     expect(sanitizeLocalName("<img src=x onerror=alert(1)>")).toBe("Sin nombre");
     expect(sanitizeLocalName("a".repeat(101))).toBe("Sin nombre");
+  });
+
+  test("normalizes browser-stored text and removes markup delimiters", () => {
+    expect(sanitizeLocalText("  <script>alert('x')</script> Hola  "))
+      .toBe("scriptalert('x')/script Hola");
+    expect(sanitizeLocalText("á\tmensaje", 4)).toBe("ámen");
+    expect(sanitizeLocalText({ texto: "no es texto" })).toBe("");
   });
 
   test("groups digit strings without a backtracking expression", () => {

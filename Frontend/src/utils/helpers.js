@@ -38,6 +38,19 @@ export const sanitizeLocalName = (value) => {
     : "Sin nombre";
 };
 
+export const sanitizeLocalText = (value, maxLength = 500) => {
+  if (typeof value !== "string") return "";
+
+  const limit = Number.isSafeInteger(maxLength) && maxLength > 0
+    ? maxLength
+    : 500;
+  return value
+    .normalize("NFKC")
+    .replace(/[<>\u0000-\u001F\u007F]/g, "")
+    .trim()
+    .slice(0, limit);
+};
+
 export const groupDigitsByThousands = (digits) => {
   let grouped = "";
 
