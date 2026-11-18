@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import ChatIA from "./ChatIA";
 import AsistenteMovil from "../components/AsistenteMovil";
 import { activateOnEnterOrSpace } from "../utils/helpers";
 import "../styles/desbloquearTarjeta.css";
@@ -26,6 +27,7 @@ function DesbloquearTarjeta() {
     const [openTransfer, setOpenTransfer] = useState(false);
     const [openCertificado, setOpenCertificado] = useState(false);
     const [menuAbierto, setMenuAbierto] = useState(() => window.innerWidth > 768);
+    const [asistenteAbierto, setAsistenteAbierto] = useState(false);
 
     useEffect(() => {
         const actualizarEstadoMenu = () => {
@@ -41,6 +43,23 @@ function DesbloquearTarjeta() {
     useEffect(() => {
         void cargarTarjeta();
     }, []);
+
+    useEffect(() => {
+        if (!asistenteAbierto) return undefined;
+
+        const overflowAnterior = document.body.style.overflow;
+        const cerrarConEscape = (evento) => {
+            if (evento.key === "Escape") setAsistenteAbierto(false);
+        };
+
+        document.body.style.overflow = "hidden";
+        document.addEventListener("keydown", cerrarConEscape);
+
+        return () => {
+            document.body.style.overflow = overflowAnterior;
+            document.removeEventListener("keydown", cerrarConEscape);
+        };
+    }, [asistenteAbierto]);
 
     const cargarTarjeta = async () => {
         try {
@@ -184,7 +203,7 @@ function DesbloquearTarjeta() {
                 ☰
             </button>
 
-            <AsistenteMovil to="/ChatIA" />
+            <AsistenteMovil onClick={() => setAsistenteAbierto(true)} />
 
             <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
 
@@ -291,12 +310,13 @@ function DesbloquearTarjeta() {
 
                     <li>
 
-                        <Link
-                            to="/ChatIA"
+                        <button
+                            type="button"
                             className="btn-nav asistente-sidebar-trigger"
+                            onClick={() => setAsistenteAbierto(true)}
                         >
                             🤖 Asistente IA
-                        </Link>
+                        </button>
 
                     </li>
 
@@ -549,6 +569,27 @@ function DesbloquearTarjeta() {
 
                 </div>
 
+            )}
+
+            {asistenteAbierto && (
+                <div
+                    className="asistente-modal-overlay"
+                    role="presentation"
+                    onMouseDown={(evento) => {
+                        if (evento.target === evento.currentTarget) {
+                            setAsistenteAbierto(false);
+                        }
+                    }}
+                >
+                    <div
+                        className="asistente-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="asistente-titulo"
+                    >
+                        <ChatIA onClose={() => setAsistenteAbierto(false)} />
+                    </div>
+                </div>
             )}
 
         </div>

@@ -87,6 +87,14 @@ export default function Transferencia() {
       id_transaccion: `local-${Date.now()}`,
       tipo: "Transferencia",
       monto: transferencia.monto,
+      origen: "Llave Bre-B",
+      destino: transferencia.destino || (
+        destinatario && form.llave.trim()
+          ? `${destinatario} (Llave Bre-B: ${form.llave.trim()})`
+          : form.llave.trim()
+            ? `Llave Bre-B: ${form.llave.trim()}`
+            : "Destinatario Bre-B"
+      ),
       descripcion:
         transferencia.descripcion || "Transferencia Bre-B",
       estado: transferencia.estado,
