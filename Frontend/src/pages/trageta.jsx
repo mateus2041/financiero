@@ -37,7 +37,7 @@ const generarEnteroSeguro = (limite) => {
 };
 
 const generarUltimosDigitos = () => generarDigitos(3);
-const generarCVV = () => generarDigitos(4);
+const generarCVV = () => generarDigitos(3);
 const generarPrimerosDigitos = () => generarDigitos(13);
 
 const normalizarTexto = (valor) =>
@@ -54,17 +54,13 @@ const generarFechaVencimiento = () => {
   return `${anio}-${mes}`;
 };
 
-export default function TarjetasUsuario({
-  id_usuario,
-  esAsesor = false,
-}) {
+export default function TarjetasUsuario({ esAsesor = false }) {
   const rol = (localStorage.getItem("rol") || "")
     .trim()
     .toLowerCase();
 
   const esAdministrador = rol === "administrador";
 
-  const [tarjetas, setTarjetas] = useState([]);
   const [tarjetasPorUsuario, setTarjetasPorUsuario] = useState({});
   const [cargandoTarjetas, setCargandoTarjetas] = useState(true);
   const [errorTarjetas, setErrorTarjetas] = useState(false);
@@ -99,12 +95,8 @@ export default function TarjetasUsuario({
   );
 
   useEffect(() => {
-    if (id_usuario) {
-      void obtenerTarjetas();
-    }
-
     void obtenerUsuarios();
-  }, [id_usuario]);
+  }, []);
 
   useEffect(() => {
     const comprobarPantalla = () => {
@@ -118,36 +110,6 @@ export default function TarjetasUsuario({
       window.removeEventListener("resize", comprobarPantalla);
     };
   }, []);
-
-  const obtenerTarjetas = async () => {
-    const usuarioId = parsePositiveInteger(id_usuario);
-    if (usuarioId === null) {
-      setMensaje("El identificador del usuario no es válido");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-
-      const respuesta = await axios.get(
-        `/usuarios/${usuarioId}/tarjetas`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      setTarjetas(Array.isArray(respuesta.data) ? respuesta.data : []);
-    } catch (error) {
-      console.error("Error al obtener tarjetas:", error);
-
-      setMensaje(
-        error.response?.data?.detail ||
-          "No se pudieron obtener las tarjetas"
-      );
-    }
-  };
 
   const obtenerUsuarios = async () => {
     try {
@@ -242,12 +204,16 @@ export default function TarjetasUsuario({
 
   const manejarCambio = (e) => {
     const { name, value } = e.target;
+    const valorProcesado = name === "cvv"
+      ? value.replace(/\D/g, "").slice(0, 3)
+      : value;
+
     setFormulario((formularioActual) => ({
       ...formularioActual,
-      [name]: value,
+      [name]: valorProcesado,
     }));
 
-    if (name === "cvv" && tarjetaEditando && !formulario.cvv) {
+    if (name === "cvv" && tarjetaEditando && valorProcesado) {
       setMostrarCVV(true);
     }
   };
@@ -273,9 +239,9 @@ export default function TarjetasUsuario({
 
     if (
       (!tarjetaEditando || formulario.cvv) &&
-      !/^\d{4}$/.test(formulario.cvv)
+      !/^\d{3}$/.test(formulario.cvv)
     ) {
-      setMensaje("El CVV debe tener exactamente 4 dígitos");
+      setMensaje("El CVV debe tener exactamente 3 dígitos");
       return;
     }
 
@@ -295,7 +261,7 @@ export default function TarjetasUsuario({
           datosActualizacion.cvv = formulario.cvv;
         }
 
-        await axios.patch(
+        const respuestaActualizacion = await axios.patch(
           `/tarjetas/${tarjetaId}`,
           datosActualizacion,
           {
@@ -304,6 +270,24 @@ export default function TarjetasUsuario({
             },
           }
         );
+
+        const cvvActualizado = respuestaActualizacion.data?.codigo_seguridad
+          ?? (datosActualizacion.cvv || tarjetaEditando.codigo_seguridad);
+
+        setTarjetasPorUsuario((actuales) => ({
+          ...actuales,
+          [usuarioId]: (actuales[usuarioId] || []).map((tarjeta) =>
+            parsePositiveInteger(tarjeta.id_tarjeta) === tarjetaId
+              ? {
+                  ...tarjeta,
+                  codigo_seguridad: cvvActualizado,
+                  fecha_vencimiento:
+                    respuestaActualizacion.data?.fecha_vencimiento
+                    || tarjeta.fecha_vencimiento,
+                }
+              : tarjeta
+          ),
+        }));
 
         setMensaje("Tarjeta actualizada correctamente");
         cerrarModalTarjeta();
@@ -363,23 +347,17 @@ export default function TarjetasUsuario({
         setTarjetasPorUsuario((actuales) => ({
           ...actuales,
           [usuarioId]: [
-            tarjetaAgregada,
             ...(actuales[usuarioId] || []).filter(
               (tarjeta) =>
                 parsePositiveInteger(tarjeta.id_tarjeta) !==
                 parsePositiveInteger(tarjetaAgregada.id_tarjeta)
             ),
+            tarjetaAgregada,
           ],
         }));
       }
 
       setUsuarioSeleccionado(null);
-
-      if (id_usuario === usuarioSeleccionado.id_usuario) {
-        void obtenerTarjetas();
-      }
-
-      void obtenerUsuarios();
     } catch (error) {
       console.error("Error al agregar tarjeta:", error);
 
@@ -406,7 +384,7 @@ export default function TarjetasUsuario({
     setMensaje("");
   };
 
-  const editarTarjetaDeUsuario = async (usuario) => {
+  const editarTarjetaDeUsuario = async (usuario, tarjetaId) => {
     const tarjetasUsuario = await obtenerTarjetasDeUsuario(usuario);
 
     if (tarjetasUsuario === null) {
@@ -418,18 +396,31 @@ export default function TarjetasUsuario({
       return;
     }
 
-    const tarjeta = tarjetasUsuario[0];
+    const tarjeta = tarjetaId
+      ? tarjetasUsuario.find(
+          (item) =>
+            parsePositiveInteger(item.id_tarjeta) ===
+            parsePositiveInteger(tarjetaId)
+        )
+      : tarjetasUsuario[0];
+    if (!tarjeta) {
+      setMensaje("No se encontró la tarjeta para editar");
+      return;
+    }
+
     const [mes, anio] = (tarjeta.fecha_vencimiento || "").split("/");
 
     setTarjetaEditando(tarjeta);
     setUsuarioSeleccionado(usuario);
-    setMostrarCVV(false);
+    setMostrarCVV(true);
     setFormulario({
       tipo_tarjeta: tarjeta.tipo_tarjeta || "debito",
       fecha_vencimiento: mes && anio
         ? `20${anio}-${mes}`
         : generarFechaVencimiento(),
-      cvv: "",
+      cvv: /^\d{3}$/.test(String(tarjeta.ultimos_tres ?? ""))
+        ? String(tarjeta.ultimos_tres)
+        : "",
       primeros_digitos: "",
       ultimos_digitos: "",
     });
@@ -450,69 +441,7 @@ export default function TarjetasUsuario({
     });
   };
 
-  const eliminarTarjeta = async (id_tarjeta) => {
-    const tarjetaId = parsePositiveInteger(id_tarjeta);
-    if (tarjetaId === null) {
-      setMensaje("El identificador de la tarjeta no es válido");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-
-      await axios.delete(`/tarjetas/${tarjetaId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setMensaje("Tarjeta eliminada correctamente");
-
-      void obtenerTarjetas();
-    } catch (error) {
-      console.error("Error al eliminar tarjeta:", error);
-
-      setMensaje(
-        error.response?.data?.detail ||
-          "No se pudo eliminar la tarjeta"
-      );
-    }
-  };
-
-  const activarTarjeta = async (id_tarjeta) => {
-    const tarjetaId = parsePositiveInteger(id_tarjeta);
-    if (tarjetaId === null) {
-      setMensaje("El identificador de la tarjeta no es válido");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-
-      await axios.patch(
-        `/tarjetas/${tarjetaId}/activar`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      setMensaje("Tarjeta activada correctamente");
-      void obtenerTarjetas();
-    } catch (error) {
-      console.error("Error al activar tarjeta:", error);
-
-      setMensaje(
-        error.response?.data?.detail ||
-          "No se pudo activar la tarjeta"
-      );
-    }
-  };
-
-  const cambiarEstadoTarjeta = async (usuario) => {
-    const tarjeta = tarjetasPorUsuario[usuario.id_usuario]?.[0];
+  const cambiarEstadoTarjeta = async (usuario, tarjeta) => {
     if (!tarjeta) {
       return;
     }
@@ -909,107 +838,120 @@ export default function TarjetasUsuario({
                 </tr>
               ) : (
                 usuariosFiltrados.map((usuario) => {
-                const tarjetasUsuario =
-                  tarjetasPorUsuario[usuario.id_usuario] || [];
-                const tarjeta = tarjetasUsuario[0];
-                const actualizando =
-                  tarjeta && tarjetaActualizando === tarjeta.id_tarjeta;
+                const tarjetasUsuario = [
+                  ...(tarjetasPorUsuario[usuario.id_usuario] || []),
+                ].sort((a, b) => {
+                  const idA = parsePositiveInteger(a.id_tarjeta);
+                  const idB = parsePositiveInteger(b.id_tarjeta);
+                  return idA !== null && idB !== null ? idA - idB : 0;
+                });
+                const tarjetasPorFila =
+                  tarjetasUsuario.length > 0 ? tarjetasUsuario : [null];
 
-                return (
-                  <tr key={usuario.id_usuario}>
-                    <td data-label="Nombre">
-                      {usuario.nombre || "No registrado"}
-                    </td>
-                    <td data-label="Número de documento">
-                      {usuario.documento || "No registrado"}
-                    </td>
-                    <td data-label="Dirección">
-                      {usuario.direccion || "No registrada"}
-                    </td>
-                    <td data-label="Código postal">
-                      {usuario.codigo_postal || "No registrado"}
-                    </td>
-                    <td data-label="Tarjetas">
-                      {cargandoTarjetas ? (
-                        "Consultando..."
-                      ) : errorTarjetas ? (
-                        "No disponible"
-                      ) : tarjetasUsuario.length > 0 ? (
-                        <div className="lista-tarjetas-usuario">
-                          {tarjetasUsuario.map((tarjetaUsuario) => (
-                            <div
-                              className="tarjeta-usuario-item"
-                              key={tarjetaUsuario.id_tarjeta}
+                return tarjetasPorFila.map((tarjetaUsuario) => {
+                  const actualizando = Boolean(
+                    tarjetaUsuario &&
+                      tarjetaActualizando === tarjetaUsuario.id_tarjeta
+                  );
+
+                  return (
+                    <tr
+                      key={`${usuario.id_usuario}-${tarjetaUsuario?.id_tarjeta || "sin-tarjeta"}`}
+                    >
+                      <td data-label="Nombre">
+                        {usuario.nombre || "No registrado"}
+                      </td>
+                      <td data-label="Número de documento">
+                        {usuario.documento || "No registrado"}
+                      </td>
+                      <td data-label="Dirección">
+                        {usuario.direccion || "No registrada"}
+                      </td>
+                      <td data-label="Código postal">
+                        {usuario.codigo_postal || "No registrado"}
+                      </td>
+                      <td data-label="Tarjetas">
+                        {cargandoTarjetas ? (
+                          "Consultando..."
+                        ) : errorTarjetas ? (
+                          "No disponible"
+                        ) : tarjetaUsuario ? (
+                          <div className="tarjeta-usuario-item">
+                            <strong>
+                              {tarjetaUsuario.numero_tarjeta ||
+                                "Número no disponible"}
+                            </strong>
+                            {tarjetaUsuario.fecha_vencimiento ? (
+                              <small>
+                                Vence: {tarjetaUsuario.fecha_vencimiento}
+                              </small>
+                            ) : null}
+                            <span
+                              className={`estado-badge ${
+                                tarjetaUsuario.estado === "activa"
+                                  ? "activo"
+                                  : "inactivo"
+                              }`}
                             >
-                              <strong>
-                                {tarjetaUsuario.numero_tarjeta ||
-                                  "Número no disponible"}
-                              </strong>
-                              {tarjetaUsuario.fecha_vencimiento ? (
-                                <small>
-                                  Vence: {tarjetaUsuario.fecha_vencimiento}
-                                </small>
-                              ) : null}
-                              <span
-                                className={`estado-badge ${
-                                  tarjetaUsuario.estado === "activa"
-                                    ? "activo"
-                                    : "inactivo"
-                                }`}
-                              >
-                                {tarjetaUsuario.estado === "activa"
-                                  ? "Activa"
-                                  : "Inhabilitada"}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="estado-badge sin-tarjeta">
-                          Sin tarjeta
-                        </span>
-                      )}
-                    </td>
-                    <td data-label="Acciones">
-                      <button
-                        type="button"
-                        className="boton-anadir-tarjeta"
-                        onClick={() => abrirModalTarjeta(usuario)}
-                      >
-                        Añadir tarjeta
-                      </button>
-                      <button
-                        type="button"
-                        className="boton-anadir-tarjeta"
-                        onClick={() => editarTarjetaDeUsuario(usuario)}
-                      >
-                        Editar tarjeta
-                      </button>
-                      {cargandoTarjetas ? (
+                              {tarjetaUsuario.estado === "activa"
+                                ? "Activa"
+                                : "Inhabilitada"}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="estado-badge sin-tarjeta">
+                            Sin tarjeta
+                          </span>
+                        )}
+                      </td>
+                      <td data-label="Acciones">
                         <button
                           type="button"
                           className="boton-anadir-tarjeta"
-                          disabled
+                          onClick={() => abrirModalTarjeta(usuario)}
                         >
-                          Consultando tarjeta...
+                          Añadir tarjeta
                         </button>
-                      ) : tarjeta && !errorTarjetas ? (
                         <button
                           type="button"
                           className="boton-anadir-tarjeta"
-                          onClick={() => cambiarEstadoTarjeta(usuario)}
-                          disabled={actualizando}
+                          onClick={() =>
+                            editarTarjetaDeUsuario(
+                              usuario,
+                              tarjetaUsuario?.id_tarjeta
+                            )
+                          }
                         >
-                          {actualizando
-                            ? "Actualizando..."
-                            : tarjeta.estado === "activa"
-                            ? "Inhabilitar tarjeta"
-                            : "Habilitar tarjeta"}
+                          Editar tarjeta
                         </button>
-                      ) : null}
-                    </td>
-                  </tr>
-                );
+                        {cargandoTarjetas ? (
+                          <button
+                            type="button"
+                            className="boton-anadir-tarjeta"
+                            disabled
+                          >
+                            Consultando tarjeta...
+                          </button>
+                        ) : tarjetaUsuario && !errorTarjetas ? (
+                          <button
+                            type="button"
+                            className="boton-anadir-tarjeta"
+                            onClick={() =>
+                              cambiarEstadoTarjeta(usuario, tarjetaUsuario)
+                            }
+                            disabled={actualizando}
+                          >
+                            {actualizando
+                              ? "Actualizando..."
+                              : tarjetaUsuario.estado === "activa"
+                              ? "Inhabilitar tarjeta"
+                              : "Habilitar tarjeta"}
+                          </button>
+                        ) : null}
+                      </td>
+                    </tr>
+                  );
+                });
                 })
               )}
             </tbody>
@@ -1134,9 +1076,9 @@ export default function TarjetasUsuario({
                     type={mostrarCVV ? "text" : "password"}
                     name="cvv"
                     value={formulario.cvv}
-                    maxLength={4}
+                    maxLength={3}
                     inputMode="numeric"
-                    pattern="[0-9]{4}"
+                    pattern="[0-9]{3}"
                     onChange={manejarCambio}
                     readOnly={!tarjetaEditando}
                     placeholder={
@@ -1144,8 +1086,8 @@ export default function TarjetasUsuario({
                     }
                     aria-label={
                       tarjetaEditando
-                        ? "CVV nuevo opcional, deje vacío para conservar el actual"
-                        : "CVV de 4 dígitos, generado automáticamente y no editable"
+                        ? "CVV de 3 dígitos editable"
+                        : "CVV de 3 dígitos, generado automáticamente y no editable"
                     }
                   />
                   <button
@@ -1166,8 +1108,8 @@ export default function TarjetasUsuario({
                 </div>
                 {tarjetaEditando && (
                   <small className="ayuda-cvv">
-                    El CVV nuevo se muestra al escribirlo. Usa el ojo para
-                    ocultarlo; deja el campo vacío para conservar el actual.
+                    Se muestran los tres dígitos marcados de la tarjeta. Puedes
+                    editarlos y guardar el cambio.
                   </small>
                 )}
               </div>
@@ -1179,53 +1121,6 @@ export default function TarjetasUsuario({
           </div>
         )}
 
-        {tarjetas.length > 0 &&
-          tarjetas.map((tarjeta) => (
-            <div key={tarjeta.id_tarjeta}>
-              <p>
-                <strong>Tipo:</strong>{" "}
-                {tarjeta.tipo_tarjeta}
-              </p>
-
-              <p>
-                <strong>Tarjeta:</strong>{" "}
-                **** **** ****{" "}
-                {tarjeta.numero_tarjeta
-                  ? tarjeta.numero_tarjeta.slice(-4)
-                  : "****"}
-              </p>
-
-              <p>
-                <strong>Vencimiento:</strong>{" "}
-                {tarjeta.fecha_vencimiento}
-              </p>
-
-              <p>
-                <strong>Estado:</strong>{" "}
-                {tarjeta.estado || "No disponible"}
-              </p>
-
-              {tarjeta.estado !== "activa" && (
-                <button
-                  type="button"
-                  onClick={() => activarTarjeta(tarjeta.id_tarjeta)}
-                >
-                  Activar tarjeta
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() =>
-                  eliminarTarjeta(tarjeta.id_tarjeta)
-                }
-              >
-                Eliminar tarjeta
-              </button>
-
-              <hr />
-            </div>
-          ))}
       </main>
     </div>
   );

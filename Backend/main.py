@@ -95,7 +95,7 @@ class VerificarTarjetaRecuperacion(BaseModel):
     token: str = Field(min_length=1)
     ultimos_digitos: str = Field(pattern=r"^\d{6}$")
     fecha_expiracion: str = Field(min_length=4, max_length=7)
-    codigo_seguridad: str = Field(pattern=r"^\d{3,4}$")
+    codigo_seguridad: str = Field(pattern=r"^\d{3}$")
 
 
 class NuevaTarjeta(BaseModel):
@@ -2408,8 +2408,10 @@ def listar_tarjetas_usuario(
         {
             "id_tarjeta": tarjeta.id_tarjeta,
             "numero_tarjeta": f"**** **** **** {str(tarjeta.numero_tarjeta)[-4:]}",
+            "ultimos_tres": str(tarjeta.numero_tarjeta)[-3:],
             "fecha_vencimiento": tarjeta.fecha_expiracion,
             "tipo_tarjeta": "debito",
+            "codigo_seguridad": tarjeta.codigo_seguridad,
             "estado": tarjeta.estado
         }
         for tarjeta in tarjetas
@@ -2490,7 +2492,7 @@ def agregar_tarjeta_usuario(
         )
 
     codigo_seguridad = datos.cvv or f"{secrets.randbelow(1000):03d}"
-    if not re.fullmatch(r"\d{3,4}", codigo_seguridad):
+    if not re.fullmatch(r"\d{3}", codigo_seguridad):
         raise HTTPException(status_code=422, detail="El CVV no es válido")
 
     primeros_digitos = datos.primeros_digitos or f"{secrets.randbelow(10**13):013d}"
@@ -2661,7 +2663,7 @@ def editar_tarjeta_usuario(
         )
 
     if datos.cvv:
-        if not re.fullmatch(r"\d{3,4}", datos.cvv):
+        if not re.fullmatch(r"\d{3}", datos.cvv):
             raise HTTPException(status_code=422, detail="El CVV no es válido")
         tarjeta.codigo_seguridad = datos.cvv
 
@@ -2672,6 +2674,7 @@ def editar_tarjeta_usuario(
         "mensaje": "Tarjeta actualizada correctamente",
         "id_tarjeta": tarjeta.id_tarjeta,
         "fecha_vencimiento": tarjeta.fecha_expiracion,
+        "codigo_seguridad": tarjeta.codigo_seguridad,
         "estado": tarjeta.estado
     }
 
