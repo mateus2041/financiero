@@ -10,6 +10,7 @@ from datetime import timezone
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import json
+import logging
 
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -17,6 +18,8 @@ from sqlalchemy import case, func, or_, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from pydantic import BaseModel, EmailStr, Field
 from typing import Literal
+
+logger = logging.getLogger(__name__)
 
 from Backend.schemas import (
     AdministradorLoginSchema,
@@ -135,8 +138,19 @@ from Backend.security import (
 
 app = FastAPI(
     title="Financiero API",
-    version="1.0"
+    version=os.getenv("APP_VERSION", "1.0")
 )
+
+
+@app.middleware("http")
+async def security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    return response
 
 codigos_recuperacion = {}
 cors_origin_setting = (
@@ -160,6 +174,11 @@ if not cors_allowed_origins or "*" in cors_allowed_origins:
 @app.get("/health", include_in_schema=False)
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/version", include_in_schema=False)
+def version():
+    return {"version": app.version}
 
 
 @app.get("/ready", include_in_schema=False)
@@ -1004,9 +1023,8 @@ def asesor_login(
         """
     )
     if not enviar_correo(asesor["email"], asunto, mensaje):
-        print(
-            "⚠️ No se pudo enviar el código de verificación por correo para el asesor. "
-            "Se continúa con el login sin bloquear el acceso."
+        logger.warning(
+            "No se pudo enviar el código de verificación por correo para el asesor"
         )
 
     return {
@@ -1453,9 +1471,8 @@ def administrador_login(
         """
     )
     if not enviar_correo(usuario.email, asunto, mensaje):
-        print(
-            "⚠️ No se pudo enviar el código de verificación por correo para el administrador. "
-            "Se continúa con el login sin bloquear el acceso."
+        logger.warning(
+            "No se pudo enviar el código de verificación por correo para el administrador"
         )
 
     return {
@@ -1643,9 +1660,8 @@ def login(
         asunto_notificacion_ingreso,
         mensaje_notificacion_ingreso,
     ):
-        print(
-            "⚠️ No se pudo enviar el código de verificación ni la notificación por correo. "
-            "Se continúa con el login sin bloquear el acceso."
+        logger.warning(
+            "No se pudo enviar el código de verificación ni la notificación por correo"
         )
 
     db.add(
@@ -4596,10 +4612,7 @@ def transferir_entre_cuentas(
 
         db.rollback()
 
-        print(
-            "ERROR TRANSFERENCIA ENTRE CUENTAS:",
-            error
-        )
+        logger.exception("Error al realizar transferencia entre cuentas")
 
         raise HTTPException(
             status_code=500,
@@ -4793,10 +4806,7 @@ def realizar_transferencia(
 
         db.rollback()
 
-        print(
-            "ERROR TRANSFERENCIA:",
-            error
-        )
+        logger.exception("Error al realizar transferencia")
 
         raise HTTPException(
             status_code=500,
@@ -4817,19 +4827,9 @@ def reportar_transaccion_fallida(
 
 ):
 
-    print(
-
+    logger.info(
         "Transacción fallida reportada",
-
-        {
-
-            "usuario":
-            current_user,
-
-            **data
-
-        }
-
+        extra={"usuario": current_user, "datos": data},
     )
 
     return {
@@ -5531,10 +5531,7 @@ def transferencia_bre_b(
 
         db.rollback()
 
-        print(
-            "ERROR BRE-B:",
-            error
-        )
+        logger.exception("Error interno BRE-B")
 
         raise HTTPException(
             status_code=500,

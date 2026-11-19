@@ -84,7 +84,9 @@ salida real del servidor.
 ## CI, mantenimiento y controles pendientes
 
 `.github/workflows/ci.yml` ejecuta pruebas backend, pruebas frontend y build de producción en
-GitHub Actions. No construye ni publica imágenes, no despliega a un hosting y no crea alertas.
+GitHub Actions y aplica un umbral mínimo de cobertura backend. `.github/workflows/release.yml`
+construye y publica la imagen financiera en GHCR; el despliegue público requiere configurar
+`RENDER_DEPLOY_HOOK_URL` y `PRODUCCION_URL` en el entorno protegido de GitHub.
 Los cambios de dependencias deben pasar por revisión de los manifiestos y lockfiles existentes.
 
 Antes de un despliegue real se requiere, como mínimo: proveedor/servidor y dominio aprobados;

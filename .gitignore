@@ -8,6 +8,8 @@ __pycache__/
 !.env.example
 .scripts
 .pytest_cache/
+.coverage
+.coverage.*
 .vscode/
 .idea/
 

@@ -4,6 +4,7 @@ from decimal import Decimal
 from datetime import datetime, timezone
 from datetime import datetime
 import uuid
+import logging
 
 from Backend.schemas import (
     RegistrarLlaveSchema as RegistrarLlave,
@@ -20,6 +21,8 @@ from Backend.models import (
     ControlTopeBreb
 )
 from Backend.security import token_required
+
+logger = logging.getLogger(__name__)
 
 
 # =========================================================
@@ -801,10 +804,7 @@ def transferir_breb(
 
         db.rollback()
 
-        print(
-            "ERROR BRE-B:",
-            error
-        )
+        logger.exception("Error interno BRE-B")
 
         raise HTTPException(
             status_code=500,
