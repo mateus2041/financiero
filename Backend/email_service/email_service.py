@@ -1,4 +1,5 @@
 import os
+import logging
 import smtplib
 from email.mime.text import MIMEText
 from pathlib import Path
@@ -7,6 +8,7 @@ from dotenv import load_dotenv
 
 
 BASE_DIR = Path(__file__).resolve().parents[1]
+logger = logging.getLogger(__name__)
 
 
 def _cargar_env_backend():
@@ -98,10 +100,7 @@ def enviar_correo(destinatario, asunto, mensaje_html):
 
         credenciales = obtener_credenciales_correo()
         if not credenciales:
-            print(
-                "⚠️ Correo no configurado: faltan EMAIL_USER/EMAIL_PASS o "
-                "MAIL_USER/MAIL_PASSWORD. El login continuará sin enviar email."
-            )
+            logger.warning("Correo no configurado; el login continuará sin enviar email")
             return False
 
         remitente, password = credenciales
@@ -121,5 +120,5 @@ def enviar_correo(destinatario, asunto, mensaje_html):
         return True
 
     except Exception as e:
-        print(f"❌ Error enviando correo: {e}")
+        logger.exception("Error enviando correo")
         return False

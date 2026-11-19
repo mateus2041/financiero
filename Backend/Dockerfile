@@ -1,5 +1,7 @@
 FROM python:3.12-slim
 
+ARG APP_VERSION=1.0
+
 COPY --from=ghcr.io/astral-sh/uv:0.8.22 /uv /uvx /bin/
 
 WORKDIR /app
@@ -7,6 +9,7 @@ WORKDIR /app
 RUN groupadd --system app && useradd --system --gid app --create-home app
 
 ENV PYTHONPATH=/app \
+    APP_VERSION=$APP_VERSION \
     UV_LINK_MODE=copy \
     UV_HTTP_TIMEOUT=120 \
     VIRTUAL_ENV=/opt/backend-venv \

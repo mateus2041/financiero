@@ -34,3 +34,43 @@ cuentas, tarjetas, claves o datos reales salvo que exista autorización y un amb
   al soporte para evitar duplicados.
 - Para errores persistentes, reporte ruta, hora y mensaje saneado; nunca envíe contraseña,
   token, código de seguridad de tarjeta o número completo de cuenta.
+
+## Guías por rol
+
+### Cliente
+
+1. Cree una cuenta desde **Registro** y complete la verificación indicada.
+2. Entre desde **Login** y abra **Cuenta** para consultar saldo y datos.
+3. Abra **Historial** para revisar movimientos y **Tarjetas** para gestionar la tarjeta propia.
+4. Use **Transferencias** únicamente después de verificar cuenta destino y monto.
+5. Si el movimiento no aparece confirmado, no repita la operación: revise historial y soporte.
+
+### Asesor bancario
+
+1. Inicie sesión desde el flujo de asesor y espere el código de verificación.
+2. Use las pantallas de asesoría solo para consultas y operaciones permitidas por su rol.
+3. Verifique la titularidad antes de informar o modificar datos de terceros.
+4. Nunca registre contraseñas, CVV o tokens completos en notas o capturas.
+
+### Administrador
+
+1. Acceda por la ruta autorizada de administración.
+2. Desde **Administradores** y **Usuarios** gestione solo las funciones asignadas.
+3. Revise cuentas, asesores y estadísticas; confirme cambios críticos antes de aplicarlos.
+4. Preserve registros saneados de auditoría y no exporte datos sensibles.
+
+## Preguntas frecuentes
+
+**¿La aplicación mueve dinero real?**  
+No. BRE-B y otras operaciones se deben considerar simuladas hasta que exista integración y
+certificación explícita del proveedor autorizado.
+
+**¿Por qué una sesión caduca?**  
+Los tokens tienen expiración. Vuelva a iniciar sesión; no reutilice tokens ni los comparta.
+
+**¿Qué hago ante un error de transferencia?**  
+No reintente hasta confirmar que la operación no quedó registrada en el historial.
+
+**¿Qué datos debo reportar a soporte?**  
+Ruta, hora, resultado observado y mensaje sanitizado. No envíe contraseñas, tokens, CVV ni
+números completos de cuenta o tarjeta.

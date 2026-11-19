@@ -18,6 +18,19 @@ real. No registre datos personales ni secretos en capturas o logs.
 | Interfaz | Flujos completos, errores de red/sesión, escritorio/móvil y accesibilidad básica | Pendiente |
 | Operación | Incidente simulado, recuperación, backup y rollback | Pendiente |
 
+## Casos de aceptación obligatorios
+
+| ID | Caso | Resultado esperado | Evidencia |
+|---|---|---|---|
+| UA-01 | Registro válido y duplicado | Cuenta nueva se crea una vez; identificador duplicado se rechaza | Respuesta API + captura saneada |
+| UA-02 | Login válido e inválido | Credenciales válidas crean sesión; inválidas no crean sesión | Prueba API/UI + logs saneados |
+| UA-03 | Acceso no autorizado a cuenta ajena | Usuario, asesor y administrador reciben solo la autorización correspondiente | Prueba automatizada negativa |
+| UA-04 | Transferencia válida e insuficiente | Válida debita y acredita juntos; insuficiente no cambia saldos | Historial + pruebas de rollback |
+| UA-05 | Recuperación y expiración | Código expira, es de un solo uso y no revela existencia de usuario | Prueba API/UI + correo de prueba |
+
+Cada ejecución debe registrar versión, fecha, ambiente, resultado esperado, resultado observado,
+incidencias y captura sin secretos. Los casos no deben marcarse aprobados por presencia de código.
+
 Para cada prueba registre comando o pasos, versión del software, ambiente no sensible, fecha,
 resultado esperado, resultado observado, referencia a evidencia saneada e incidencias. No
 marque aceptación por la sola presencia de código.

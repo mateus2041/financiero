@@ -47,6 +47,18 @@
 | BL-21 | Presupuestos, categorías y analítica | Confirmar si pertenecen al producto; no se encontró API dedicada suficiente | Pendiente |
 | BL-22 | Notificaciones en tiempo real y preferencias | Definir canales, configuración y mecanismo de entrega | Pendiente |
 
+## Cierre verificable de historias
+
+| Métrica | Resultado al corte |
+| --- | --- |
+| Historias inventariadas | 12 |
+| Historias con criterio y evidencia automatizada completa | 12 criterios documentados; validación funcional aún dependiente de ejecución ambiental |
+| Funcionalidades fuera de alcance confirmado | QR, retiro sin tarjeta, presupuesto y analítica no tienen integración real |
+| BRE-B real | No implementado; la implementación disponible se limita a simulación local |
+
+La justificación de alcance se conserva en `functional.md` y `constraints.md`. Cada historia debe
+marcarse como aceptada solo después de una prueba reproducible API/frontend y evidencia saneada.
+
 ## Regla de cierre
 
 No marcar una tarea como completada solo porque exista un endpoint, componente o modelo. Vincularla a criterios de aceptación y evidencia de prueba; registrar defectos y decisiones de alcance junto a la tarea.

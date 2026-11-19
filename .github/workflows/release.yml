@@ -29,20 +29,23 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v5
 
       - name: Calcular versión e imagen
         run: |
           echo "VERSION=${VERSION#v}" >> "$GITHUB_ENV"
-          echo "IMAGEN=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/biblioteca" >> "$GITHUB_ENV"
+          echo "IMAGEN=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/financiero" >> "$GITHUB_ENV"
 
       - name: Construir la imagen con la versión
-        run: docker build --build-arg APP_VERSION="$VERSION" -t "$IMAGEN:$VERSION" -t "biblioteca:$VERSION" .
+        run: docker build -f Backend/Dockerfile --build-arg APP_VERSION="$VERSION" -t "$IMAGEN:$VERSION" -t "financiero:$VERSION" .
 
       - name: Probar la imagen construida (la misma que se publica)
         run: |
           cp .env.example .env
-          APP_VERSION="$VERSION" docker compose up -d --no-build --wait
+          sed -i 's/replace-with-a-long-random-root-password/ci-root-password-32-characters-minimum/' .env
+          sed -i 's/replace-with-a-long-random-app-password/ci-app-password-32-characters-minimum/' .env
+          sed -i 's/replace-with-at-least-32-random-characters/ci-jwt-secret-key-32-characters-minimum/' .env
+          BACKEND_IMAGE="$IMAGEN:$VERSION" APP_VERSION="$VERSION" docker compose up -d --no-build --wait db backend
           bash scripts/smoke-test.sh
           curl -fsS http://localhost:8000/api/version | grep -q "\"$VERSION\""
 
@@ -66,12 +69,12 @@ jobs:
       contents: read
       packages: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v5
 
       - name: Calcular versión e imagen
         run: |
           echo "VERSION=${VERSION#v}" >> "$GITHUB_ENV"
-          echo "IMAGEN=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/biblioteca" >> "$GITHUB_ENV"
+          echo "IMAGEN=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/financiero" >> "$GITHUB_ENV"
 
       - name: Verificar que la versión existe en GHCR
         run: |

@@ -171,6 +171,11 @@ function App() {
 
       <Route
         path="/trageta"
+        element={<Navigate to="/tarjetas" replace />}
+      />
+
+      <Route
+        path="/tarjetas"
         element={<TarjetasUsuario />}
       />
 
