@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import AsistenteMovil from "../components/AsistenteMovil";
 import FinancialSidebar from "../components/FinancialSidebar";
@@ -135,7 +135,7 @@ function DesbloquearTarjeta() {
     const [tarjetaNueva, setTarjetaNueva] = useState(null);
     const [cargando, setCargando] = useState(true);
     const [actualizando, setActualizando] = useState(false);
-    const [restableciendoCvv, setRestableciendoCvv] = useState(false);
+    const [restableciendoCvvIds, setRestableciendoCvvIds] = useState(() => new Set());
     const [desbloqueando, setDesbloqueando] = useState(false);
     const [bloqueando, setBloqueando] = useState(false);
     const [solicitandoPassword, setSolicitandoPassword] = useState(false);
@@ -144,6 +144,7 @@ function DesbloquearTarjeta() {
     const [mensaje, setMensaje] = useState("");
     const [error, setError] = useState("");
     const [vistaTarjeta, setVistaTarjeta] = useState("frontal");
+    const restablecimientosCvvEnProceso = useRef(new Set());
     const [datosSeguridad, setDatosSeguridad] = useState({
         numeroTarjeta: "0000000000000000",
         ultimosTres: "000",
@@ -154,6 +155,7 @@ function DesbloquearTarjeta() {
     const [openCertificado, setOpenCertificado] = useState(false);
     const [menuAbierto, setMenuAbierto] = useResponsiveMenu();
     const [asistenteAbierto, setAsistenteAbierto] = useState(false);
+    const restableciendoCvv = restableciendoCvvIds.size > 0;
 
     useEffect(() => {
         void cargarTarjeta();
@@ -225,11 +227,22 @@ function DesbloquearTarjeta() {
     };
 
     const restablecerCvv = async (tarjetaObjetivo) => {
+        if (
+            !tarjetaObjetivo ||
+            tarjetaObjetivo.cvv_restablecido ||
+            restablecimientosCvvEnProceso.current.has(tarjetaObjetivo.id_tarjeta)
+        ) {
+            return false;
+        }
+
         setError("");
         setMensaje("");
+        restablecimientosCvvEnProceso.current.add(tarjetaObjetivo.id_tarjeta);
+        setRestableciendoCvvIds((actuales) =>
+            new Set(actuales).add(tarjetaObjetivo.id_tarjeta)
+        );
 
         try {
-            setRestableciendoCvv(true);
             const respuesta = await fetch(
                 `http://127.0.0.1:8000/tarjetas/${tarjetaObjetivo.id_tarjeta}/restablecer-cvv`,
                 {
@@ -244,6 +257,10 @@ function DesbloquearTarjeta() {
 
             if (!respuesta.ok) {
                 throw new Error(datos.detail || "No fue posible restablecer el CVV.");
+            }
+
+            if (!/^\d{3}$/.test(datos.codigo_seguridad)) {
+                throw new Error("El CVV recibido no tiene el formato esperado de tres dígitos.");
             }
 
             if (tarjetaObjetivo.id_tarjeta === tarjeta.id_tarjeta) {
@@ -271,7 +288,12 @@ function DesbloquearTarjeta() {
             setError(error.message);
             return false;
         } finally {
-            setRestableciendoCvv(false);
+            restablecimientosCvvEnProceso.current.delete(tarjetaObjetivo.id_tarjeta);
+            setRestableciendoCvvIds((actuales) => {
+                const siguientes = new Set(actuales);
+                siguientes.delete(tarjetaObjetivo.id_tarjeta);
+                return siguientes;
+            });
         }
     };
 
@@ -357,6 +379,9 @@ function DesbloquearTarjeta() {
         fecha_expiracion: "--/--",
         codigo_seguridad: "000"
     };
+    const restableciendoCvvTarjetaActual = Boolean(
+        tarjeta && restableciendoCvvIds.has(tarjeta.id_tarjeta)
+    );
 
     if (cargando) {
         return (
@@ -546,11 +571,11 @@ function DesbloquearTarjeta() {
                                 type="button"
                                 className="btn-accion-tarjeta"
                                 onClick={() => restablecerCvv(tarjeta)}
-                                disabled={actualizando || restableciendoCvv || tarjetaActual.cvv_restablecido}
+                                disabled={actualizando || restableciendoCvvTarjetaActual || tarjetaActual.cvv_restablecido}
                             >
                                 {tarjetaActual.cvv_restablecido
                                     ? "CVV ya restablecido"
-                                    : restableciendoCvv
+                                    : restableciendoCvvTarjetaActual
                                         ? "Restableciendo..."
                                         : "Restablecer CVV"}
                             </button>
@@ -574,7 +599,7 @@ function DesbloquearTarjeta() {
                             onBloquear={bloquearTarjeta}
                             onDesbloquear={desbloquearTarjeta}
                             actualizando={actualizando}
-                            restableciendoCvv={restableciendoCvv}
+                            restableciendoCvv={restableciendoCvvIds.has(tarjetaNueva.id_tarjeta)}
                             bloqueando={bloqueando}
                         />
                     )}

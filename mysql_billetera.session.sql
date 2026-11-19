@@ -842,7 +842,7 @@ WHERE id_usuario = 25;
 
 START TRANSACTION;
 
-SET @id_usuario = 5;
+SET @id_usuario = 9;
 
 DELETE FROM notificaciones
 WHERE id_usuario = @id_usuario;
