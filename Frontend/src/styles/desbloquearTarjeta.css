@@ -31,6 +31,8 @@
 
 .tarjetas-lista .tarjeta-box {
     width: 100%;
+    max-width: 520px;
+    justify-self: center;
 }
 
 .tarjeta-titulo-nueva {

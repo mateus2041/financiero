@@ -40,7 +40,7 @@ function TarjetaAdicional({
 
     return (
         <div className="tarjeta-box">
-            <h2 className="tarjeta-titulo-nueva">Nueva tarjeta</h2>
+            <h2 className="tarjeta-titulo-nueva">Tarjeta adicional</h2>
             <div
                 className={`tarjeta-visual tarjeta-clickable${vista === "trasera" ? " tarjeta-trasera" : ""}`}
                 onClick={cambiarVista}
@@ -132,7 +132,7 @@ function TarjetaAdicional({
 function DesbloquearTarjeta() {
 
     const [tarjeta, setTarjeta] = useState(null);
-    const [tarjetaNueva, setTarjetaNueva] = useState(null);
+    const [tarjetasAdicionales, setTarjetasAdicionales] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [actualizando, setActualizando] = useState(false);
     const [restableciendoCvvIds, setRestableciendoCvvIds] = useState(() => new Set());
@@ -181,35 +181,40 @@ function DesbloquearTarjeta() {
                 throw new Error(datosAnteriores.detail || "No se pudo consultar la tarjeta anterior.");
             }
 
-            const respuestaNueva = await fetch(
-                "http://127.0.0.1:8000/tarjeta/ultima",
+            const respuestaTarjetas = await fetch(
+                "http://127.0.0.1:8000/tarjetas/mias",
                 { method: "GET", headers }
             );
-            const datosNuevos = await respuestaNueva.json();
+            const tarjetasUsuario = await respuestaTarjetas.json();
 
-            if (!respuestaNueva.ok) {
-                throw new Error(datosNuevos.detail || "No se pudo consultar la tarjeta nueva.");
+            if (!respuestaTarjetas.ok) {
+                throw new Error(
+                    tarjetasUsuario.detail ||
+                    "No se pudieron consultar las tarjetas."
+                );
             }
 
-            const tarjetaAnterior = datosAnteriores;
-            const tarjetaUltima = datosNuevos.tarjeta;
-            setTarjeta(tarjetaAnterior);
-            setTarjetaNueva(
-                tarjetaUltima.id_tarjeta === tarjetaAnterior.id_tarjeta
-                    ? null
-                    : tarjetaUltima
-            );
+            if (!Array.isArray(tarjetasUsuario)) {
+                throw new Error("La respuesta de tarjetas no tiene un formato válido.");
+            }
+
+            const tarjetasOrdenadas = tarjetasUsuario.length
+                ? tarjetasUsuario
+                : [datosAnteriores];
+            const tarjetaPrincipal = tarjetasOrdenadas[0];
+            setTarjeta(tarjetaPrincipal);
+            setTarjetasAdicionales(tarjetasOrdenadas.slice(1));
             setDatosSeguridad({
-                numeroTarjeta: tarjetaAnterior.numero_tarjeta,
-                ultimosTres: tarjetaAnterior.ultimos_tres,
-                vencimiento: tarjetaAnterior.fecha_expiracion,
-                codigoSeguridad: tarjetaAnterior.codigo_seguridad
+                numeroTarjeta: tarjetaPrincipal.numero_tarjeta,
+                ultimosTres: tarjetaPrincipal.ultimos_tres,
+                vencimiento: tarjetaPrincipal.fecha_expiracion,
+                codigoSeguridad: tarjetaPrincipal.codigo_seguridad
             });
 
         } catch (error) {
             console.error(error);
             setTarjeta(null);
-            setTarjetaNueva(null);
+            setTarjetasAdicionales([]);
             setError(error.message || "No fue posible consultar el estado de la tarjeta.");
         } finally {
             setCargando(false);
@@ -275,11 +280,17 @@ function DesbloquearTarjeta() {
                 }));
                 setVistaTarjeta("trasera");
             } else {
-                setTarjetaNueva((actual) => ({
-                    ...actual,
-                    codigo_seguridad: datos.codigo_seguridad,
-                    cvv_restablecido: true
-                }));
+                setTarjetasAdicionales((actuales) =>
+                    actuales.map((tarjeta) =>
+                        tarjeta.id_tarjeta === tarjetaObjetivo.id_tarjeta
+                            ? {
+                                ...tarjeta,
+                                codigo_seguridad: datos.codigo_seguridad,
+                                cvv_restablecido: true
+                            }
+                            : tarjeta
+                    )
+                );
             }
             setMensaje(datos.mensaje || "El CVV fue restablecido correctamente.");
             return true;
@@ -351,7 +362,9 @@ function DesbloquearTarjeta() {
                     ? { ...tarjetaActual, estado: datos.estado || "bloqueada" }
                     : tarjetaActual;
             setTarjeta(actualizarEstado);
-            setTarjetaNueva(actualizarEstado);
+            setTarjetasAdicionales((actuales) =>
+                actuales.map(actualizarEstado)
+            );
             setPasswordBloqueo("");
             setSolicitandoPassword(false);
         } catch (error) {
@@ -591,18 +604,19 @@ function DesbloquearTarjeta() {
                             </div>
                         </div>
                     )}
-                    {tarjeta && tarjetaNueva && (
+                    {tarjetasAdicionales.map((tarjetaAdicional) => (
                         <TarjetaAdicional
-                            tarjeta={tarjetaNueva}
+                            key={tarjetaAdicional.id_tarjeta}
+                            tarjeta={tarjetaAdicional}
                             onActualizar={actualizarTarjeta}
                             onRestablecerCvv={restablecerCvv}
                             onBloquear={bloquearTarjeta}
                             onDesbloquear={desbloquearTarjeta}
                             actualizando={actualizando}
-                            restableciendoCvv={restableciendoCvvIds.has(tarjetaNueva.id_tarjeta)}
+                            restableciendoCvv={restableciendoCvvIds.has(tarjetaAdicional.id_tarjeta)}
                             bloqueando={bloqueando}
                         />
-                    )}
+                    ))}
                 </div>
 
             </main>

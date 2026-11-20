@@ -108,9 +108,6 @@ const Cuenta = () => {
 
 
     if (!token || !doc) {
-
-      navigate("/");
-
       return;
 
     }

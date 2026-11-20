@@ -126,7 +126,8 @@ body {
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
 }
 
-.boton-anadir-tarjeta {
+.boton-anadir-tarjeta,
+.selector-opciones-tarjeta {
   padding: 9px 14px;
   border: 1px solid #eab94b;
   border-radius: 7px;
@@ -138,8 +139,34 @@ body {
   white-space: nowrap;
 }
 
-.boton-anadir-tarjeta:hover {
+.selector-opciones-tarjeta {
+  min-width: 150px;
+}
+
+.boton-anadir-tarjeta:hover,
+.selector-opciones-tarjeta:hover {
   background: #f4cf70;
+}
+
+.boton-eliminar-tarjeta {
+  padding: 9px 14px;
+  border: 1px solid #e06b6b;
+  border-radius: 7px;
+  background: #e06b6b;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.boton-eliminar-tarjeta:hover:not(:disabled) {
+  background: #c94f5a;
+}
+
+.boton-eliminar-tarjeta:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 .modal-tarjeta-overlay {
@@ -151,6 +178,71 @@ body {
   justify-content: center;
   padding: 24px;
   background: rgba(5, 8, 15, 0.78);
+}
+
+.modal-eliminar-tarjeta-overlay {
+  z-index: 1200;
+}
+
+.modal-confirmacion-tarjeta {
+  width: min(420px, 100%);
+  padding: 26px;
+  border: 1px solid rgba(242, 201, 76, 0.4);
+  border-radius: 12px;
+  background: var(--fondo-tarjeta);
+  color: var(--texto-principal);
+  box-sizing: border-box;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+
+.modal-confirmacion-tarjeta h2 {
+  margin: 0 0 12px;
+  color: var(--dorado);
+}
+
+.modal-confirmacion-exito h2 {
+  color: #82d6a5;
+}
+
+.modal-confirmacion-error h2 {
+  color: #f3a5a5;
+}
+
+.modal-confirmacion-tarjeta p {
+  margin: 0;
+  color: var(--texto-secundario);
+  line-height: 1.5;
+}
+
+.acciones-modal-eliminar-tarjeta {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.boton-cancelar-eliminacion,
+.boton-cerrar-resultado-eliminacion {
+  padding: 9px 16px;
+  border: 1px solid rgba(168, 179, 207, 0.4);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--texto-principal);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.boton-cerrar-resultado-eliminacion {
+  border-color: var(--dorado);
+  background: var(--dorado);
+  color: #121829;
+}
+
+.boton-cancelar-eliminacion:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 .modal-tarjeta {
@@ -854,6 +946,14 @@ body {
 
 .tabla-asesores td {
   color: #ffffff;
+}
+
+.acciones-tarjetas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .tabla-asesores tbody tr:last-child td {
@@ -1647,11 +1747,18 @@ button:hover {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
     text-align: left;
   }
 
-  .tabla-asesores tbody td[data-label="Acciones"] button {
+  .acciones-tarjetas {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .tabla-asesores tbody td[data-label="Acciones"] .acciones-tarjetas button,
+  .tabla-asesores tbody td[data-label="Acciones"] .selector-opciones-tarjeta {
     width: 100%;
     margin: 0;
     white-space: normal;

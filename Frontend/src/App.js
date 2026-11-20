@@ -29,6 +29,78 @@ function App() {
   const location = useLocation();
 
   useEffect(() => {
+    const bloqueaCopia = (evento) => {
+      evento.preventDefault();
+    };
+
+    const bloqueaSeleccion = (evento) => {
+      const elementoEditable =
+        evento.target instanceof HTMLInputElement ||
+        evento.target instanceof HTMLTextAreaElement ||
+        evento.target?.isContentEditable;
+
+      if (!elementoEditable) {
+        evento.preventDefault();
+      }
+    };
+
+    const bloqueaAtajos = (evento) => {
+      const tecla = typeof evento.key === "string"
+        ? evento.key.toLowerCase()
+        : "";
+      if (
+        (evento.ctrlKey || evento.metaKey) &&
+        (tecla === "c" || tecla === "x")
+      ) {
+        evento.preventDefault();
+      }
+    };
+
+    const estiloProteccion = document.createElement("style");
+    estiloProteccion.id = "proteccion-copia";
+    estiloProteccion.textContent = `
+      html, body, #root, #root * {
+        -webkit-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+      }
+
+      #root input,
+      #root textarea,
+      #root [contenteditable="true"] {
+        -webkit-user-select: text !important;
+        -moz-user-select: text !important;
+        -ms-user-select: text !important;
+        user-select: text !important;
+      }
+
+      ::selection {
+        background: transparent;
+        color: inherit;
+      }
+    `;
+    document.head.appendChild(estiloProteccion);
+
+    document.addEventListener("copy", bloqueaCopia);
+    document.addEventListener("cut", bloqueaCopia);
+    document.addEventListener("contextmenu", bloqueaCopia);
+    document.addEventListener("dragstart", bloqueaCopia);
+    document.addEventListener("selectstart", bloqueaSeleccion);
+    document.addEventListener("keydown", bloqueaAtajos);
+
+    return () => {
+      document.removeEventListener("copy", bloqueaCopia);
+      document.removeEventListener("cut", bloqueaCopia);
+      document.removeEventListener("contextmenu", bloqueaCopia);
+      document.removeEventListener("dragstart", bloqueaCopia);
+      document.removeEventListener("selectstart", bloqueaSeleccion);
+      document.removeEventListener("keydown", bloqueaAtajos);
+      document.getElementById("proteccion-copia")?.remove();
+    };
+  }, []);
+
+  useEffect(() => {
     if (location.pathname !== "/cuenta") return;
 
     try {

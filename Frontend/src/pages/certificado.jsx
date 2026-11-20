@@ -42,6 +42,7 @@ const CertificadoBancario = () => {
     cuenta: "",
     tipoCuenta: "Ahorros",
     saldo: "0",
+    mostrarSaldo: false,
     fechaApertura: obtenerFechaLocal(),
     destinatario: "",
     ciudad: "Bogotá",
@@ -62,7 +63,6 @@ const CertificadoBancario = () => {
     const token = localStorage.getItem("token");
 
     if (!documentoGuardado || !token) {
-      navigate("/inicio");
       return;
     }
 
@@ -86,6 +86,7 @@ const CertificadoBancario = () => {
           saldo: data.saldo
             ? `$${Number(data.saldo).toLocaleString("es-CO")} COP`
             : "$0 COP",
+          mostrarSaldo: false,
           fechaApertura: data.fecha_apertura
             ? String(data.fecha_apertura).slice(0, 10)
             : obtenerFechaLocal(),
@@ -102,6 +103,7 @@ const CertificadoBancario = () => {
           cuenta: "",
           tipoCuenta: "Ahorros",
           saldo: "$0 COP",
+          mostrarSaldo: false,
           fechaApertura: obtenerFechaLocal(),
           destinatario: "Usuario",
           ciudad: "Bogotá",
@@ -164,16 +166,24 @@ const CertificadoBancario = () => {
 
         setNumeroCuentaConsultada(numeroCuenta);
         setTipoCuentaConsultada(tipoCuentaSeleccionado);
+        const saldoCuenta = Number(
+          tipoCuentaSeleccionado === "corriente"
+            ? data.cuenta_corriente
+            : data.cuenta_ahorro
+        ) || 0;
+        const saldoFormateado = `$${saldoCuenta.toLocaleString("es-CO")} COP`;
 
         if (edicionAbierta) {
           setBorradorCertificado((actual) => ({
             ...actual,
             cuenta: numeroCuenta,
+            saldo: saldoFormateado,
           }));
         } else {
           setUsuario((actual) => ({
             ...actual,
             cuenta: numeroCuenta,
+            saldo: saldoFormateado,
           }));
         }
       } catch (error) {
@@ -271,6 +281,13 @@ const CertificadoBancario = () => {
           ...actual,
           tipoCuenta: value,
           cuenta: "",
+        };
+      }
+
+      if (name === "mostrarSaldo") {
+        return {
+          ...actual,
+          mostrarSaldo: value === "true",
         };
       }
 
@@ -393,16 +410,25 @@ const CertificadoBancario = () => {
 
               </div>
 
+              <div className="fila">
+                <strong>Saldo:</strong>
+                <span>
+                  {usuario.mostrarSaldo ? usuario.saldo : "$0 COP"}
+                </span>
+              </div>
+
             </div>
 
             {/* TEXTO FINAL */}
             <div className="texto-final">
 
               <p>
-                Esta constancia se expide con destino a{" "}
-                {usuario.destinatario}, realizada en el Canal Digital
-                de la ciudad de {usuario.ciudad}, el día{" "}
-                {fechaExpedicion}.
+                Esta constancia se expide
+                {usuario.destinatario.trim()
+                  ? ` con destino a ${usuario.destinatario.trim()}`
+                  : " a solicitud del interesado"}
+                . Fue realizada en el Canal Digital de la ciudad de{" "}
+                {usuario.ciudad}, el día {fechaExpedicion}.
               </p>
 
               <p className="cordialmente">
@@ -490,7 +516,7 @@ const CertificadoBancario = () => {
                 <input
                   name="nombre"
                   value={borradorCertificado.nombre}
-                  onChange={actualizarBorrador}
+                  readOnly
                   required
                 />
               </label>
@@ -500,7 +526,7 @@ const CertificadoBancario = () => {
                 <input
                   name="documento"
                   value={borradorCertificado.documento}
-                  onChange={actualizarBorrador}
+                  readOnly
                   required
                 />
               </label>
@@ -515,6 +541,19 @@ const CertificadoBancario = () => {
                 >
                   <option value="Ahorros">Ahorros</option>
                   <option value="Corriente">Corriente</option>
+                </select>
+              </label>
+
+              <label>
+                Saldo en el certificado
+                <select
+                  name="mostrarSaldo"
+                  value={String(borradorCertificado.mostrarSaldo)}
+                  onChange={actualizarBorrador}
+                  required
+                >
+                  <option value="false">Sin saldo</option>
+                  <option value="true">Con saldo</option>
                 </select>
               </label>
 
@@ -540,18 +579,17 @@ const CertificadoBancario = () => {
                   name="fechaApertura"
                   type="date"
                   value={borradorCertificado.fechaApertura}
-                  onChange={actualizarBorrador}
+                  disabled
                   required
                 />
               </label>
 
               <label>
-                Destinatario
+                Destinatario (opcional)
                 <input
                   name="destinatario"
                   value={borradorCertificado.destinatario}
                   onChange={actualizarBorrador}
-                  required
                 />
               </label>
 

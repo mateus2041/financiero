@@ -122,8 +122,7 @@ function AjustesPerfil() {
         const token = localStorage.getItem("token");
 
         if (!token) {
-          alert("No hay una sesión iniciada.");
-          navigate("/login");
+          setError("No hay una sesión iniciada.");
           return;
         }
 

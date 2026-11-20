@@ -216,7 +216,9 @@ function Login({ isModal = false }) {
           const mensajeError =
             esAsesor && res.status === 401
               ? "❌ El asesor está inactivo o el código no es válido. Solo los asesores activos pueden ingresar."
-              : data.detail || "Documento o contraseña incorrectos";
+              : res.status === 401
+                ? "Ingreso inválido"
+                : data.detail || "Documento o contraseña incorrectos";
 
           setMensaje(
             `${mensajeError} (Intento ${nuevosIntentos} de 3)`

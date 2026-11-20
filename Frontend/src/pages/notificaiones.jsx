@@ -22,7 +22,6 @@ export default function Notificaciones() {
 
   useEffect(() => {
     if (!token) {
-      navigate("/login", { replace: true });
       return;
     }
 
@@ -160,12 +159,6 @@ export default function Notificaciones() {
       setNotificaciones(ordenadas);
     } catch (err) {
       console.error("Error al cargar notificaciones:", err);
-
-      if (err.response?.status === 401) {
-        localStorage.removeItem("token");
-        navigate("/login", { replace: true });
-        return;
-      }
 
       setNotificaciones(leerNotificacionesLocales());
       setError("No se pudieron cargar las notificaciones.");

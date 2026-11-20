@@ -117,7 +117,6 @@ export default function ListaCuentas() {
       const token = localStorage.getItem("token");
 
       if (!token) {
-        navigate("/");
         return;
       }
 
@@ -147,12 +146,6 @@ export default function ListaCuentas() {
       setCuentas(cuentasUsuario);
     } catch (error) {
       console.error("Error al cargar las cuentas:", error);
-
-      if (error.response?.status === 401) {
-        localStorage.removeItem("token");
-        navigate("/login");
-        return;
-      }
 
       setError(
         obtenerMensajeError(
@@ -204,12 +197,6 @@ export default function ListaCuentas() {
           "Estado actualizado correctamente."
       );
     } catch (error) {
-      if (error.response?.status === 401) {
-        localStorage.removeItem("token");
-        navigate("/login");
-        return;
-      }
-
       setError(
         obtenerMensajeError(
           error,

@@ -21,11 +21,10 @@ export const AuthProvider = ({ children }) => {
           if (isValid) {
             setUser(authService.getCurrentUser());
             setIsAuthenticated(true);
-          } else {
-            authService.logout();
           }
         } catch (error) {
-          authService.logout();
+          setUser(null);
+          setIsAuthenticated(false);
         }
       }
       setLoading(false);

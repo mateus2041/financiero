@@ -68,13 +68,7 @@ export default function AsesorBancario() {
     const token = localStorage.getItem("token");
 
     if (!token || rolActual !== "asesor") {
-      localStorage.removeItem("token");
-      localStorage.removeItem("usuario_id");
-      localStorage.removeItem("documento");
-      localStorage.removeItem("rol");
-      localStorage.removeItem("nombre_asesor");
-      localStorage.removeItem("codigo_verificacion");
-      navigate("/login", { replace: true });
+      setCargandoEstadisticas(false);
       return;
     }
 
@@ -91,17 +85,6 @@ export default function AsesorBancario() {
         setEstadisticas(normalizarEstadisticas(datos));
         setMensaje("");
       } catch (error) {
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("usuario_id");
-          localStorage.removeItem("documento");
-          localStorage.removeItem("rol");
-          localStorage.removeItem("nombre_asesor");
-          localStorage.removeItem("codigo_verificacion");
-          navigate("/login", { replace: true });
-          return;
-        }
-
         setMensaje(
           error.response?.data?.detail ||
             "No fue posible cargar las estadísticas del panel."

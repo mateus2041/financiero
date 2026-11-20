@@ -2563,6 +2563,30 @@ def eliminar_tarjeta_usuario(
     return {"mensaje": "Tarjeta eliminada correctamente"}
 
 
+@app.delete("/administradores/tarjetas/{id_tarjeta}")
+def eliminar_tarjeta_administracion(
+    id_tarjeta: int,
+    current_user: int = Depends(administrador_o_asesor_requerido),
+    db: Session = Depends(get_db)
+):
+    tarjeta = db.query(Tarjeta).filter(
+        Tarjeta.id_tarjeta == id_tarjeta
+    ).first()
+
+    if not tarjeta:
+        raise HTTPException(status_code=404, detail="Tarjeta no encontrada")
+
+    if tarjeta.estado != "bloqueada":
+        raise HTTPException(
+            status_code=409,
+            detail="Solo se pueden eliminar tarjetas inhabilitadas"
+        )
+
+    db.delete(tarjeta)
+    db.commit()
+    return {"mensaje": "Tarjeta eliminada correctamente"}
+
+
 @app.patch("/tarjetas/{id_tarjeta}/activar")
 def activar_tarjeta_usuario(
     id_tarjeta: int,
@@ -2761,6 +2785,44 @@ def consultar_tarjeta(
         "tipo_cuenta": cuenta.tipo_cuenta,
         "estado": estado
     }
+
+
+@app.get("/tarjetas/mias")
+def listar_mis_tarjetas(
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    cuenta = db.query(Cuenta).filter(
+        Cuenta.id_usuario == current_user,
+        Cuenta.tipo_cuenta == "corriente"
+    ).order_by(Cuenta.id_cuenta).first()
+
+    if not cuenta:
+        raise HTTPException(
+            status_code=404,
+            detail="No tienes una cuenta corriente asociada."
+        )
+
+    tarjetas = db.query(Tarjeta).filter(
+        Tarjeta.id_cuenta == cuenta.id_cuenta
+    ).order_by(Tarjeta.id_tarjeta).all()
+
+    return [
+        {
+            "id_tarjeta": tarjeta.id_tarjeta,
+            "numero_tarjeta": str(tarjeta.numero_tarjeta),
+            "ultimos_tres": str(tarjeta.numero_tarjeta)[-3:],
+            "fecha_expiracion": tarjeta.fecha_expiracion,
+            "codigo_seguridad": tarjeta.codigo_seguridad,
+            "cvv_restablecido": tarjeta.cvv_restablecido,
+            "estado": (
+                "bloqueada"
+                if cuenta.estado == "bloqueada"
+                else tarjeta.estado
+            )
+        }
+        for tarjeta in tarjetas
+    ]
 
 
 @app.get("/tarjeta/ultima")
