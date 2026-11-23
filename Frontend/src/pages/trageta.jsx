@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import {
@@ -77,6 +77,8 @@ export default function TarjetasUsuario({ esAsesor = false }) {
   const [errorMensajeAdmin, setErrorMensajeAdmin] = useState("");
   const [esMovil, setEsMovil] = useState(false);
   const [mostrarCVV, setMostrarCVV] = useState(false);
+  const [guardandoTarjeta, setGuardandoTarjeta] = useState(false);
+  const envioTarjetaEnCurso = useRef(false);
 
   const [formulario, setFormulario] = useState({
     tipo_tarjeta: "debito",
@@ -221,6 +223,10 @@ export default function TarjetasUsuario({ esAsesor = false }) {
   const agregarTarjeta = async (e) => {
     e.preventDefault();
 
+    if (envioTarjetaEnCurso.current) {
+      return;
+    }
+
     if (!usuarioSeleccionado) {
       setMensaje("Debe seleccionar un usuario");
       return;
@@ -251,6 +257,10 @@ export default function TarjetasUsuario({ esAsesor = false }) {
         setMensaje("El identificador de la tarjeta no es válido");
         return;
       }
+
+      envioTarjetaEnCurso.current = true;
+      setGuardandoTarjeta(true);
+      setMensaje("");
 
       try {
         const token = localStorage.getItem("token");
@@ -293,11 +303,14 @@ export default function TarjetasUsuario({ esAsesor = false }) {
         cerrarModalTarjeta();
         await obtenerTarjetasDeUsuario(usuarioSeleccionado);
       } catch (error) {
-        console.error("Error al actualizar tarjeta:", error);
+        console.error("Error al actualizar tarjeta:", error.message);
         setMensaje(
           error.response?.data?.detail ||
             "No se pudo actualizar la tarjeta"
         );
+      } finally {
+        envioTarjetaEnCurso.current = false;
+        setGuardandoTarjeta(false);
       }
       return;
     }
@@ -306,6 +319,10 @@ export default function TarjetasUsuario({ esAsesor = false }) {
       setMensaje("Los últimos 3 dígitos deben ser numéricos");
       return;
     }
+
+    envioTarjetaEnCurso.current = true;
+    setGuardandoTarjeta(true);
+    setMensaje("");
 
     try {
       const token = localStorage.getItem("token");
@@ -359,12 +376,15 @@ export default function TarjetasUsuario({ esAsesor = false }) {
 
       setUsuarioSeleccionado(null);
     } catch (error) {
-      console.error("Error al agregar tarjeta:", error);
+      console.error("Error al agregar tarjeta:", error.message);
 
       setMensaje(
         error.response?.data?.detail ||
           "No se pudo agregar la tarjeta"
       );
+    } finally {
+      envioTarjetaEnCurso.current = false;
+      setGuardandoTarjeta(false);
     }
   };
 
@@ -813,7 +833,7 @@ export default function TarjetasUsuario({ esAsesor = false }) {
           />
         </div>
 
-        {mensaje && <p>{mensaje}</p>}
+        {mensaje && !usuarioSeleccionado && <p>{mensaje}</p>}
 
         <div
           className="tabla-asesores-contenedor"
@@ -992,6 +1012,12 @@ export default function TarjetasUsuario({ esAsesor = false }) {
                 </strong>
               </p>
 
+              {mensaje && (
+                <p className="mensaje-error" role="alert">
+                  {mensaje}
+                </p>
+              )}
+
               <div>
                 <label htmlFor="numero-tarjeta-modal">
                   Número de tarjeta (16 dígitos)
@@ -1114,8 +1140,12 @@ export default function TarjetasUsuario({ esAsesor = false }) {
                 )}
               </div>
 
-              <button type="submit">
-                {tarjetaEditando ? "Guardar cambios" : "Guardar tarjeta"}
+              <button type="submit" disabled={guardandoTarjeta}>
+                {guardandoTarjeta
+                  ? "Guardando..."
+                  : tarjetaEditando
+                    ? "Guardar cambios"
+                    : "Guardar tarjeta"}
               </button>
             </form>
           </div>

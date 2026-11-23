@@ -161,12 +161,6 @@ export default function Notificaciones() {
     } catch (err) {
       console.error("Error al cargar notificaciones:", err);
 
-      if (err.response?.status === 401) {
-        localStorage.removeItem("token");
-        navigate("/login", { replace: true });
-        return;
-      }
-
       setNotificaciones(leerNotificacionesLocales());
       setError("No se pudieron cargar las notificaciones.");
     } finally {

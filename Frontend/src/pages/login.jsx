@@ -215,7 +215,7 @@ function Login({ isModal = false }) {
           setMostrarEnlaceRecuperacion(false);
           const mensajeError =
             esAsesor && res.status === 401
-              ? "❌ El asesor está inactivo o el código no es válido. Solo los asesores activos pueden ingresar."
+              ? `❌ ${data.detail || "No se pudo validar el acceso del asesor"}`
               : data.detail || "Documento o contraseña incorrectos";
 
           setMensaje(
@@ -373,7 +373,11 @@ function Login({ isModal = false }) {
             <select
               id="rol"
               value={rol}
-              onChange={(e) => setRol(e.target.value)}
+              onChange={(e) => {
+                const nuevoRol = e.target.value;
+                setRol(nuevoRol);
+                localStorage.setItem("rol", nuevoRol);
+              }}
               disabled={bloqueado || iniciandoSesion}
             >
               <option value="usuario">Usuario</option>

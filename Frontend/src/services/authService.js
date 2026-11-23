@@ -22,14 +22,10 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// 3. INTERCEPTOR DE RESPUESTA: Si el backend dice "401 Unauthorized", limpia todo y expulsa al usuario
+// 3. INTERCEPTOR DE RESPUESTA
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      authService.logout();
-      window.location.href = '/login'; // Redirección forzada por seguridad
-    }
     return Promise.reject(error);
   }
 );

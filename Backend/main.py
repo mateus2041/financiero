@@ -15,7 +15,7 @@ import logging
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import case, func, or_, text
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 from pydantic import BaseModel, EmailStr, Field
 from typing import Literal
 
@@ -77,6 +77,13 @@ class TipoCuentaCuenta(BaseModel):
 
 class ConfirmarContrasena(BaseModel):
     password: str = Field(min_length=1, max_length=128)
+
+
+class ConfirmarBloqueoTarjeta(BaseModel):
+    password: str | None = Field(default=None, min_length=1, max_length=128)
+    documento: str | None = Field(default=None, min_length=1, max_length=50)
+    fecha_expiracion_documento: str | None = Field(default=None, min_length=7, max_length=7)
+    motivo: Literal["perdida", "robo", "sospecha_fraude", "otro"] | None = None
 
 
 class SolicitudRecuperacion(BaseModel):
@@ -968,34 +975,58 @@ def asesor_login(
             detail="Ingrese el correo y el código del asesor"
         )
 
-    asesor = db.execute(
+    asesor_email = db.execute(
         text(
             """
-                 SELECT a.id_asesor, u.id_usuario,
-                     COALESCE(u.nombre, a.nombre) AS nombre,
-                     COALESCE(u.documento, a.documento) AS documento,
-                                         COALESCE(a.email, u.email) AS email,
-                     COALESCE(u.rol, 'asesor') AS rol
+            SELECT a.id_asesor, a.estado
             FROM asesores_banco AS a
-            LEFT JOIN usuario AS u
-                ON LOWER(TRIM(u.email)) = LOWER(TRIM(a.email))
-                        WHERE LOWER(COALESCE(a.email, u.email)) = :email_asesor
-              AND a.codigo_asesor = :codigo_asesor
-              AND a.estado = 'activo'
-              AND (u.rol = 'asesor' OR u.id_usuario IS NULL)
+            WHERE LOWER(TRIM(COALESCE(a.email, ''))) = :email_asesor
             LIMIT 1
             """
         ),
-                {
-                    "email_asesor": email_asesor,
-                    "codigo_asesor": codigo_asesor,
-                },
+        {"email_asesor": email_asesor},
+    ).mappings().first()
+
+    if not asesor_email:
+        raise HTTPException(
+            status_code=401,
+            detail="El correo electrónico del asesor no está registrado"
+        )
+
+    if asesor_email["estado"] != "activo":
+        raise HTTPException(
+            status_code=401,
+            detail="El asesor está inactivo"
+        )
+
+    asesor = db.execute(
+        text(
+            """
+            SELECT a.id_asesor, u.id_usuario,
+                   COALESCE(u.nombre, a.nombre) AS nombre,
+                   COALESCE(u.documento, a.documento) AS documento,
+                   COALESCE(a.email, u.email) AS email,
+                   'asesor' AS rol
+            FROM asesores_banco AS a
+            LEFT JOIN usuario AS u
+              ON LOWER(TRIM(u.email)) = LOWER(TRIM(a.email))
+             AND u.rol = 'asesor'
+            WHERE LOWER(TRIM(COALESCE(a.email, ''))) = :email_asesor
+              AND a.codigo_asesor = :codigo_asesor
+              AND a.estado = 'activo'
+            LIMIT 1
+            """
+        ),
+        {
+            "email_asesor": email_asesor,
+            "codigo_asesor": codigo_asesor,
+        },
     ).mappings().first()
 
     if not asesor:
         raise HTTPException(
             status_code=401,
-            detail="Correo, código de asesor inválido o asesor inactivo"
+            detail="El código de asesor no es válido"
         )
 
     if not asesor["email"]:
@@ -1438,6 +1469,12 @@ def administrador_login(
         raise HTTPException(
             status_code=401,
             detail="El administrador no está asociado a un usuario válido"
+        )
+
+    if usuario.rol != "administrador":
+        raise HTTPException(
+            status_code=403,
+            detail="El usuario no tiene el rol de administrador"
         )
 
     if usuario.documento != documento:
@@ -2489,12 +2526,17 @@ def agregar_tarjeta_usuario(
 
     cuenta = db.query(Cuenta).filter(
         Cuenta.id_usuario == id_usuario,
-        Cuenta.tipo_cuenta == "corriente",
         Cuenta.estado == "activa"
-    ).order_by(Cuenta.id_cuenta).first()
+    ).order_by(
+        case((Cuenta.tipo_cuenta == "corriente", 0), else_=1),
+        Cuenta.id_cuenta
+    ).first()
 
     if not cuenta:
-        raise HTTPException(status_code=404, detail="No tienes una cuenta activa asociada")
+        raise HTTPException(
+            status_code=404,
+            detail="El cliente no tiene una cuenta activa para asociar la tarjeta"
+        )
 
     fecha_expiracion = datos.fecha_vencimiento
     if fecha_expiracion:
@@ -2531,9 +2573,36 @@ def agregar_tarjeta_usuario(
         codigo_seguridad=codigo_seguridad,
         estado="activa"
     )
-    db.add(tarjeta)
-    db.commit()
-    db.refresh(tarjeta)
+    try:
+        db.add(tarjeta)
+        db.commit()
+        db.refresh(tarjeta)
+    except SQLAlchemyError as exc:
+        db.rollback()
+        codigo_error = getattr(getattr(exc, "orig", None), "args", (None,))[0]
+        if codigo_error in (1205, 1213):
+            logger.warning(
+                "Bloqueo de base de datos al guardar tarjeta del cliente %s "
+                "(código MySQL %s)",
+                id_usuario,
+                codigo_error,
+            )
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "La cuenta está ocupada por otra operación. Finaliza o "
+                    "cancela los cambios pendientes y vuelve a intentar."
+                ),
+            ) from exc
+        logger.error(
+            "Error de base de datos al guardar tarjeta del cliente %s (%s)",
+            id_usuario,
+            type(exc).__name__,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="No se pudo guardar la tarjeta. Intenta de nuevo.",
+        ) from exc
 
     return {
         "id_tarjeta": tarjeta.id_tarjeta,
@@ -2694,6 +2763,39 @@ def editar_tarjeta_usuario(
         "estado": tarjeta.estado
     }
 
+@app.get("/tarjetas/mias")
+def listar_tarjetas_propias(
+    current_user: int = Depends(token_required),
+    db: Session = Depends(get_db)
+):
+    tarjetas = (
+        db.query(Tarjeta)
+        .join(Cuenta)
+        .filter(Cuenta.id_usuario == current_user)
+        .order_by(Tarjeta.id_tarjeta)
+        .all()
+    )
+
+    resultado = []
+    for tarjeta in tarjetas:
+        numero_tarjeta = str(tarjeta.numero_tarjeta or "")
+        resultado.append({
+            "id_tarjeta": tarjeta.id_tarjeta,
+            "numero_tarjeta": numero_tarjeta,
+            "ultimos_tres": numero_tarjeta[-3:] if numero_tarjeta else "000",
+            "fecha_expiracion": tarjeta.fecha_expiracion,
+            "codigo_seguridad": tarjeta.codigo_seguridad,
+            "cvv_restablecido": tarjeta.cvv_restablecido,
+            "estado": (
+                "bloqueada"
+                if tarjeta.cuenta.estado == "bloqueada"
+                else tarjeta.estado
+            )
+        })
+
+    return resultado
+
+
 @app.get("/tarjeta")
 def consultar_tarjeta(
     current_user: int = Depends(token_required),
@@ -2843,7 +2945,7 @@ def restablecer_cvv_tarjeta_especifica(
 @app.put("/tarjetas/{id_tarjeta}/bloquear")
 def bloquear_tarjeta_especifica(
     id_tarjeta: int,
-    datos: ConfirmarContrasena,
+    datos: ConfirmarBloqueoTarjeta,
     current_user: int = Depends(token_required),
     db: Session = Depends(get_db)
 ):
@@ -2851,10 +2953,23 @@ def bloquear_tarjeta_especifica(
         Usuario.id_usuario == current_user
     ).first()
 
-    if not usuario or not check_password(datos.password, usuario.password):
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Usuario no encontrado.")
+
+    if datos.password:
+        identidad_valida = check_password(datos.password, usuario.password)
+    elif datos.documento:
+        identidad_valida = (
+            str(usuario.documento).strip()
+            == datos.documento.strip()
+        )
+    else:
+        identidad_valida = False
+
+    if not identidad_valida:
         raise HTTPException(
             status_code=401,
-            detail="La contraseña es incorrecta."
+            detail="La información de identidad no es válida."
         )
 
     tarjeta = db.query(Tarjeta).join(Cuenta).filter(

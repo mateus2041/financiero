@@ -18,7 +18,7 @@ function TarjetaAdicional({
     restableciendoCvv,
     bloqueando
 }) {
-    const [vista, setVista] = useState("frontal");
+    const [vista, setVista] = useState("trasera");
     const bloqueada = String(tarjeta.estado).toLowerCase() === "bloqueada";
 
     const cambiarVista = () => {
@@ -40,7 +40,7 @@ function TarjetaAdicional({
 
     return (
         <div className="tarjeta-box">
-            <h2 className="tarjeta-titulo-nueva">Nueva tarjeta</h2>
+            <h2 className="tarjeta-titulo-nueva">Tarjeta adicional</h2>
             <div
                 className={`tarjeta-visual tarjeta-clickable${vista === "trasera" ? " tarjeta-trasera" : ""}`}
                 onClick={cambiarVista}
@@ -132,18 +132,23 @@ function TarjetaAdicional({
 function DesbloquearTarjeta() {
 
     const [tarjeta, setTarjeta] = useState(null);
-    const [tarjetaNueva, setTarjetaNueva] = useState(null);
+    const [tarjetasAdicionales, setTarjetasAdicionales] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [actualizando, setActualizando] = useState(false);
     const [restableciendoCvvIds, setRestableciendoCvvIds] = useState(() => new Set());
     const [desbloqueando, setDesbloqueando] = useState(false);
     const [bloqueando, setBloqueando] = useState(false);
-    const [solicitandoPassword, setSolicitandoPassword] = useState(false);
-    const [passwordBloqueo, setPasswordBloqueo] = useState("");
+    const [solicitandoDatosBloqueo, setSolicitandoDatosBloqueo] = useState(false);
+    const [pasoBloqueo, setPasoBloqueo] = useState(1);
+    const [motivoBloqueo, setMotivoBloqueo] = useState("");
+    const [datosBloqueo, setDatosBloqueo] = useState({
+        documento: "",
+        vencimiento: ""
+    });
     const [tarjetaIdBloqueo, setTarjetaIdBloqueo] = useState(null);
     const [mensaje, setMensaje] = useState("");
     const [error, setError] = useState("");
-    const [vistaTarjeta, setVistaTarjeta] = useState("frontal");
+    const [vistaTarjeta, setVistaTarjeta] = useState("trasera");
     const restablecimientosCvvEnProceso = useRef(new Set());
     const [datosSeguridad, setDatosSeguridad] = useState({
         numeroTarjeta: "0000000000000000",
@@ -181,35 +186,40 @@ function DesbloquearTarjeta() {
                 throw new Error(datosAnteriores.detail || "No se pudo consultar la tarjeta anterior.");
             }
 
-            const respuestaNueva = await fetch(
-                "http://127.0.0.1:8000/tarjeta/ultima",
+            const respuestaTarjetas = await fetch(
+                "http://127.0.0.1:8000/tarjetas/mias",
                 { method: "GET", headers }
             );
-            const datosNuevos = await respuestaNueva.json();
+            const tarjetasUsuario = await respuestaTarjetas.json();
 
-            if (!respuestaNueva.ok) {
-                throw new Error(datosNuevos.detail || "No se pudo consultar la tarjeta nueva.");
+            if (!respuestaTarjetas.ok) {
+                throw new Error(
+                    tarjetasUsuario.detail ||
+                    "No se pudieron consultar las tarjetas."
+                );
             }
 
-            const tarjetaAnterior = datosAnteriores;
-            const tarjetaUltima = datosNuevos.tarjeta;
-            setTarjeta(tarjetaAnterior);
-            setTarjetaNueva(
-                tarjetaUltima.id_tarjeta === tarjetaAnterior.id_tarjeta
-                    ? null
-                    : tarjetaUltima
-            );
+            if (!Array.isArray(tarjetasUsuario)) {
+                throw new Error("La respuesta de tarjetas no tiene un formato válido.");
+            }
+
+            const tarjetasOrdenadas = tarjetasUsuario.length
+                ? tarjetasUsuario
+                : [datosAnteriores];
+            const tarjetaPrincipal = tarjetasOrdenadas[0];
+            setTarjeta(tarjetaPrincipal);
+            setTarjetasAdicionales(tarjetasOrdenadas.slice(1));
             setDatosSeguridad({
-                numeroTarjeta: tarjetaAnterior.numero_tarjeta,
-                ultimosTres: tarjetaAnterior.ultimos_tres,
-                vencimiento: tarjetaAnterior.fecha_expiracion,
-                codigoSeguridad: tarjetaAnterior.codigo_seguridad
+                numeroTarjeta: tarjetaPrincipal.numero_tarjeta,
+                ultimosTres: tarjetaPrincipal.ultimos_tres,
+                vencimiento: tarjetaPrincipal.fecha_expiracion,
+                codigoSeguridad: tarjetaPrincipal.codigo_seguridad
             });
 
         } catch (error) {
             console.error(error);
             setTarjeta(null);
-            setTarjetaNueva(null);
+            setTarjetasAdicionales([]);
             setError(error.message || "No fue posible consultar el estado de la tarjeta.");
         } finally {
             setCargando(false);
@@ -275,11 +285,17 @@ function DesbloquearTarjeta() {
                 }));
                 setVistaTarjeta("trasera");
             } else {
-                setTarjetaNueva((actual) => ({
-                    ...actual,
-                    codigo_seguridad: datos.codigo_seguridad,
-                    cvv_restablecido: true
-                }));
+                setTarjetasAdicionales((actuales) =>
+                    actuales.map((tarjeta) =>
+                        tarjeta.id_tarjeta === tarjetaObjetivo.id_tarjeta
+                            ? {
+                                ...tarjeta,
+                                codigo_seguridad: datos.codigo_seguridad,
+                                cvv_restablecido: true
+                            }
+                            : tarjeta
+                    )
+                );
             }
             setMensaje(datos.mensaje || "El CVV fue restablecido correctamente.");
             return true;
@@ -307,16 +323,41 @@ function DesbloquearTarjeta() {
     const bloquearTarjeta = (idTarjeta) => {
         setError("");
         setMensaje("");
-        setPasswordBloqueo("");
+        setPasoBloqueo(1);
+        setMotivoBloqueo("");
+        setDatosBloqueo({ documento: "", vencimiento: "" });
         setTarjetaIdBloqueo(idTarjeta);
-        setSolicitandoPassword(true);
+        setSolicitandoDatosBloqueo(true);
+    };
+
+    const cerrarModalBloqueo = () => {
+        setSolicitandoDatosBloqueo(false);
+        setPasoBloqueo(1);
+        setMotivoBloqueo("");
+        setDatosBloqueo({ documento: "", vencimiento: "" });
     };
 
     const confirmarBloqueo = async (evento) => {
         evento.preventDefault();
 
-        if (!passwordBloqueo) {
-            setError("Ingresa tu contraseña para bloquear la tarjeta.");
+        if (pasoBloqueo === 1) {
+            if (!datosBloqueo.documento.trim()) {
+                setError("Ingresa tu número de documento.");
+                return;
+            }
+
+            if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(datosBloqueo.vencimiento)) {
+                setError("Selecciona la fecha de expiración del documento.");
+                return;
+            }
+
+            setError("");
+            setPasoBloqueo(2);
+            return;
+        }
+
+        if (!motivoBloqueo) {
+            setError("Selecciona el motivo del bloqueo.");
             return;
         }
 
@@ -333,7 +374,11 @@ function DesbloquearTarjeta() {
                         "Content-Type": "application/json",
                         Authorization: `Bearer ${localStorage.getItem("token")}`
                     },
-                    body: JSON.stringify({ password: passwordBloqueo })
+                    body: JSON.stringify({
+                        documento: datosBloqueo.documento.trim(),
+                        fecha_expiracion_documento: datosBloqueo.vencimiento,
+                        motivo: motivoBloqueo
+                    })
                 }
             );
 
@@ -351,9 +396,10 @@ function DesbloquearTarjeta() {
                     ? { ...tarjetaActual, estado: datos.estado || "bloqueada" }
                     : tarjetaActual;
             setTarjeta(actualizarEstado);
-            setTarjetaNueva(actualizarEstado);
-            setPasswordBloqueo("");
-            setSolicitandoPassword(false);
+            setTarjetasAdicionales((actuales) =>
+                actuales.map(actualizarEstado)
+            );
+            cerrarModalBloqueo();
         } catch (error) {
             console.error(error);
             setError(error.message);
@@ -382,6 +428,11 @@ function DesbloquearTarjeta() {
     const restableciendoCvvTarjetaActual = Boolean(
         tarjeta && restableciendoCvvIds.has(tarjeta.id_tarjeta)
     );
+    const [anioVencimientoVisible, mesVencimientoVisible] =
+        datosBloqueo.vencimiento.split("-");
+    const vencimientoVisible = anioVencimientoVisible && mesVencimientoVisible
+        ? `${mesVencimientoVisible}/${anioVencimientoVisible.slice(-2)}`
+        : "MM/AA";
 
     if (cargando) {
         return (
@@ -422,14 +473,7 @@ function DesbloquearTarjeta() {
                     {tarjeta ? (
                     <div className="tarjeta-box">
 
-                    <h1>
-                        Mi tarjeta bancaria
-                    </h1>
-
-                    <p className="tarjeta-descripcion">
-                        Consulta los datos de tu cuenta corriente y controla
-                        la seguridad de tu tarjeta.
-                    </p>
+                    <h2 className="tarjeta-titulo-nueva">Tarjeta principal</h2>
 
                     {error && (
                         <div className="tarjeta-error">
@@ -591,29 +635,30 @@ function DesbloquearTarjeta() {
                             </div>
                         </div>
                     )}
-                    {tarjeta && tarjetaNueva && (
+                    {tarjetasAdicionales.map((tarjetaAdicional) => (
                         <TarjetaAdicional
-                            tarjeta={tarjetaNueva}
+                            key={tarjetaAdicional.id_tarjeta}
+                            tarjeta={tarjetaAdicional}
                             onActualizar={actualizarTarjeta}
                             onRestablecerCvv={restablecerCvv}
                             onBloquear={bloquearTarjeta}
                             onDesbloquear={desbloquearTarjeta}
                             actualizando={actualizando}
-                            restableciendoCvv={restableciendoCvvIds.has(tarjetaNueva.id_tarjeta)}
+                            restableciendoCvv={restableciendoCvvIds.has(tarjetaAdicional.id_tarjeta)}
                             bloqueando={bloqueando}
                         />
-                    )}
+                    ))}
                 </div>
 
             </main>
 
-            {solicitandoPassword && (
+            {solicitandoDatosBloqueo && (
                 <div
                     className="modal-bloqueo-fondo"
                     role="presentation"
                     onMouseDown={(evento) => {
                         if (evento.target === evento.currentTarget && !bloqueando) {
-                            setSolicitandoPassword(false);
+                            cerrarModalBloqueo();
                         }
                     }}
                 >
@@ -624,35 +669,95 @@ function DesbloquearTarjeta() {
                         aria-labelledby="titulo-modal-bloqueo"
                     >
                         <h2 id="titulo-modal-bloqueo">Bloquear tarjeta</h2>
-                        <p>Confirma tu contraseña para bloquear tu tarjeta por completo.</p>
+                        <p>
+                            {pasoBloqueo === 1
+                                ? "Ingresa los datos de tu tarjeta para continuar."
+                                : "Selecciona el motivo del bloqueo."}
+                        </p>
+                        {error && <div className="tarjeta-error" role="alert">{error}</div>}
 
                         <form className="formulario-bloqueo" onSubmit={confirmarBloqueo}>
-                            <label htmlFor="password-bloqueo">Contraseña de usuario</label>
-                            <input
-                                id="password-bloqueo"
-                                type="text"
-                                value={passwordBloqueo}
-                                onChange={(evento) => setPasswordBloqueo(evento.target.value)}
-                                placeholder="Ingresa tu contraseña"
-                                autoComplete="current-password"
-                                autoFocus
-                                disabled={bloqueando}
-                            />
+                            {pasoBloqueo === 1 ? (
+                                <>
+                                    <label htmlFor="documento-bloqueo">Número de documento</label>
+                                    <input
+                                        id="documento-bloqueo"
+                                        type="text"
+                                        inputMode="numeric"
+                                        maxLength={50}
+                                        required
+                                        value={datosBloqueo.documento}
+                                        onChange={(evento) => setDatosBloqueo((actuales) => ({
+                                            ...actuales,
+                                            documento: evento.target.value
+                                        }))}
+                                        placeholder="Ingresa tu número de documento"
+                                        autoFocus
+                                        disabled={bloqueando}
+                                    />
+                                    <label htmlFor="vencimiento-bloqueo">Fecha de expiración del documento</label>
+                                    <div className="fecha-bloqueo-control">
+                                        <input
+                                            id="vencimiento-bloqueo"
+                                            type="month"
+                                            className="fecha-bloqueo-selector"
+                                            aria-label="Fecha de expiración del documento, mes y año"
+                                            required
+                                            value={datosBloqueo.vencimiento}
+                                            onChange={(evento) => setDatosBloqueo((actuales) => ({
+                                                ...actuales,
+                                                vencimiento: evento.target.value
+                                            }))}
+                                            disabled={bloqueando}
+                                        />
+                                        <span className="fecha-bloqueo-valor" aria-hidden="true">
+                                            {vencimientoVisible}
+                                        </span>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <label htmlFor="motivo-bloqueo">Motivo del bloqueo</label>
+                                    <select
+                                        id="motivo-bloqueo"
+                                        value={motivoBloqueo}
+                                        onChange={(evento) => setMotivoBloqueo(evento.target.value)}
+                                        required
+                                        autoFocus
+                                        disabled={bloqueando}
+                                    >
+                                        <option value="">Selecciona un motivo</option>
+                                        <option value="perdida">Pérdida</option>
+                                        <option value="robo">Robo</option>
+                                        <option value="sospecha_fraude">Sospecha de fraude</option>
+                                        <option value="otro">Otro</option>
+                                    </select>
+                                </>
+                            )}
                             <div className="modal-bloqueo-acciones">
                                 <button
                                     type="button"
                                     className="btn-cancelar-bloqueo"
-                                    onClick={() => setSolicitandoPassword(false)}
+                                    onClick={pasoBloqueo === 1
+                                        ? cerrarModalBloqueo
+                                        : () => {
+                                            setPasoBloqueo(1);
+                                            setError("");
+                                        }}
                                     disabled={bloqueando}
                                 >
-                                    Cancelar
+                                    {pasoBloqueo === 1 ? "Cancelar" : "Anterior"}
                                 </button>
                                 <button
                                     type="submit"
                                     className="btn-bloquear"
                                     disabled={bloqueando}
                                 >
-                                    {bloqueando ? "Bloqueando..." : "🔒 Confirmar bloqueo"}
+                                    {bloqueando
+                                        ? "Bloqueando..."
+                                        : pasoBloqueo === 1
+                                            ? "Siguiente"
+                                            : "🔒 Confirmar bloqueo"}
                                 </button>
                             </div>
                         </form>

@@ -3,7 +3,6 @@ import bcrypt
 from jose import JWTError, jwt
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from datetime import datetime, timedelta, timezone
 import logging
 import os
 import secrets
@@ -43,8 +42,6 @@ elif len(SECRET_KEY.encode("utf-8")) < 32:
     raise RuntimeError("SECRET_KEY debe contener al menos 32 bytes.")
 
 ALGORITHM = "HS256"
-
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 
 security = HTTPBearer(
@@ -87,13 +84,8 @@ def check_password(
 # =========================
 
 def generate_token(identity: int):
-    expire = datetime.now(timezone.utc) + timedelta(
-        minutes=ACCESS_TOKEN_EXPIRE_MINUTES
-    )
-
     payload = {
-        "sub": str(identity),
-        "exp": expire
+        "sub": str(identity)
     }
 
     token = jwt.encode(
