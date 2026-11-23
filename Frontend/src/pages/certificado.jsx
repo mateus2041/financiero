@@ -7,6 +7,7 @@ import FinancialSidebar from "../components/FinancialSidebar";
 import AssistantModal from "../components/AssistantModal";
 import useResponsiveMenu from "../hooks/useResponsiveMenu";
 import useModalDismissal from "../hooks/useModalDismissal";
+import logoProyecto from "../assets/images/logo.jpeg";
 import "../styles/Certificado.css";
 import "../styles/navegacionMovil.css";
 
@@ -42,6 +43,7 @@ const CertificadoBancario = () => {
     cuenta: "",
     tipoCuenta: "Ahorros",
     saldo: "0",
+    mostrarSaldo: false,
     fechaApertura: obtenerFechaLocal(),
     destinatario: "",
     ciudad: "Bogotá",
@@ -49,6 +51,7 @@ const CertificadoBancario = () => {
   });
   const [numeroCuentaConsultada, setNumeroCuentaConsultada] = useState("");
   const [tipoCuentaConsultada, setTipoCuentaConsultada] = useState("");
+  const [tiposCuentaDisponibles, setTiposCuentaDisponibles] = useState([]);
   const [cargandoCuentas, setCargandoCuentas] = useState(true);
   const [errorCuentas, setErrorCuentas] = useState("");
   const [borradorCertificado, setBorradorCertificado] = useState(usuario);
@@ -62,7 +65,6 @@ const CertificadoBancario = () => {
     const token = localStorage.getItem("token");
 
     if (!documentoGuardado || !token) {
-      navigate("/inicio");
       return;
     }
 
@@ -84,8 +86,9 @@ const CertificadoBancario = () => {
           tipoCuenta:
             tipoCuenta === "corriente" ? "Corriente" : "Ahorros",
           saldo: data.saldo
-            ? `$${Number(data.saldo).toLocaleString("es-CO")} COP`
-            : "$0 COP",
+            ? `$${Number(data.saldo).toLocaleString("es-CO")}`
+            : "$0",
+          mostrarSaldo: false,
           fechaApertura: data.fecha_apertura
             ? String(data.fecha_apertura).slice(0, 10)
             : obtenerFechaLocal(),
@@ -101,7 +104,8 @@ const CertificadoBancario = () => {
           documento: documentoGuardado,
           cuenta: "",
           tipoCuenta: "Ahorros",
-          saldo: "$0 COP",
+          saldo: "$0",
+          mostrarSaldo: false,
           fechaApertura: obtenerFechaLocal(),
           destinatario: "Usuario",
           ciudad: "Bogotá",
@@ -125,6 +129,7 @@ const CertificadoBancario = () => {
       setErrorCuentas("");
       setNumeroCuentaConsultada("");
       setTipoCuentaConsultada("");
+      setTiposCuentaDisponibles([]);
 
       try {
         const token = localStorage.getItem("token");
@@ -146,34 +151,72 @@ const CertificadoBancario = () => {
           );
         }
 
-        const campoNumero =
-          tipoCuentaSeleccionado === "corriente"
-            ? "cuenta_corriente_numero"
-            : "cuenta_ahorro_numero";
-        const numeroCuenta = data[campoNumero]
-          ? String(data[campoNumero]).trim()
-          : "";
+        if (consultaCancelada) return;
 
-        if (!numeroCuenta) {
+        const cuentasDisponibles = [
+          {
+            tipo: "ahorros",
+            etiqueta: "Ahorros",
+            numero: data.cuenta_ahorro_numero,
+            saldo: data.cuenta_ahorro,
+          },
+          {
+            tipo: "corriente",
+            etiqueta: "Corriente",
+            numero: data.cuenta_corriente_numero,
+            saldo: data.cuenta_corriente,
+          },
+        ].filter((cuenta) => String(cuenta.numero || "").trim());
+
+        setTiposCuentaDisponibles(
+          cuentasDisponibles.map((cuenta) => cuenta.etiqueta)
+        );
+
+        if (cuentasDisponibles.length === 0) {
           throw new Error(
-            `No tienes una cuenta ${tipoCuentaSeleccionado} activa en la base de datos.`
+            "No tienes cuentas de ahorros ni corrientes activas en la base de datos."
           );
         }
 
-        if (consultaCancelada) return;
+        const cuentaSeleccionada = cuentasDisponibles.find(
+          (cuenta) => cuenta.tipo === tipoCuentaSeleccionado
+        );
+
+        if (!cuentaSeleccionada) {
+          if (edicionAbierta) {
+            setBorradorCertificado((actual) => ({
+              ...actual,
+              tipoCuenta: cuentasDisponibles[0].etiqueta,
+              cuenta: "",
+            }));
+          } else {
+            setUsuario((actual) => ({
+              ...actual,
+              tipoCuenta: cuentasDisponibles[0].etiqueta,
+              cuenta: "",
+            }));
+          }
+          return;
+        }
+
+        const numeroCuenta = String(cuentaSeleccionada.numero).trim();
 
         setNumeroCuentaConsultada(numeroCuenta);
         setTipoCuentaConsultada(tipoCuentaSeleccionado);
+        const saldoCuenta = Number(cuentaSeleccionada.saldo) || 0;
+        const saldoFormateado = `$${saldoCuenta.toLocaleString("es-CO")}`;
 
         if (edicionAbierta) {
           setBorradorCertificado((actual) => ({
             ...actual,
             cuenta: numeroCuenta,
+            saldo: saldoFormateado,
           }));
         } else {
           setUsuario((actual) => ({
             ...actual,
             cuenta: numeroCuenta,
+            saldo: saldoFormateado,
           }));
         }
       } catch (error) {
@@ -274,6 +317,13 @@ const CertificadoBancario = () => {
         };
       }
 
+      if (name === "mostrarSaldo") {
+        return {
+          ...actual,
+          mostrarSaldo: value === "true",
+        };
+      }
+
       return { ...actual, [name]: value };
     });
   };
@@ -325,10 +375,11 @@ const CertificadoBancario = () => {
                 <h1>FINANCIERO</h1>
               </div>
 
-              <div className="empresa-box">
-                <p>UNA EMPRESA DEL</p>
-                <h3>FINANCIERO</h3>
-              </div>
+              <img
+                className="logo-certificado"
+                src={logoProyecto}
+                alt="Logo de Financiero"
+              />
 
             </div>
 
@@ -393,16 +444,25 @@ const CertificadoBancario = () => {
 
               </div>
 
+              <div className="fila">
+                <strong>Saldo:</strong>
+                <span>
+                  {usuario.mostrarSaldo ? usuario.saldo : "$0"}
+                </span>
+              </div>
+
             </div>
 
             {/* TEXTO FINAL */}
             <div className="texto-final">
 
               <p>
-                Esta constancia se expide con destino a{" "}
-                {usuario.destinatario}, realizada en el Canal Digital
-                de la ciudad de {usuario.ciudad}, el día{" "}
-                {fechaExpedicion}.
+                Esta constancia se expide
+                {usuario.destinatario.trim()
+                  ? ` con destino a ${usuario.destinatario.trim()}`
+                  : " a solicitud del interesado"}
+                . Fue realizada en el Canal Digital de la ciudad de{" "}
+                {usuario.ciudad}, el día {fechaExpedicion}.
               </p>
 
               <p className="cordialmente">
@@ -410,15 +470,12 @@ const CertificadoBancario = () => {
               </p>
 
               <div className="certificado-footer">
-
-                <p>
-                  Firma autorizada
+                <p
+                  className="firma-certificado"
+                  aria-label="Firma autorizada de Financiero"
+                >
+                  Financiero
                 </p>
-
-                <p>
-                  financiera
-                </p>
-
               </div>
 
             </div>
@@ -490,7 +547,8 @@ const CertificadoBancario = () => {
                 <input
                   name="nombre"
                   value={borradorCertificado.nombre}
-                  onChange={actualizarBorrador}
+                  readOnly
+                  disabled
                   required
                 />
               </label>
@@ -500,7 +558,8 @@ const CertificadoBancario = () => {
                 <input
                   name="documento"
                   value={borradorCertificado.documento}
-                  onChange={actualizarBorrador}
+                  readOnly
+                  disabled
                   required
                 />
               </label>
@@ -511,10 +570,34 @@ const CertificadoBancario = () => {
                   name="tipoCuenta"
                   value={borradorCertificado.tipoCuenta}
                   onChange={actualizarBorrador}
+                  disabled={
+                    cargandoCuentas || tiposCuentaDisponibles.length === 0
+                  }
                   required
                 >
-                  <option value="Ahorros">Ahorros</option>
-                  <option value="Corriente">Corriente</option>
+                  {tiposCuentaDisponibles.length === 0 && (
+                    <option value={borradorCertificado.tipoCuenta}>
+                      Sin cuentas activas
+                    </option>
+                  )}
+                  {tiposCuentaDisponibles.map((tipoCuenta) => (
+                    <option key={tipoCuenta} value={tipoCuenta}>
+                      {tipoCuenta}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                Saldo en el certificado
+                <select
+                  name="mostrarSaldo"
+                  value={String(borradorCertificado.mostrarSaldo)}
+                  onChange={actualizarBorrador}
+                  required
+                >
+                  <option value="false">Sin saldo</option>
+                  <option value="true">Con saldo</option>
                 </select>
               </label>
 
@@ -530,6 +613,7 @@ const CertificadoBancario = () => {
                       : ""
                   }
                   readOnly
+                  disabled
                   required
                 />
               </label>
@@ -540,18 +624,17 @@ const CertificadoBancario = () => {
                   name="fechaApertura"
                   type="date"
                   value={borradorCertificado.fechaApertura}
-                  onChange={actualizarBorrador}
+                  disabled
                   required
                 />
               </label>
 
               <label>
-                Destinatario
+                Destinatario (opcional)
                 <input
                   name="destinatario"
                   value={borradorCertificado.destinatario}
                   onChange={actualizarBorrador}
-                  required
                 />
               </label>
 
@@ -561,6 +644,7 @@ const CertificadoBancario = () => {
                   name="ciudad"
                   value={borradorCertificado.ciudad}
                   onChange={actualizarBorrador}
+                  disabled
                   required
                 />
               </label>

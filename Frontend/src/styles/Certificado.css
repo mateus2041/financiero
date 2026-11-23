@@ -27,6 +27,13 @@
   margin-bottom: 36px;
 }
 
+.logo-certificado {
+  width: 86px;
+  height: 86px;
+  flex: 0 0 86px;
+  object-fit: contain;
+}
+
 .logo-section h1 {
   color: #005baa;
   font-size: 36px;
@@ -140,8 +147,15 @@
 }
 
 .certificado-footer p {
-  font-size: 20px;
   margin: 5px 0;
+}
+
+.certificado-footer .firma-certificado {
+  color: #111;
+  font-family: "Brush Script MT", "Segoe Script", cursive;
+  font-size: 36px;
+  font-style: italic;
+  line-height: 1.4;
 }
 
 /* BOTÓN PDF */

@@ -4,7 +4,6 @@ from flask import Blueprint, request, jsonify
 from .dependencias import db, bcrypt
 from .database import Usuario
 from flask_jwt_extended import create_access_token
-from datetime import timedelta
 from Backend.email_service.email_service import crear_plantilla_email, enviar_correo
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -79,10 +78,10 @@ def login():
     if not usuario or not bcrypt.check_password_hash(usuario.password, password):
         return jsonify({'error': 'Credenciales inválidas'}), 401
 
-    # Token JWT (1 día)
+    # La sesión permanece activa hasta que el usuario cierre sesión.
     access_token = create_access_token(
         identity=usuario.id,
-        expires_delta=timedelta(days=1)
+        expires_delta=False
     )
 
     if getattr(usuario, 'email', None):
