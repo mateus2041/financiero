@@ -2620,12 +2620,17 @@ def eliminar_tarjeta_usuario(
     db: Session = Depends(get_db)
 ):
     tarjeta = db.query(Tarjeta).join(Cuenta).filter(
-        Tarjeta.id_tarjeta == id_tarjeta,
-        Cuenta.id_usuario == current_user
+        Tarjeta.id_tarjeta == id_tarjeta
     ).first()
 
     if not tarjeta:
         raise HTTPException(status_code=404, detail="Tarjeta no encontrada")
+
+    if current_user != tarjeta.cuenta.id_usuario:
+        administrador_o_asesor_requerido(
+            current_user=current_user,
+            db=db
+        )
 
     db.delete(tarjeta)
     db.commit()

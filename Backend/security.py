@@ -29,17 +29,22 @@ pwd_context = CryptContext(
 
 logger = logging.getLogger(__name__)
 APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
-SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
+SECRET_KEY = (
+    os.getenv("SECRET_KEY", "").strip()
+    or os.getenv("JWT_SECRET_KEY", "").strip()
+)
 
 if not SECRET_KEY:
     if APP_ENV != "development":
-        raise RuntimeError("SECRET_KEY es obligatoria fuera de desarrollo.")
+        raise RuntimeError(
+            "JWT_SECRET_KEY o SECRET_KEY es obligatoria fuera de desarrollo."
+        )
     SECRET_KEY = secrets.token_urlsafe(48)
     logger.warning(
         "SECRET_KEY no configurada; se usara una clave temporal de desarrollo."
     )
 elif len(SECRET_KEY.encode("utf-8")) < 32:
-    raise RuntimeError("SECRET_KEY debe contener al menos 32 bytes.")
+    raise RuntimeError("JWT_SECRET_KEY/SECRET_KEY debe contener al menos 32 bytes.")
 
 ALGORITHM = "HS256"
 

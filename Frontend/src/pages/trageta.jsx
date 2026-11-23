@@ -65,6 +65,7 @@ export default function TarjetasUsuario({ esAsesor = false }) {
   const [cargandoTarjetas, setCargandoTarjetas] = useState(true);
   const [errorTarjetas, setErrorTarjetas] = useState(false);
   const [tarjetaActualizando, setTarjetaActualizando] = useState(null);
+  const [modalEliminarTarjeta, setModalEliminarTarjeta] = useState(null);
   const [usuarios, setUsuarios] = useState([]);
   const [busquedaUsuario, setBusquedaUsuario] = useState("");
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
@@ -513,6 +514,86 @@ export default function TarjetasUsuario({ esAsesor = false }) {
     }
   };
 
+  const abrirModalEliminarTarjeta = (usuario, tarjeta) => {
+    if (!tarjeta || tarjeta.estado === "activa") {
+      return;
+    }
+
+    setMensaje("");
+    setModalEliminarTarjeta({
+      usuario,
+      tarjeta,
+      estado: "confirmacion",
+      mensaje: "",
+    });
+  };
+
+  const cerrarModalEliminarTarjeta = () => {
+    if (modalEliminarTarjeta?.estado === "eliminando") {
+      return;
+    }
+
+    setModalEliminarTarjeta(null);
+  };
+
+  const eliminarTarjeta = async () => {
+    if (!modalEliminarTarjeta || modalEliminarTarjeta.estado !== "confirmacion") {
+      return;
+    }
+
+    const { usuario, tarjeta } = modalEliminarTarjeta;
+    const tarjetaId = parsePositiveInteger(tarjeta.id_tarjeta);
+    if (tarjetaId === null) {
+      setModalEliminarTarjeta((actual) => ({
+        ...actual,
+        estado: "error",
+        mensaje: "El identificador de la tarjeta no es válido",
+      }));
+      return;
+    }
+
+    const ultimosDigitos = String(tarjeta.numero_tarjeta || "").slice(-4);
+    try {
+      setTarjetaActualizando(tarjetaId);
+      setModalEliminarTarjeta((actual) => ({
+        ...actual,
+        estado: "eliminando",
+        mensaje: "",
+      }));
+      const token = localStorage.getItem("token");
+
+      await axios.delete(`/tarjetas/${tarjetaId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setTarjetasPorUsuario((actuales) => ({
+        ...actuales,
+        [usuario.id_usuario]: (actuales[usuario.id_usuario] || []).filter(
+          (item) => parsePositiveInteger(item.id_tarjeta) !== tarjetaId
+        ),
+      }));
+      setModalEliminarTarjeta((actual) => ({
+        ...actual,
+        estado: "eliminada",
+        mensaje: ultimosDigitos
+          ? `La tarjeta terminada en ${ultimosDigitos} fue eliminada correctamente.`
+          : "La tarjeta fue eliminada correctamente.",
+      }));
+    } catch (error) {
+      console.error("Error al eliminar tarjeta:", error);
+      setModalEliminarTarjeta((actual) => ({
+        ...actual,
+        estado: "error",
+        mensaje:
+          error.response?.data?.detail || "No se pudo eliminar la tarjeta",
+      }));
+    } finally {
+      setTarjetaActualizando(null);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("rol");
@@ -956,16 +1037,18 @@ export default function TarjetasUsuario({ esAsesor = false }) {
                           <button
                             type="button"
                             className="boton-anadir-tarjeta"
-                            onClick={() =>
-                              cambiarEstadoTarjeta(usuario, tarjetaUsuario)
-                            }
+                            onClick={() => tarjetaUsuario.estado === "activa"
+                              ? cambiarEstadoTarjeta(usuario, tarjetaUsuario)
+                              : abrirModalEliminarTarjeta(usuario, tarjetaUsuario)}
                             disabled={actualizando}
                           >
                             {actualizando
-                              ? "Actualizando..."
+                              ? tarjetaUsuario.estado === "activa"
+                                ? "Actualizando..."
+                                : "Eliminando..."
                               : tarjetaUsuario.estado === "activa"
-                              ? "Inhabilitar tarjeta"
-                              : "Habilitar tarjeta"}
+                                ? "Inhabilitar tarjeta"
+                                : "Eliminar tarjeta"}
                           </button>
                         ) : null}
                       </td>
@@ -977,6 +1060,78 @@ export default function TarjetasUsuario({ esAsesor = false }) {
             </tbody>
           </table>
         </div>
+
+        {modalEliminarTarjeta && (
+          <div
+            className="modal-tarjeta-overlay"
+            role="presentation"
+            onClick={(evento) => {
+              if (evento.target === evento.currentTarget) {
+                cerrarModalEliminarTarjeta();
+              }
+            }}
+          >
+            <section
+              className="modal-tarjeta modal-eliminar-tarjeta"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="titulo-modal-eliminar-tarjeta"
+            >
+              <h2 id="titulo-modal-eliminar-tarjeta">
+                {modalEliminarTarjeta.estado === "eliminada"
+                  ? "Tarjeta eliminada"
+                  : modalEliminarTarjeta.estado === "error"
+                    ? "No se pudo eliminar"
+                    : "Eliminar tarjeta"}
+              </h2>
+              <p
+                className="cliente-modal-tarjeta"
+                role={modalEliminarTarjeta.estado === "error" ? "alert" : "status"}
+              >
+                {modalEliminarTarjeta.estado === "confirmacion"
+                  ? `¿Deseas eliminar la tarjeta terminada en ${String(
+                      modalEliminarTarjeta.tarjeta.numero_tarjeta || ""
+                    ).slice(-4)}? Esta acción no se puede deshacer.`
+                  : modalEliminarTarjeta.estado === "eliminando"
+                    ? "Eliminando tarjeta..."
+                    : modalEliminarTarjeta.mensaje}
+              </p>
+              {modalEliminarTarjeta.estado === "confirmacion" ||
+              modalEliminarTarjeta.estado === "eliminando" ? (
+                <div className="acciones-modal-eliminar-tarjeta">
+                  <button
+                    type="button"
+                    className="boton-cancelar-eliminar-tarjeta"
+                    onClick={cerrarModalEliminarTarjeta}
+                    disabled={modalEliminarTarjeta.estado === "eliminando"}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="boton-confirmar-eliminar-tarjeta"
+                    onClick={() => void eliminarTarjeta()}
+                    disabled={modalEliminarTarjeta.estado === "eliminando"}
+                  >
+                    {modalEliminarTarjeta.estado === "eliminando"
+                      ? "Eliminando..."
+                      : "Eliminar tarjeta"}
+                  </button>
+                </div>
+              ) : (
+                <div className="acciones-modal-eliminar-tarjeta">
+                  <button
+                    type="button"
+                    className="boton-confirmar-eliminar-tarjeta"
+                    onClick={cerrarModalEliminarTarjeta}
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
 
         {usuarioSeleccionado && (
           <div

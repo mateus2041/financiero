@@ -171,6 +171,43 @@ body {
   text-align: center;
 }
 
+.modal-eliminar-tarjeta .cliente-modal-tarjeta {
+  margin-bottom: 0;
+  line-height: 1.5;
+}
+
+.acciones-modal-eliminar-tarjeta {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.acciones-modal-eliminar-tarjeta button {
+  flex: 1;
+  padding: 11px 14px;
+  border: 1px solid #eab94b;
+  border-radius: 7px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.boton-cancelar-eliminar-tarjeta {
+  background: transparent;
+  color: #f5f5f5;
+}
+
+.boton-confirmar-eliminar-tarjeta {
+  background: #eab94b;
+  color: #121829;
+}
+
+.acciones-modal-eliminar-tarjeta button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 .cliente-modal-tarjeta {
   margin: 0 0 24px;
   color: #a8b3cf;

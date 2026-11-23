@@ -428,12 +428,6 @@ function DesbloquearTarjeta() {
     const restableciendoCvvTarjetaActual = Boolean(
         tarjeta && restableciendoCvvIds.has(tarjeta.id_tarjeta)
     );
-    const [anioVencimientoVisible, mesVencimientoVisible] =
-        datosBloqueo.vencimiento.split("-");
-    const vencimientoVisible = anioVencimientoVisible && mesVencimientoVisible
-        ? `${mesVencimientoVisible}/${anioVencimientoVisible.slice(-2)}`
-        : "MM/AA";
-
     if (cargando) {
         return (
             <div className="tarjeta-container">
@@ -710,9 +704,6 @@ function DesbloquearTarjeta() {
                                             }))}
                                             disabled={bloqueando}
                                         />
-                                        <span className="fecha-bloqueo-valor" aria-hidden="true">
-                                            {vencimientoVisible}
-                                        </span>
                                     </div>
                                 </>
                             ) : (

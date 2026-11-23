@@ -96,6 +96,32 @@ def test_usuario_puede_listar_sus_tarjetas(monkeypatch):
     engine.dispose()
 
 
+def test_administrador_puede_eliminar_tarjeta_de_cliente(monkeypatch):
+    client, db, _, engine = crear_contexto_tarjetas(
+        monkeypatch,
+        cuenta=("corriente", "activa"),
+    )
+    cuenta = db.query(Cuenta).one()
+    tarjeta = Tarjeta(
+        id_cuenta=cuenta.id_cuenta,
+        numero_tarjeta="1234567890123456",
+        fecha_expiracion="12/31",
+        codigo_seguridad="123",
+        estado="bloqueada",
+    )
+    db.add(tarjeta)
+    db.commit()
+    tarjeta_id = tarjeta.id_tarjeta
+
+    response = client.delete(f"/tarjetas/{tarjeta_id}")
+
+    assert response.status_code == 200, response.text
+    assert db.query(Tarjeta).filter_by(id_tarjeta=tarjeta_id).first() is None
+
+    db.close()
+    engine.dispose()
+
+
 def test_administrador_puede_agregar_tarjeta_a_cuenta_de_ahorros(monkeypatch):
     client, db, cliente, engine = crear_contexto_tarjetas(
         monkeypatch,
