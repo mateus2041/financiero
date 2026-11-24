@@ -46,4 +46,5 @@ npm run build
 - [Manual técnico](docs/GUIA_TECNICA.md)
 - [Manual de usuario](docs/MANUAL_USUARIO.md)
 - [Calidad ISO 25010](docs/CALIDAD.md)
+- [SonarQube Cloud](docs/SONARQUBE_CLOUD.md)
 - [Aceptación y entrega](docs/ACEPTACION_Y_ENTREGA.md)
