@@ -1,0 +1,161 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(to right, #0a0f2c, #0d1b3d);
+}
+
+.recovery-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.recovery-form-box {
+  width: 350px;
+  background-color: rgba(15, 26, 53, 0.95);
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+  color: white;
+}
+
+.recovery-form-box h1 {
+  text-align: center;
+  color: #f5c542;
+  margin-bottom: 15px;
+}
+
+.recovery-form-box p {
+  text-align: center;
+  color: #d1d5db;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.recovery-form-box label {
+  display: block;
+  margin-top: 10px;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.recovery-form-box input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #555;
+  background-color: #f4f7ff;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  caret-color: #111827;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.recovery-form-box input:-webkit-autofill,
+.recovery-form-box input:-webkit-autofill:hover,
+.recovery-form-box input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 30px #f4f7ff inset !important;
+  -webkit-text-fill-color: #111827 !important;
+  caret-color: #111827;
+}
+
+.recovery-form-box input::placeholder {
+  color: #bdbdbd;
+}
+
+.recovery-form-box .btn {
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px;
+  background-color: #000;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: background-color 0.3s;
+}
+
+.recovery-form-box .btn:hover {
+  background-color: #1f2937;
+}
+
+.back-login {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.back-login a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.back-login a:hover {
+  text-decoration: underline;
+}
+
+.back-login button {
+  border: 0;
+  background: transparent;
+  color: #3b82f6;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.message {
+  margin-top: 15px;
+  text-align: center;
+  color: #22c55e;
+  font-size: 14px;
+}
+
+.error {
+  margin-top: 15px;
+  text-align: center;
+  color: #ef4444;
+  font-size: 14px;
+}
+
+.recovery-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(3, 8, 24, 0.78);
+  overflow-y: auto;
+}
+
+.recovery-modal {
+  position: relative;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  border-radius: 15px;
+}
+
+.recovery-modal-content .recovery-container {
+  height: auto;
+}
+
+.recovery-modal-content .recovery-form-box {
+  width: min(350px, calc(100vw - 40px));
+}
+
+.recovery-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 1;
+  border: 0;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  font-size: 28px;
+  line-height: 1;
+}

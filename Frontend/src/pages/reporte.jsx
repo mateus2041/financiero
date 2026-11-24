@@ -1,0 +1,400 @@
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import axios from "axios";
+import AsistenteMovil from "../components/AsistenteMovil";
+import FinancialSidebar from "../components/FinancialSidebar";
+import AssistantModal from "../components/AssistantModal";
+import useResponsiveMenu from "../hooks/useResponsiveMenu";
+import useModalDismissal from "../hooks/useModalDismissal";
+import "../styles/reporta.css";
+import "../styles/navegacionMovil.css";
+
+function Reporte() {
+  const [reporte, setReporte] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [mensaje, setMensaje] = useState("");
+
+  const [openCertificado, setOpenCertificado] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useResponsiveMenu();
+  const [asistenteAbierto, setAsistenteAbierto] = useState(false);
+
+  useModalDismissal(asistenteAbierto, setAsistenteAbierto);
+
+  const generarReporte = async () => {
+    try {
+      setLoading(true);
+      setMensaje("");
+
+      const token = localStorage.getItem("token");
+
+      const historialLocal = JSON.parse(
+        localStorage.getItem("historial_transferencias") || "[]"
+      );
+
+      const historialAnterior = JSON.parse(
+        localStorage.getItem("historial") || "[]"
+      );
+
+      const respuesta = await axios.get(
+        "http://127.0.0.1:8000/transacciones",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const datos = respuesta.data;
+
+      const lista = Array.isArray(datos)
+        ? datos
+        : datos.transacciones || datos.data || [];
+
+      const transacciones = [
+        ...historialLocal,
+        ...historialAnterior,
+        ...lista,
+      ];
+
+      setReporte(transacciones);
+
+      if (transacciones.length === 0) {
+        setMensaje("No hay transacciones para generar el reporte.");
+      }
+    } catch (error) {
+      console.error("Error al generar el reporte:", error);
+
+      const historialLocal = JSON.parse(
+        localStorage.getItem("historial_transferencias") || "[]"
+      );
+
+      const historialAnterior = JSON.parse(
+        localStorage.getItem("historial") || "[]"
+      );
+
+      const historialCompleto = [
+        ...historialLocal,
+        ...historialAnterior,
+      ];
+
+      setReporte(historialCompleto);
+
+      setMensaje(
+        historialCompleto.length > 0
+          ? "Reporte generado localmente. Los movimientos antiguos pueden no tener el destino guardado."
+          : error.response?.data?.detail ||
+            "No se pudo obtener el reporte."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatearFecha = (fecha) => {
+    if (!fecha) return "Fecha no disponible";
+
+    const fechaConvertida = new Date(fecha);
+
+    if (Number.isNaN(fechaConvertida.getTime())) {
+      return fecha;
+    }
+
+    return fechaConvertida.toLocaleString("es-CO", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const obtenerTipo = (transaccion) => {
+    const tipo = String(
+      transaccion.tipo ||
+        transaccion.tipo_transaccion ||
+        transaccion.type ||
+        ""
+    ).toLowerCase();
+
+    return tipo.includes("ingreso") ||
+      tipo.includes("recib") ||
+      tipo.includes("deposit")
+      ? "Ingreso"
+      : "Salida";
+  };
+
+  const obtenerDescripcion = (transaccion) => {
+    return (
+      transaccion.descripcion ||
+      transaccion.concepto ||
+      transaccion.nombre ||
+      transaccion.destinatario ||
+      transaccion.remitente ||
+      "Transacción"
+    );
+  };
+
+  const obtenerOrigen = (transaccion) => {
+    const origen = String(transaccion.origen || "").toLowerCase();
+    const tipo = String(transaccion.tipo || "").toLowerCase();
+    const descripcion = String(transaccion.descripcion || "").toLowerCase();
+    const estado = String(transaccion.estado || "").toLowerCase();
+
+    if (
+      origen.includes("bre-b") ||
+      origen.includes("llave") ||
+      descripcion.includes("bre-b") ||
+      descripcion.includes("llave") ||
+      estado === "procesada"
+    ) {
+      return "Llave Bre-B";
+    }
+
+    if (
+      origen.includes("cuenta") ||
+      estado === "exitosa" ||
+      tipo.includes("transferencia") ||
+      tipo.includes("ingreso") ||
+      descripcion.includes("transferencia")
+    ) {
+      return "Transferencia entre cuentas";
+    }
+
+    return "-";
+  };
+
+  const obtenerMonto = (transaccion) =>
+    Number(
+      transaccion.monto ||
+        transaccion.valor ||
+        transaccion.amount ||
+        0
+    );
+
+  const obtenerDestino = (transaccion) => {
+    const destino =
+      transaccion.destino ||
+      transaccion.cuenta_destino ||
+      transaccion.destinatario ||
+      transaccion.llave_destino;
+
+    if (destino) return destino;
+
+    const origen = obtenerOrigen(transaccion);
+    if (origen === "Llave Bre-B") return "Destinatario no guardado";
+    if (origen === "Transferencia entre cuentas") {
+      return "Cuenta destino no guardada";
+    }
+
+    return "-";
+  };
+
+  const formatoDinero = (valor) => {
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(valor);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("documento");
+    window.location.href = "/login";
+  };
+  return (
+  
+  
+      <div className="panel-financiero">
+
+        <button
+          type="button"
+          className={`menu-hamburguesa ${menuAbierto ? "activo" : ""}`}
+          onClick={() => setMenuAbierto((actual) => !actual)}
+          aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+          aria-expanded={menuAbierto}
+        >
+          ☰
+        </button>
+
+        <AsistenteMovil onClick={() => setAsistenteAbierto(true)} />
+  
+        <FinancialSidebar
+          menuAbierto={menuAbierto}
+          onLogout={handleLogout}
+          onAssistantOpen={() => setAsistenteAbierto(true)}
+          breBFirst
+        />
+
+      <main className="reporte-container">
+
+        <h1>Reporte de Transacciones</h1>
+
+        <div className="reporte-card">
+
+          <h2>Generar reporte en tiempo real</h2>
+
+          <p>
+            Consulta las transacciones actuales de tu cuenta.
+          </p>
+
+          <button
+            className="btn-reporte"
+            onClick={generarReporte}
+            disabled={loading}
+          >
+            {loading
+              ? "Generando..."
+              : "Generar reporte"}
+          </button>
+
+          {mensaje && (
+            <p className="mensaje-reporte">
+              {mensaje}
+            </p>
+          )}
+
+        </div>
+
+        {reporte.length > 0 && (
+          <div className="tabla-reporte">
+
+            <h2>Reporte actualizado</h2>
+
+            <table>
+
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Descripción</th>
+                  <th>Tipo</th>
+                  <th>Origen</th>
+                  <th>Destino</th>
+                  <th>Monto</th>
+                </tr>
+              </thead>
+
+              <tbody>
+
+                {reporte.map(
+                  (transaccion, index) => (
+
+                    <tr
+                      key={
+                        transaccion.id ||
+                        transaccion.id_transaccion ||
+                        index
+                      }
+                    >
+
+                      <td>
+                        {formatearFecha(
+                          transaccion.fecha ||
+                            transaccion.fecha_transaccion ||
+                            transaccion.created_at
+                        )}
+                      </td>
+
+                      <td className="descripcion-reporte">
+                        {obtenerDescripcion(
+                          transaccion
+                        )}
+                      </td>
+
+                      <td>
+                        {obtenerTipo(
+                          transaccion
+                        )}
+                      </td>
+
+                      <td>
+                        {obtenerOrigen(transaccion)}
+                      </td>
+
+                      <td>
+                        {obtenerDestino(transaccion)}
+                      </td>
+
+                      <td>
+                        {formatoDinero(
+                          obtenerMonto(
+                            transaccion
+                          )
+                        )}
+                      </td>
+
+                    </tr>
+
+                  )
+                )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+        )}
+
+      </main>
+
+      {openCertificado && (
+        <div
+          className="modal-certificado-overlay"
+          role="presentation"
+          onMouseDown={(evento) => {
+            if (evento.target === evento.currentTarget) setOpenCertificado(false);
+          }}
+        >
+          <section
+            className="modal-contenido"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reporte-certificado-titulo"
+          >
+            <button
+              type="button"
+              className="modal-certificado-cerrar"
+              aria-label="Cerrar modal de certificado"
+              onClick={() => setOpenCertificado(false)}
+            >
+              ×
+            </button>
+
+            <h2 id="reporte-certificado-titulo">Certificado Bancario</h2>
+
+            <p>
+              Puedes consultar tu certificado bancario desde la sección correspondiente.
+            </p>
+
+            <div className="modal-certificado-acciones">
+              <button
+                type="button"
+                className="modal-certificado-secundario"
+                onClick={() => setOpenCertificado(false)}
+              >
+                Cancelar
+              </button>
+
+              <Link
+                to="/certificado"
+                className="modal-certificado-principal"
+                onClick={() => setOpenCertificado(false)}
+              >
+                Ver certificado
+              </Link>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {asistenteAbierto && (
+        <AssistantModal onClose={() => setAsistenteAbierto(false)} />
+      )}
+
+    </div>
+  );
+}
+
+export default Reporte;

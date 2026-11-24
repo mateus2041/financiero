@@ -1,0 +1,564 @@
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Login from "./login";
+import Recuperacion from "./recuperacion";
+import "../styles/registro.css";
+import { validateEmail } from "../utils/helpers";
+
+const obtenerMensajeError = (detalle) => {
+  if (typeof detalle === "string") {
+    return detalle;
+  }
+
+  if (Array.isArray(detalle)) {
+    return detalle.map(obtenerMensajeError).filter(Boolean).join(" ");
+  }
+
+  if (detalle && typeof detalle === "object") {
+    if (detalle.msg || detalle.message) {
+      return obtenerMensajeError(detalle.msg || detalle.message);
+    }
+
+    return JSON.stringify(detalle);
+  }
+
+  return detalle == null ? "No se pudo completar el registro." : String(detalle);
+};
+
+function Registro({ isModal = false, onClose }) {
+  const navigate = useNavigate();
+
+  const [paso, setPaso] = useState(1);
+
+  const [tipo, setTipo] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [email, setEmail] = useState("");
+  const [documento, setDocumento] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [password, setPassword] = useState("");
+
+  // Nuevos campos
+  const [direccion, setDireccion] = useState("");
+  const [fechaExpedicion, setFechaExpedicion] = useState("");
+  const [fechaNacimiento, setFechaNacimiento] = useState("");
+  const [ciudad, setCiudad] = useState("");
+  const [localidad, setLocalidad] = useState("");
+  const [barrio, setBarrio] = useState("");
+  const [codigoCorrespondencia, setCodigoCorrespondencia] = useState("");
+  const [codigoRegistro, setCodigoRegistro] = useState("");
+  const [mostrarOpciones, setMostrarOpciones] = useState(false);
+  const [mostrarLogin, setMostrarLogin] = useState(false);
+  const [mostrarRecuperacion, setMostrarRecuperacion] = useState(false);
+
+  const [mensaje, setMensaje] = useState("");
+  const [ubicacionesPorCiudad, setUbicacionesPorCiudad] = useState({});
+  const [cargandoUbicaciones, setCargandoUbicaciones] = useState(true);
+  const [errorUbicaciones, setErrorUbicaciones] = useState("");
+  const [registrando, setRegistrando] = useState(false);
+
+  useEffect(() => {
+    const cargarUbicaciones = async () => {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/ubicaciones");
+        if (!res.ok) {
+          throw new Error("No fue posible cargar las ubicaciones");
+        }
+        setUbicacionesPorCiudad(await res.json());
+      } catch (error) {
+        console.error(error);
+        setErrorUbicaciones("No se pudieron cargar las ubicaciones. Intenta nuevamente más tarde.");
+      } finally {
+        setCargandoUbicaciones(false);
+      }
+    };
+
+    void cargarUbicaciones();
+  }, []);
+
+  const ciudades = Object.keys(ubicacionesPorCiudad);
+  const localidadesDisponibles = ciudad
+    ? Object.keys(ubicacionesPorCiudad[ciudad] || {})
+    : [];
+  const barriosDisponibles = ciudad && localidad
+    ? ubicacionesPorCiudad[ciudad]?.[localidad] || []
+    : [];
+
+  const siguiente = () => {
+    if (!nombre.trim() || !email.trim() || !tipo || !documento.trim() || !telefono.trim() || !password) {
+      setMensaje("Completa todos los campos");
+      return;
+    }
+
+    if (!validateEmail(email.trim())) {
+      setMensaje("Ingresa un correo electrónico válido");
+      return;
+    }
+
+    if (password.length < 8) {
+      setMensaje("La contraseña debe tener al menos 8 caracteres");
+      return;
+    }
+
+    if (!/^\d+$/.test(documento.trim())) {
+      setMensaje("El número de documento solo debe contener números");
+      return;
+    }
+
+    setMensaje("");
+    setPaso(2);
+  };
+
+  const registrar = async () => {
+    if (!direccion.trim() || !ciudad || !localidad || !barrio || !codigoCorrespondencia.trim()) {
+      setMensaje("Completa todos los campos");
+      return;
+    }
+
+    if (!/^\d{6}$/.test(codigoCorrespondencia.trim())) {
+      setMensaje("El código postal debe tener 6 números");
+      return;
+    }
+
+    try {
+      setRegistrando(true);
+      const res = await fetch("http://127.0.0.1:8000/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nombre: nombre.trim(),
+          email: email.trim(),
+          documento: documento.trim(),
+          telefono,
+          password,
+          tipo_documento: tipo,
+          ciudad,
+          direccion: direccion.trim(),
+          localidad,
+          barrio,
+          codigo_correspondencia: codigoCorrespondencia,
+        }),
+      });
+
+      const respuesta = await res.text();
+      let data;
+      try {
+        data = respuesta ? JSON.parse(respuesta) : {};
+      } catch {
+        setMensaje(
+          `El servidor devolvió una respuesta inválida (HTTP ${res.status}).`
+        );
+        return;
+      }
+
+      if (!res.ok) {
+        const detalle =
+          data && typeof data === "object"
+            ? data.detail || data.message
+            : null;
+        setMensaje(
+          detalle
+            ? obtenerMensajeError(detalle)
+            : `No se pudo completar el registro (HTTP ${res.status}).`
+        );
+        return;
+      }
+
+      setMensaje(
+        "Registro enviado ✅. Tu solicitud queda pendiente de aprobación."
+      );
+      setCodigoRegistro(data.codigo_registro);
+      setMostrarOpciones(true);
+    } catch (error) {
+      console.error(error);
+      setMensaje("No se pudo conectar con el servidor. Inténtalo nuevamente.");
+    } finally {
+      setRegistrando(false);
+    }
+  };
+
+  return (
+    <div className={isModal ? "container registro-modal-container" : "container"}>
+      <div className="form-box">
+        {isModal && onClose && (
+          <button
+            type="button"
+            className="registro-modal-close"
+            aria-label="Cerrar registro"
+            onClick={onClose}
+          >
+            ×
+          </button>
+        )}
+
+        <h1>REGISTRO</h1>
+
+        {codigoRegistro && (
+          <p className="codigo-registro">
+            Tu código de registro es: <strong>{codigoRegistro}</strong>
+          </p>
+        )}
+
+        {paso === 1 && (
+          <>
+            <label htmlFor="registro-nombre">Nombre completo</label>
+            <input
+              id="registro-nombre"
+              name="nombre"
+              autoComplete="name"
+              type="text"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+            />
+
+            <label htmlFor="registro-email">Correo electrónico</label>
+            <input
+              id="registro-email"
+              name="email"
+              autoComplete="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            <label htmlFor="registro-tipo-documento">Tipo de documento</label>
+            <select
+              id="registro-tipo-documento"
+              value={tipo}
+              onChange={(e) => setTipo(e.target.value)}
+            >
+              <option value="">Seleccione documento</option>
+              <option value="cc">Cédula</option>
+              <option value="ti">Tarjeta de Identidad</option>
+              <option value="ce">Cédula de Extranjería</option>
+            </select>
+
+            <label htmlFor="registro-documento">Número de documento</label>
+            <input
+              id="registro-documento"
+              name="documento"
+              autoComplete="off"
+              type="text"
+              inputMode="numeric"
+              value={documento}
+              onChange={(e) => setDocumento(e.target.value)}
+            />
+
+            <label htmlFor="registro-telefono">Número teléfono</label>
+            <input
+              id="registro-telefono"
+              name="telefono"
+              autoComplete="tel"
+              type="text"
+              value={telefono}
+              onChange={(e) => setTelefono(e.target.value)}
+            />
+
+            <label htmlFor="registro-password">Contraseña</label>
+            <input
+              id="registro-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+
+            <button className="btn" onClick={siguiente}>
+              Siguiente
+            </button>
+          </>
+        )}
+
+        {paso === 2 && (
+          <>
+            <label htmlFor="registro-ciudad">Ciudad</label>
+            <select
+              id="registro-ciudad"
+              value={ciudad}
+              disabled={cargandoUbicaciones || !!errorUbicaciones}
+              onChange={(e) => {
+                setCiudad(e.target.value);
+                setLocalidad("");
+                setBarrio("");
+              }}
+            >
+              <option value="">
+                {cargandoUbicaciones
+                  ? "Cargando ciudades..."
+                  : ciudades.length
+                    ? "Seleccione una ciudad"
+                    : "No hay ciudades disponibles"}
+              </option>
+              {ciudades.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+
+            <label htmlFor="registro-localidad">Localidad</label>
+            <select
+              id="registro-localidad"
+              value={localidad}
+              onChange={(e) => {
+                setLocalidad(e.target.value);
+                setBarrio("");
+              }}
+              disabled={!ciudad}
+            >
+              <option value="">Seleccione una localidad</option>
+              {localidadesDisponibles.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+
+            <label htmlFor="registro-barrio">Barrio</label>
+            <select
+              id="registro-barrio"
+              value={barrio}
+              onChange={(e) => setBarrio(e.target.value)}
+              disabled={!localidad}
+            >
+              <option value="">Seleccione un barrio</option>
+              {barriosDisponibles.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+
+            {errorUbicaciones && (
+              <p role="alert" className="error-message">
+                {errorUbicaciones}
+              </p>
+            )}
+
+            <label htmlFor="registro-codigo-postal">Código postal </label>
+            <input
+              id="registro-codigo-postal"
+              name="codigoPostal"
+              autoComplete="postal-code"
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={codigoCorrespondencia}
+              onChange={(e) => setCodigoCorrespondencia(
+                e.target.value.replace(/\D/g, "")
+              )}
+            />
+
+            <label htmlFor="registro-direccion">Dirección</label>
+            <input
+              id="registro-direccion"
+              name="direccion"
+              autoComplete="street-address"
+              type="text"
+              value={direccion}
+              onChange={(e) => setDireccion(e.target.value)}
+            />
+
+            <label htmlFor="registro-fecha-expedicion">
+              Fecha de expedición del documento
+            </label>
+            <input
+              id="registro-fecha-expedicion"
+              name="fecha_expedicion"
+              type="date"
+              value={fechaExpedicion}
+              onChange={(e) => setFechaExpedicion(e.target.value)}
+            />
+
+            <label htmlFor="registro-fecha-nacimiento">
+              Fecha de nacimiento
+            </label>
+            <input
+              id="registro-fecha-nacimiento"
+              name="fecha_nacimiento"
+              type="date"
+              value={fechaNacimiento}
+              onChange={(e) => setFechaNacimiento(e.target.value)}
+            />
+
+            <div
+              className="registro-actions"
+              style={{
+                display: "flex",
+                gap: "10px",
+                marginTop: "20px",
+              }}
+            >
+              <button
+                className="btn"
+                onClick={() => setPaso(1)}
+              >
+                Atrás
+              </button>
+
+              <button
+                className="btn"
+                onClick={registrar}
+                disabled={registrando}
+              >
+                {registrando ? "Registrando..." : "Registrar"}
+              </button>
+            </div>
+          </>
+        )}
+
+        {mensaje && (
+          <p
+            style={{
+              color: mensaje.includes("✅") ? "green" : "red",
+              fontWeight: "bold",
+              marginTop: "15px",
+            }}
+          >
+            {mensaje}
+          </p>
+        )}
+
+        <div className="registro-enlaces">
+          <p className="login">
+            ¿Ya tienes cuenta?{" "}
+            <a
+              href="#login"
+              onClick={(e) => {
+                e.preventDefault();
+                setMostrarLogin(true);
+              }}
+            >
+              Inicia sesión aquí
+            </a>
+          </p>
+
+          <p className="login">
+            ¿Olvidaste tu contraseña?{" "}
+            <a
+              href="#recuperacion"
+              onClick={(e) => {
+                e.preventDefault();
+                setMostrarRecuperacion(true);
+              }}
+            >
+              Recupérala aquí
+            </a>
+          </p>
+        </div>
+
+        <div className="footer">
+          <p>
+            © {new Date().getFullYear()} Financiero. Todos los
+            términos de confidencialidad.
+          </p>
+        </div>
+      </div>
+
+      {mostrarOpciones && (
+        <div
+          className="registro-opciones-overlay"
+          role="presentation"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setMostrarOpciones(false);
+          }}
+        >
+          <div
+            className="registro-opciones-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="registro-opciones-titulo"
+          >
+            <button
+              type="button"
+              className="registro-opciones-cerrar"
+              aria-label="Cerrar ventana"
+              onClick={() => setMostrarOpciones(false)}
+            >
+              ×
+            </button>
+
+            <h2 id="registro-opciones-titulo">¿Qué deseas hacer?</h2>
+
+            <p className="login">
+              ¿ya tiene cuenta?{" "}
+              <a
+                href="#login"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMostrarLogin(true);
+                }}
+              >
+                Inicia sesión aquí
+              </a>
+            </p>
+
+            <p className="login">
+              ¿Olvidaste tu contraseña?{" "}
+              <a
+                href="#recuperacion"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMostrarRecuperacion(true);
+                }}
+              >
+                Recupérala aquí
+              </a>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {mostrarLogin && (
+        <div
+          className="registro-opciones-overlay"
+          role="presentation"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setMostrarLogin(false);
+          }}
+        >
+          <div
+            className="registro-login-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Inicio de sesión"
+          >
+            <button
+              type="button"
+              className="registro-opciones-cerrar"
+              aria-label="Cerrar inicio de sesión"
+              onClick={() => setMostrarLogin(false)}
+            >
+              ×
+            </button>
+            <Login isModal />
+          </div>
+        </div>
+      )}
+
+      {mostrarRecuperacion && (
+        <div
+          className="registro-opciones-overlay"
+          role="presentation"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setMostrarRecuperacion(false);
+          }}
+        >
+          <div
+            className="registro-recovery-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Recuperar contraseña"
+          >
+            <Recuperacion
+              isModal
+              onClose={() => setMostrarRecuperacion(false)}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default Registro;

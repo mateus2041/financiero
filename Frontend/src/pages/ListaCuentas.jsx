@@ -1,0 +1,1571 @@
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  groupDigitsByThousands,
+  sanitizeLocalText,
+} from "../utils/helpers";
+import {
+  crearMensajeAdmin,
+  leerMensajesAdmin,
+} from "../utils/adminMessages";
+import "../styles/ListaCuentas.css";
+import logoProyecto from "../assets/images/logo.jpeg";
+
+const API_URL = "http://localhost:8000";
+
+const obtenerMensajeError = (error, mensajePredeterminado) => {
+  const detalle = error.response?.data?.detail;
+
+  if (Array.isArray(detalle)) {
+    return detalle
+      .map((item) => item?.msg || item?.message || String(item))
+      .join(" ");
+  }
+
+  if (detalle && typeof detalle === "object") {
+    return detalle.msg || detalle.message || JSON.stringify(detalle);
+  }
+
+  return detalle || mensajePredeterminado;
+};
+
+export default function ListaCuentas() {
+  const navigate = useNavigate();
+
+  const rol = String(localStorage.getItem("rol") || "")
+    .trim()
+    .toLowerCase();
+
+  const esAsesor = rol === "asesor";
+
+  const [cuentas, setCuentas] = useState([]);
+  const [busquedaCuenta, setBusquedaCuenta] = useState("");
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState("");
+  const [mensaje, setMensaje] = useState("");
+  const [cuentaSeleccionada, setCuentaSeleccionada] = useState(null);
+  const [cuentaSaldoSeleccionada, setCuentaSaldoSeleccionada] =
+    useState(null);
+
+  const [autorizandoSaldo, setAutorizandoSaldo] = useState(false);
+  const [editandoSaldo, setEditandoSaldo] = useState(false);
+  const [nuevoSaldo, setNuevoSaldo] = useState("");
+  const [codigoAutorizacion, setCodigoAutorizacion] = useState("");
+  const [guardandoSaldo, setGuardandoSaldo] = useState(false);
+
+  const [autorizandoTipoOperacion, setAutorizandoTipoOperacion] =
+    useState(false);
+  const [editandoTipoOperacion, setEditandoTipoOperacion] = useState(false);
+  const [nuevoTipoOperacion, setNuevoTipoOperacion] = useState("");
+
+  const [usuarioNuevaCuenta, setUsuarioNuevaCuenta] = useState(null);
+  const [opcionNuevaCuenta, setOpcionNuevaCuenta] = useState("ahorros");
+  const [guardandoCuenta, setGuardandoCuenta] = useState(false);
+  const [mostrarMensajeAdmin, setMostrarMensajeAdmin] = useState(false);
+  const [mensajeAdmin, setMensajeAdmin] = useState("");
+  const [imagenMensaje, setImagenMensaje] = useState(null);
+  const [previewImagenMensaje, setPreviewImagenMensaje] = useState("");
+
+  const [menuAbierto, setMenuAbierto] = useState(true);
+  const [esMovil, setEsMovil] = useState(() => window.innerWidth <= 650);
+
+  useEffect(() => {
+    void cargarCuentas();
+  }, []);
+
+  useEffect(() => {
+    const actualizarEstadoMenu = () => {
+      const movil = window.innerWidth <= 650;
+      setEsMovil(movil);
+      setMenuAbierto(!movil);
+    };
+
+    actualizarEstadoMenu();
+    window.addEventListener("resize", actualizarEstadoMenu);
+
+    return () => window.removeEventListener("resize", actualizarEstadoMenu);
+  }, []);
+
+  const normalizarTexto = (valor) =>
+    String(valor || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+
+  const cuentasFiltradas = cuentas.filter((cuenta) => {
+    const textoBusqueda = normalizarTexto(busquedaCuenta.trim());
+
+    if (!textoBusqueda) {
+      return true;
+    }
+
+    return [
+      cuenta.nombre,
+      cuenta.numero_cuenta,
+      cuenta.tipo_cuenta,
+      cuenta.estado,
+      cuenta.id_cuenta,
+      cuenta.usuario,
+      cuenta.rol,
+      cuenta.usuario?.nombre,
+      cuenta.usuario?.documento,
+    ].some((valor) =>
+      normalizarTexto(valor).includes(textoBusqueda)
+    );
+  });
+
+  const cargarCuentas = async () => {
+    try {
+      setCargando(true);
+      setError("");
+      setMensaje("");
+
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        navigate("/");
+        return;
+      }
+
+      const respuesta = await axios.get(
+        `${API_URL}/administradores/cuentas`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const cuentasRecibidas = Array.isArray(respuesta.data)
+        ? respuesta.data
+        : respuesta.data?.cuentas || [];
+
+      const cuentasUsuario = cuentasRecibidas.filter((cuenta) => {
+        const rolCuenta = String(
+          cuenta.rol || cuenta.usuario?.rol || cuenta.role || ""
+        )
+          .trim()
+          .toLowerCase();
+
+        return rolCuenta === "" || rolCuenta === "usuario";
+      });
+
+      setCuentas(cuentasUsuario);
+    } catch (error) {
+      console.error("Error al cargar las cuentas:", error);
+
+      setError(
+        obtenerMensajeError(
+          error,
+          "No se pudieron cargar las cuentas."
+        )
+      );
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const cambiarEstadoCuenta = async (idCuenta, estado) => {
+    try {
+      setError("");
+      setMensaje("");
+
+      const token = localStorage.getItem("token");
+
+      const accion =
+        estado === "activa" ? "habilitar" : "deshabilitar";
+
+      const respuesta = await axios.put(
+        `${API_URL}/asesor-bancario/cuenta/${idCuenta}/${accion}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setCuentas((cuentasActuales) =>
+        cuentasActuales.map((cuenta) =>
+          cuenta.id_cuenta === idCuenta
+            ? { ...cuenta, estado }
+            : cuenta
+        )
+      );
+
+      setCuentaSeleccionada((cuenta) =>
+        cuenta?.id_cuenta === idCuenta
+          ? { ...cuenta, estado }
+          : cuenta
+      );
+
+      setMensaje(
+        respuesta.data?.mensaje ||
+          "Estado actualizado correctamente."
+      );
+    } catch (error) {
+      setError(
+        obtenerMensajeError(
+          error,
+          "No se pudo actualizar el estado de la cuenta."
+        )
+      );
+    }
+  };
+
+  const abrirNuevaCuenta = (cuenta) => {
+    const tiposExistentes =
+      cuenta.tipos_cuenta || [cuenta.tipo_cuenta];
+
+    setError("");
+    setMensaje("");
+    setUsuarioNuevaCuenta(cuenta);
+
+    setOpcionNuevaCuenta(
+      tiposExistentes.includes("ahorros")
+        ? "credito"
+        : "ahorros"
+    );
+  };
+
+  const crearNuevaCuenta = async (evento) => {
+    evento.preventDefault();
+
+    try {
+      setError("");
+      setMensaje("");
+      setGuardandoCuenta(true);
+
+      const token = localStorage.getItem("token");
+
+      const respuesta = await axios.post(
+        `${API_URL}/usuarios/${usuarioNuevaCuenta.id_usuario}/cuentas`,
+        {
+          tipo_cuenta:
+            opcionNuevaCuenta === "ahorros"
+              ? "ahorros"
+              : "corriente",
+          tipo_operacion:
+            opcionNuevaCuenta === "credito"
+              ? "credito"
+              : "debito",
+          opcion_cuenta: opcionNuevaCuenta,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setUsuarioNuevaCuenta(null);
+      await cargarCuentas();
+
+      setMensaje(
+        respuesta.data?.mensaje ||
+          "Cuenta creada correctamente."
+      );
+    } catch (error) {
+      setError(
+        obtenerMensajeError(
+          error,
+          "No se pudo crear la cuenta."
+        )
+      );
+    } finally {
+      setGuardandoCuenta(false);
+    }
+  };
+
+  const formatearSaldo = (saldo) => {
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      minimumFractionDigits: 0,
+    }).format(Number(saldo || 0));
+  };
+
+  const formatearEntradaSaldo = (valor) => {
+    const [parteEntera = "", parteDecimal] = String(valor)
+      .replace(/\./g, "")
+      .replace(/[^\d,]/g, "")
+      .split(",");
+    const enteroAgrupado = groupDigitsByThousands(parteEntera);
+
+    return parteDecimal === undefined
+      ? enteroAgrupado
+      : `${enteroAgrupado},${parteDecimal.slice(0, 2)}`;
+  };
+
+  const prepararEntradaSaldo = (saldo) => {
+    if (saldo === null || saldo === undefined || saldo === "") {
+      return "";
+    }
+
+    return new Intl.NumberFormat("es-CO", {
+      useGrouping: true,
+      maximumFractionDigits: 2,
+    }).format(Number(saldo));
+  };
+
+  const formatearValor = (clave, valor) => {
+    if (clave === "saldo") {
+      return formatearSaldo(valor);
+    }
+
+    if (
+      valor === null ||
+      valor === undefined ||
+      valor === ""
+    ) {
+      return "No registrado";
+    }
+
+    if (typeof valor === "object") {
+      return JSON.stringify(valor);
+    }
+
+    return String(valor);
+  };
+
+  const abrirEdicionSaldo = (cuenta) => {
+    setCuentaSaldoSeleccionada(cuenta);
+    setCodigoAutorizacion("");
+    setNuevoSaldo(prepararEntradaSaldo(cuenta.saldo));
+    setError("");
+    setMensaje("");
+    setAutorizandoSaldo(true);
+  };
+
+  const autorizarEdicionSaldo = async (evento) => {
+    evento.preventDefault();
+
+    if (!codigoAutorizacion.trim()) {
+      setError(
+        "Ingrese el código del asesor."
+      );
+      return;
+    }
+
+    try {
+      setError("");
+      setMensaje("");
+      setGuardandoSaldo(true);
+
+      const token = localStorage.getItem("token");
+
+      await axios.post(
+        `${API_URL}/administradores/cuenta/${cuentaSaldoSeleccionada.id_cuenta}/autorizar-saldo`,
+        {
+          codigo_autorizacion:
+            codigoAutorizacion.trim(),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setNuevoSaldo(
+        prepararEntradaSaldo(cuentaSaldoSeleccionada.saldo)
+      );
+
+      setAutorizandoSaldo(false);
+      setEditandoSaldo(true);
+    } catch (error) {
+      setError(
+        obtenerMensajeError(
+          error,
+          "No se pudo validar el código de autorización."
+        )
+      );
+    } finally {
+      setGuardandoSaldo(false);
+    }
+  };
+
+  const actualizarSaldoCuenta = async (evento) => {
+    evento.preventDefault();
+
+    const saldo = Number(
+      nuevoSaldo.replace(/\./g, "").replace(",", ".")
+    );
+
+    if (!Number.isFinite(saldo) || saldo < 0) {
+      setError(
+        "Ingrese un saldo válido mayor o igual a cero."
+      );
+      return;
+    }
+
+    if (!codigoAutorizacion.trim()) {
+      setError(
+        "Ingrese el código del asesor."
+      );
+      return;
+    }
+
+    try {
+      setError("");
+      setMensaje("");
+      setGuardandoSaldo(true);
+
+      const token = localStorage.getItem("token");
+
+      const respuesta = await axios.put(
+        `${API_URL}/administradores/cuenta/${cuentaSaldoSeleccionada.id_cuenta}/saldo`,
+        {
+          saldo,
+          codigo_autorizacion:
+            codigoAutorizacion.trim(),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const saldoActualizado =
+        respuesta.data?.saldo ?? saldo;
+
+      setCuentas((cuentasActuales) =>
+        cuentasActuales.map((cuenta) =>
+          cuenta.id_cuenta ===
+          cuentaSaldoSeleccionada.id_cuenta
+            ? {
+                ...cuenta,
+                saldo: saldoActualizado,
+              }
+            : cuenta
+        )
+      );
+
+      setCuentaSeleccionada((cuenta) =>
+        cuenta?.id_cuenta === cuentaSaldoSeleccionada.id_cuenta
+          ? { ...cuenta, saldo: saldoActualizado }
+          : cuenta
+      );
+
+      setEditandoSaldo(false);
+      setCuentaSaldoSeleccionada(null);
+      setCodigoAutorizacion("");
+
+      setMensaje(
+        respuesta.data?.mensaje ||
+          "Saldo actualizado correctamente."
+      );
+    } catch (error) {
+      setError(
+        obtenerMensajeError(
+          error,
+          "No se pudo actualizar el saldo."
+        )
+      );
+    } finally {
+      setGuardandoSaldo(false);
+    }
+  };
+
+  const abrirEdicionTipoOperacion = () => {
+    setCodigoAutorizacion("");
+    setError("");
+    setAutorizandoTipoOperacion(true);
+  };
+
+  const autorizarEdicionTipoOperacion = async (evento) => {
+    evento.preventDefault();
+
+    if (!codigoAutorizacion.trim()) {
+      setError(
+        "Ingrese el código de administrador o asesor."
+      );
+      return;
+    }
+
+    try {
+      setError("");
+      setMensaje("");
+      setGuardandoSaldo(true);
+
+      const token = localStorage.getItem("token");
+
+      await axios.post(
+        `${API_URL}/administradores/cuenta/${cuentaSeleccionada.id_cuenta}/autorizar-tipo-operacion`,
+        {
+          codigo_autorizacion:
+            codigoAutorizacion.trim(),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setNuevoTipoOperacion(
+        cuentaSeleccionada.tipo_operacion || "debito"
+      );
+
+      setAutorizandoTipoOperacion(false);
+      setEditandoTipoOperacion(true);
+    } catch (error) {
+      setError(
+        obtenerMensajeError(
+          error,
+          "No se pudo validar el código de autorización."
+        )
+      );
+    } finally {
+      setGuardandoSaldo(false);
+    }
+  };
+
+  const actualizarTipoOperacion = async (evento) => {
+    evento.preventDefault();
+
+    if (!codigoAutorizacion.trim()) {
+      setError(
+        "Ingrese el código de administrador o asesor."
+      );
+      return;
+    }
+
+    try {
+      setError("");
+      setMensaje("");
+      setGuardandoSaldo(true);
+
+      const token = localStorage.getItem("token");
+
+      const respuesta = await axios.put(
+        `${API_URL}/administradores/cuenta/${cuentaSeleccionada.id_cuenta}/tipo-operacion`,
+        {
+          tipo_operacion: nuevoTipoOperacion,
+          codigo_autorizacion:
+            codigoAutorizacion.trim(),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const tipoActualizado =
+        respuesta.data?.tipo_operacion ??
+        nuevoTipoOperacion;
+
+      setCuentas((cuentasActuales) =>
+        cuentasActuales.map((cuenta) =>
+          cuenta.id_cuenta ===
+          cuentaSeleccionada.id_cuenta
+            ? {
+                ...cuenta,
+                tipo_operacion: tipoActualizado,
+              }
+            : cuenta
+        )
+      );
+
+      setCuentaSeleccionada((cuenta) => ({
+        ...cuenta,
+        tipo_operacion: tipoActualizado,
+      }));
+
+      setEditandoTipoOperacion(false);
+      setCodigoAutorizacion("");
+
+      setMensaje(
+        respuesta.data?.mensaje ||
+          "Tipo de operación actualizado correctamente."
+      );
+    } catch (error) {
+      setError(
+        obtenerMensajeError(
+          error,
+          "No se pudo actualizar el tipo de operación."
+        )
+      );
+    } finally {
+      setGuardandoSaldo(false);
+    }
+  };
+
+  const convertirArchivoADataUrl = (archivo) =>
+    new Promise((resolver, rechazar) => {
+      const lector = new FileReader();
+      lector.onload = () => resolver(lector.result);
+      lector.onerror = () => rechazar(new Error("No se pudo leer la imagen"));
+      lector.readAsDataURL(archivo);
+    });
+
+  const handleImagenChange = async (evento) => {
+    const archivo = evento.target.files?.[0];
+
+    if (!archivo) {
+      return;
+    }
+
+    if (!archivo.type.startsWith("image/")) {
+      setError("El archivo adjunto debe ser una imagen.");
+      return;
+    }
+
+    try {
+      const imagenBase64 = await convertirArchivoADataUrl(archivo);
+      setImagenMensaje({
+        nombre: archivo.name,
+        dataUrl: imagenBase64,
+      });
+      setPreviewImagenMensaje(imagenBase64);
+      setError("");
+    } catch (error) {
+      setError("No se pudo cargar la imagen.");
+    }
+  };
+
+  const enviarMensajeAdmin = () => {
+    const texto = mensajeAdmin.trim();
+
+    if (!texto && !imagenMensaje) {
+      return;
+    }
+
+    try {
+      const nuevoMensaje = crearMensajeAdmin({
+        texto: sanitizeLocalText(texto || "Imagen adjunta"),
+        imagen: imagenMensaje?.dataUrl,
+      });
+      const mensajesGuardados = leerMensajesAdmin();
+
+      localStorage.setItem(
+        "mensajes_admin",
+        JSON.stringify([nuevoMensaje, ...mensajesGuardados])
+      );
+
+      setMensajeAdmin("");
+      setImagenMensaje(null);
+      setPreviewImagenMensaje("");
+      setMostrarMensajeAdmin(false);
+      setMensaje("Mensaje enviado");
+    } catch (error) {
+      console.error("Error al guardar el mensaje para el administrador:", error);
+      setMensaje("No se pudo enviar el mensaje.");
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuario_id");
+    localStorage.removeItem("documento");
+    localStorage.removeItem("fotoPerfil");
+
+    navigate("/");
+  };
+
+  return (
+    <div className="contenedor-lista-cuentas">
+      <button
+        type="button"
+        className={`boton-menu-cuentas ${
+          menuAbierto ? "" : "menu-cerrado"
+        }`}
+        onClick={() =>
+          setMenuAbierto((actual) => !actual)
+        }
+        aria-label={
+          menuAbierto ? "Cerrar menú" : "Abrir menú"
+        }
+        aria-expanded={menuAbierto}
+      >
+        ☰
+      </button>
+
+      {menuAbierto && (
+        <button
+          type="button"
+          className="fondo-menu-cuentas"
+          aria-label="Cerrar menú móvil"
+          onClick={() => setMenuAbierto(false)}
+        />
+      )}
+
+      <aside
+        className={`sidebar ${
+          menuAbierto ? "" : "sidebar-cerrado"
+        }`}
+      >
+          <ul>
+            {!esAsesor && (
+              <>
+                <li>
+                  <Link
+                    to="/administrador"
+                    onClick={() =>
+                      setMenuAbierto(false)
+                    }
+                  >
+                    📜 Principal
+                  </Link>
+                </li>
+
+              </>
+            )}
+            
+            {esAsesor && (
+              <li>
+                <Link to="/asesor-bancario" onClick={() => setMenuAbierto(false)}>
+                  📜 Asesor
+                </Link>
+              </li>
+            )}
+
+            {!esAsesor && (
+            <li>
+              <Link to="/lista-asesores">
+               👥 Asesores
+              </Link>
+            </li>
+            )}
+
+              <li>
+                <Link
+                  to="/lista-usuarios"
+                  onClick={() => setMenuAbierto(false)}
+                >
+                  👤 Usuarios
+                </Link>
+              </li>
+
+            <li>
+              <Link
+                to="/lista-cuentas"
+                onClick={() =>
+                  setMenuAbierto(false)
+                }
+              >
+                🌐 Cuentas
+              </Link>
+            </li>
+
+            {esAsesor && (
+              <>
+
+                <li>
+                  <button
+                    type="button"
+                    className="enlace-mensaje-admin"
+                    onClick={() => setMostrarMensajeAdmin(true)}
+                  >
+                    ✉️ Mensaje
+                  </button>
+                </li>
+              </>
+            )}
+
+            {esAsesor && (
+              <li>
+                <Link
+                  to="/trageta"
+                    onClick={() => setMenuAbierto(false)}
+                    >
+                    💳 Tarjetas
+                </Link>
+              </li>
+            )}
+
+            {!esAsesor && (
+              <li>
+                <Link
+                  to="/notoficaciones"
+                  onClick={() =>
+                    setMenuAbierto(false)
+                  }
+                >
+                  🔔 Notificaciones
+                </Link>
+              </li>
+            )}
+
+          </ul>
+
+          <button
+            className="logout"
+            onClick={handleLogout}
+          >
+            🚪 Cerrar sesión
+          </button>
+        </aside>
+
+        {mostrarMensajeAdmin && (
+          <div
+            className="modal-mensaje-admin-overlay"
+            role="presentation"
+            onMouseDown={(evento) => {
+              if (evento.target === evento.currentTarget) setMostrarMensajeAdmin(false);
+            }}
+          >
+            <section
+              className="modal-mensaje-admin"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="titulo-mensaje-admin"
+            >
+              <div className="modal-mensaje-admin-header">
+                <h2 id="titulo-mensaje-admin">Mensaje para el administrador</h2>
+                <button
+                  type="button"
+                  className="cerrar-mensaje-admin"
+                  aria-label="Cerrar mensaje para el administrador"
+                  onClick={() => setMostrarMensajeAdmin(false)}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="modal-mensaje-admin-body">
+                <label htmlFor="mensaje-admin-input" className="modal-mensaje-admin-label">
+                  Código de mensaje:
+                </label>
+
+                <input
+                  id="mensaje-admin-input"
+                  type="text"
+                  className="codigo-mensaje-admin-input"
+                  value={mensajeAdmin}
+                  onChange={(evento) => setMensajeAdmin(evento.target.value)}
+                  placeholder="Escribe un mensaje"
+                  autoComplete="off"
+                  style={{
+                    color: "#ffffff",
+                    backgroundColor: "#0b0f16",
+                    WebkitTextFillColor: "#ffffff",
+                    fontSize: "18px",
+                    fontWeight: 600,
+                    border: "1px solid rgba(242, 201, 76, 0.8)",
+                    borderRadius: "8px",
+                    padding: "12px 14px",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+
+                <label htmlFor="imagen-admin-input" className="modal-mensaje-admin-label">
+                  Imagen adjunta:
+                </label>
+
+                <input
+                  id="imagen-admin-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImagenChange}
+                  style={{
+                    width: "100%",
+                    marginTop: "8px",
+                    marginBottom: "12px",
+                    color: "#ffffff",
+                  }}
+                />
+
+                {previewImagenMensaje && (
+                  <img
+                    src={previewImagenMensaje}
+                    alt="Vista previa del mensaje"
+                    style={{
+                      width: "100%",
+                      maxHeight: "180px",
+                      objectFit: "cover",
+                      borderRadius: "10px",
+                      marginBottom: "12px",
+                      border: "1px solid rgba(242, 201, 76, 0.8)",
+                    }}
+                  />
+                )}
+
+                <button
+                  type="button"
+                  className="boton-enviar-mensaje-admin"
+                  onClick={enviarMensajeAdmin}
+                  disabled={!mensajeAdmin.trim() && !imagenMensaje}
+                >
+                  Enviar
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
+
+        <main className="contenido-cuentas">
+          <div className="encabezado-cuentas">
+            <div className="marca-financiera">
+              <img
+                className="logo-administracion-asesores"
+                src={logoProyecto}
+                alt="Logo del proyecto"
+              />
+              <span>Financiero</span>
+            </div>
+
+            <h1>Lista de Cuentas</h1>
+          </div>
+
+          <p className="subtitulo-cuentas">
+            Consulta el estado y saldo de las cuentas bancarias.
+          </p>
+
+          <div className="buscador-asesores">
+            <span
+              className="icono-buscador-asesores"
+              aria-hidden="true"
+            >
+              &#128269;
+            </span>
+
+            <input
+              type="search"
+              value={busquedaCuenta}
+              onChange={(evento) =>
+                setBusquedaCuenta(evento.target.value)
+              }
+              placeholder="Buscar cuenta por nombre, número, tipo, estado..."
+              aria-label="Buscar cuenta"
+            />
+          </div>
+
+          {cargando && (
+            <p className="cargando-cuentas">
+              Cargando cuentas...
+            </p>
+          )}
+
+          {error && (
+            <p className="mensaje-error">
+              {error}
+            </p>
+          )}
+
+          {mensaje && (
+            <p className="mensaje-exito">
+              {mensaje}
+            </p>
+          )}
+
+          {!cargando &&
+            !error &&
+            cuentas.length === 0 && (
+              <p className="sin-cuentas">
+                No tienes cuentas registradas.
+              </p>
+            )}
+
+          {!cargando &&
+            !error &&
+            cuentas.length > 0 &&
+            cuentasFiltradas.length === 0 && (
+              <p className="mensaje-busqueda-asesores">
+                No se encontraron cuentas para “
+                {busquedaCuenta}”.
+              </p>
+            )}
+
+          {!cargando &&
+            !error &&
+            cuentasFiltradas.length > 0 && (
+              <div className="tabla-cuentas-contenedor">
+                <table className="tabla-cuentas">
+                  <thead>
+                    <tr>
+                      <th>Número de cuenta</th>
+                      <th>Nombre</th>
+                      <th>Tipo de cuenta</th>
+                      <th>Saldo</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {cuentasFiltradas.map((cuenta) => {
+                      const estado = String(
+                        cuenta.estado || ""
+                      ).toLowerCase();
+                      const cuentaActiva = [
+                        "activa",
+                        "activo",
+                      ].includes(estado);
+                      const claseEstado = cuentaActiva
+                        ? "activo"
+                        : ["inactiva", "inactivo"].includes(estado)
+                          ? "inactivo"
+                          : "";
+
+                      return (
+                        <tr
+                          key={cuenta.id_cuenta}
+                        >
+                          <td>
+                            {cuenta.numero_cuenta ||
+                              cuenta.id_cuenta}
+                          </td>
+
+                          <td>
+                            {cuenta.nombre}
+                          </td>
+
+                          <td>
+                            {cuenta.tipo_cuenta}
+                          </td>
+
+                          <td>
+                            {formatearSaldo(
+                              cuenta.saldo
+                            )}
+                          </td>
+
+                          <td>
+                            <span
+                              className={`estado-cuenta ${claseEstado}`}
+                            >
+                              {cuenta.estado}
+                            </span>
+                          </td>
+
+                          <td className="acciones-cuenta">
+                            {esAsesor && (
+                              <button
+                                type="button"
+                                className="boton-asignar-saldo"
+                                onClick={() =>
+                                  abrirEdicionSaldo(cuenta)
+                                }
+                                aria-label={`Asignar saldo a la cuenta ${
+                                  cuenta.numero_cuenta ||
+                                  cuenta.id_cuenta
+                                }`}
+                                title="Asignar saldo"
+                              >
+                                💵
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              className={
+                                cuentaActiva
+                                  ? "boton-inhabilitar"
+                                  : "boton-habilitar"
+                              }
+                              onClick={() => {
+                                void cambiarEstadoCuenta(
+                                  cuenta.id_cuenta,
+                                  cuentaActiva
+                                    ? "inactiva"
+                                    : "activa"
+                                );
+                              }}
+                            >
+                              {cuentaActiva
+                                ? "Inhabilitar"
+                                : "Habilitar"}
+                            </button>
+
+                            <button
+                              className="boton-nueva-cuenta"
+                              onClick={() =>
+                                abrirNuevaCuenta(
+                                  cuenta
+                                )
+                              }
+                            >
+                              Añadir cuenta
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+          <div className="acciones-lista-cuentas">
+            <button
+              type="button"
+              className="boton-actualizar-lista"
+              onClick={cargarCuentas}
+              disabled={cargando}
+            >
+              {cargando
+                ? "Actualizando..."
+                : "Actualizar lista"}
+            </button>
+          </div>
+
+        </main>
+
+        {usuarioNuevaCuenta && (
+          <div
+            className="modal-edicion-overlay"
+            role="presentation"
+            onMouseDown={(evento) => {
+              if (evento.target === evento.currentTarget) setUsuarioNuevaCuenta(null);
+            }}
+          >
+            <form
+              className="modal-edicion-saldo"
+              onSubmit={crearNuevaCuenta}
+            >
+              <h2>
+                Añadir cuenta a{" "}
+                {usuarioNuevaCuenta.nombre}
+              </h2>
+
+              <p>
+                La cuenta se creará activa y aparecerá
+                en la cuenta del usuario.
+              </p>
+
+              <div className="tipo-cuenta-principal">
+                <strong>
+                  Cuenta principal corriente
+                </strong>
+
+                <span>
+                  Cuenta para operaciones bancarias y
+                  uso de tarjeta débito o crédito.
+                </span>
+              </div>
+
+              <label htmlFor="opcion-nueva-cuenta">
+                Opción para la cuenta
+              </label>
+
+              <select
+                id="opcion-nueva-cuenta"
+                className="selector-tipo-cuenta"
+                value={opcionNuevaCuenta}
+                onChange={(evento) =>
+                  setOpcionNuevaCuenta(
+                    evento.target.value
+                  )
+                }
+                required
+              >
+                {!(
+                  usuarioNuevaCuenta.tipos_cuenta ||
+                  []
+                ).includes("ahorros") && (
+                  <option value="ahorros">
+                    Ahorros
+                  </option>
+                )}
+
+                <option value="credito">
+                  Crédito
+                </option>
+              </select>
+
+              <p className="ayuda-tipo-operacion">
+                {opcionNuevaCuenta === "credito"
+                  ? "Se verificará la cuenta principal y se configurará como crédito."
+                  : "Se creará una cuenta de ahorros adicional."}
+              </p>
+
+              <div className="acciones-formulario-saldo">
+                <button
+                  type="button"
+                  className="boton-cancelar-saldo"
+                  onClick={() =>
+                    setUsuarioNuevaCuenta(null)
+                  }
+                  disabled={guardandoCuenta}
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  className="boton-guardar-saldo"
+                  disabled={guardandoCuenta}
+                >
+                  {guardandoCuenta
+                    ? "Creando..."
+                    : "Crear cuenta"}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {(cuentaSeleccionada ||
+          autorizandoSaldo ||
+          editandoSaldo ||
+          autorizandoTipoOperacion ||
+          editandoTipoOperacion) && (
+          <div
+            className="modal-cuenta-overlay"
+            role="presentation"
+            onMouseDown={(evento) => {
+              if (evento.target === evento.currentTarget) setCuentaSeleccionada(null);
+            }}
+          >
+            {cuentaSeleccionada && (
+              <section
+                className="modal-cuenta"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="titulo-modal-cuenta"
+              >
+                <div className="encabezado-modal-cuenta">
+                  <h2 id="titulo-modal-cuenta">
+                    Información de la cuenta
+                  </h2>
+
+                  <button
+                    type="button"
+                    className="boton-cerrar-modal"
+                    onClick={() =>
+                      setCuentaSeleccionada(null)
+                    }
+                    aria-label="Cerrar información de la cuenta"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="detalles-cuenta">
+                  {Object.entries(cuentaSeleccionada)
+                    .filter(
+                      ([clave]) =>
+                        ![
+                          "id_cuenta",
+                          "id_usuario",
+                          "tipos_cuenta",
+                        ].includes(clave)
+                    )
+                    .map(([clave, valor]) => (
+                      <div
+                        className="detalle-cuenta"
+                        key={clave}
+                      >
+                        <strong>
+                          {clave.replaceAll(
+                            "_",
+                            " "
+                          )}
+                        </strong>
+
+                        <div className="valor-detalle-cuenta">
+                          <span>
+                            {formatearValor(
+                              clave,
+                              valor
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </section>
+            )}
+
+            {autorizandoSaldo && (
+              <div
+                className="modal-edicion-overlay"
+                role="presentation"
+                onMouseDown={(evento) => {
+                  if (evento.target === evento.currentTarget) {
+                    setAutorizandoSaldo(false);
+                    setCuentaSaldoSeleccionada(null);
+                  }
+                }}
+              >
+                <form
+                  className="modal-edicion-saldo"
+                  onSubmit={
+                    autorizarEdicionSaldo
+                  }
+                >
+                  <h2>
+                    Autorizar saldo de la cuenta
+                  </h2>
+
+                  <p>
+                    Cuenta{" "}
+                    {cuentaSaldoSeleccionada?.numero_cuenta ||
+                      cuentaSaldoSeleccionada?.id_cuenta}
+                    . Ingrese el código del asesor para
+                    continuar.
+                  </p>
+
+                  <label htmlFor="codigo-autorizacion">
+                    Código de autorización
+                  </label>
+
+                  <input
+                    id="codigo-autorizacion"
+                    type="password"
+                    value={codigoAutorizacion}
+                    onChange={(evento) =>
+                      setCodigoAutorizacion(
+                        evento.target.value
+                      )
+                    }
+                    autoComplete="off"
+                    required
+                  />
+
+                  <div className="acciones-formulario-saldo">
+                    <button
+                      type="button"
+                      className="boton-cancelar-saldo"
+                      onClick={() => {
+                        setAutorizandoSaldo(false);
+                        setCuentaSaldoSeleccionada(null);
+                      }}
+                      disabled={guardandoSaldo}
+                    >
+                      Cancelar
+                    </button>
+
+                    <button
+                      type="submit"
+                      className="boton-guardar-saldo"
+                      disabled={guardandoSaldo}
+                    >
+                      {guardandoSaldo
+                        ? "Validando..."
+                        : "Continuar"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {editandoSaldo && (
+              <div
+                className="modal-edicion-overlay"
+                role="presentation"
+                onMouseDown={(evento) => {
+                  if (evento.target === evento.currentTarget) {
+                    setEditandoSaldo(false);
+                    setCuentaSaldoSeleccionada(null);
+                  }
+                }}
+              >
+                <form
+                  className="modal-edicion-saldo"
+                  onSubmit={
+                    actualizarSaldoCuenta
+                  }
+                >
+                  <h2>
+                    Asignar saldo a la cuenta
+                  </h2>
+
+                  <p>
+                    Cuenta{" "}
+                    {cuentaSaldoSeleccionada?.numero_cuenta ||
+                      cuentaSaldoSeleccionada?.id_cuenta}
+                  </p>
+
+                  <p>
+                    Saldo actual:{" "}
+                    <strong>
+                      {formatearSaldo(
+                        cuentaSaldoSeleccionada?.saldo
+                      )}
+                    </strong>
+                  </p>
+
+                  <label htmlFor="nuevo-saldo">
+                    Saldo que tendrá la cuenta
+                  </label>
+
+                  <input
+                    id="nuevo-saldo"
+                    type="text"
+                    inputMode="decimal"
+                    value={nuevoSaldo}
+                    onChange={(evento) =>
+                      setNuevoSaldo(
+                        formatearEntradaSaldo(
+                          evento.target.value
+                        )
+                      )
+                    }
+                    required
+                  />
+
+                  <div className="acciones-formulario-saldo">
+                    <button
+                      type="button"
+                      className="boton-cancelar-saldo"
+                      onClick={() => {
+                        setEditandoSaldo(false);
+                        setCuentaSaldoSeleccionada(null);
+                      }}
+                      disabled={guardandoSaldo}
+                    >
+                      Cancelar
+                    </button>
+
+                    <button
+                      type="submit"
+                      className="boton-guardar-saldo"
+                      disabled={guardandoSaldo}
+                    >
+                      {guardandoSaldo
+                        ? "Guardando..."
+                        : "Guardar saldo"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {autorizandoTipoOperacion && (
+              <div
+                className="modal-edicion-overlay"
+                role="presentation"
+                onMouseDown={(evento) => {
+                  if (evento.target === evento.currentTarget) setAutorizandoTipoOperacion(false);
+                }}
+              >
+                <form
+                  className="modal-edicion-saldo"
+                  onSubmit={
+                    autorizarEdicionTipoOperacion
+                  }
+                >
+                  <h2>
+                    Autorización para editar tipo de
+                    operación
+                  </h2>
+
+                  <p>
+                    Ingrese el código de administrador
+                    o asesor.
+                  </p>
+
+                  <label htmlFor="codigo-autorizacion-operacion">
+                    Código de autorización
+                  </label>
+
+                  <input
+                    id="codigo-autorizacion-operacion"
+                    type="password"
+                    value={codigoAutorizacion}
+                    onChange={(evento) =>
+                      setCodigoAutorizacion(
+                        evento.target.value
+                      )
+                    }
+                    autoComplete="off"
+                    required
+                  />
+
+                  <div className="acciones-formulario-saldo">
+                    <button
+                      type="button"
+                      className="boton-cancelar-saldo"
+                      onClick={() =>
+                        setAutorizandoTipoOperacion(
+                          false
+                        )
+                      }
+                      disabled={guardandoSaldo}
+                    >
+                      Cancelar
+                    </button>
+
+                    <button
+                      type="submit"
+                      className="boton-guardar-saldo"
+                      disabled={guardandoSaldo}
+                    >
+                      {guardandoSaldo
+                        ? "Validando..."
+                        : "Continuar"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {editandoTipoOperacion && (
+              <div
+                className="modal-edicion-overlay"
+                role="presentation"
+                onMouseDown={(evento) => {
+                  if (evento.target === evento.currentTarget) setEditandoTipoOperacion(false);
+                }}
+              >
+                <form
+                  className="modal-edicion-saldo"
+                  onSubmit={
+                    actualizarTipoOperacion
+                  }
+                >
+                  <h2>
+                    Editar tipo de operación
+                  </h2>
+
+                  <label htmlFor="nuevo-tipo-operacion">
+                    Tipo de operación
+                  </label>
+
+                  <select
+                    id="nuevo-tipo-operacion"
+                    value={nuevoTipoOperacion}
+                    onChange={(evento) =>
+                      setNuevoTipoOperacion(
+                        evento.target.value
+                      )
+                    }
+                    required
+                  >
+                    <option value="debito">
+                      Débito
+                    </option>
+
+                    <option value="credito">
+                      Crédito
+                    </option>
+                  </select>
+
+                  <div className="acciones-formulario-saldo">
+                    <button
+                      type="button"
+                      className="boton-cancelar-saldo"
+                      onClick={() =>
+                        setEditandoTipoOperacion(
+                          false
+                        )
+                      }
+                      disabled={guardandoSaldo}
+                    >
+                      Cancelar
+                    </button>
+
+                    <button
+                      type="submit"
+                      className="boton-guardar-saldo"
+                      disabled={guardandoSaldo}
+                    >
+                      {guardandoSaldo
+                        ? "Guardando..."
+                        : "Guardar tipo"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+  );
+}

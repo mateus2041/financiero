@@ -1,0 +1,150 @@
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import "../styles/VerificacionIdentidad.css";
+
+function VerificacionIdentidad() {
+  const navigate = useNavigate();
+
+  const [documento, setDocumento] = useState(
+    localStorage.getItem("documento") || ""
+  );
+
+  const [motivo, setMotivo] = useState("");
+  const [codigoVerificacion, setCodigoVerificacion] = useState("");
+  const [mensaje, setMensaje] = useState("");
+  const [enviando, setEnviando] = useState(false);
+
+  const solicitarVerificacion = async (e) => {
+    e.preventDefault();
+
+    if (!documento || !motivo || !/^\d{4}$/.test(codigoVerificacion)) {
+      setMensaje("❌ Completa todos los campos y escribe un código de 4 dígitos.");
+      return;
+    }
+
+    const codigoGuardado = localStorage.getItem("codigo_verificacion") || "";
+
+    if (codigoGuardado && codigoVerificacion !== codigoGuardado) {
+      setMensaje("❌ El código ingresado no coincide con el enviado a tu correo.");
+      return;
+    }
+
+    setEnviando(true);
+
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+        "http://127.0.0.1:8000/verificacion-identidad",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            documento,
+            motivo,
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMensaje(
+          `❌ ${data.detail || "No se pudo enviar la solicitud."}`
+        );
+        return;
+      }
+
+      setMensaje(
+        "✅ Solicitud enviada correctamente. Tu identidad será revisada."
+      );
+
+      setTimeout(() => {
+        navigate("/cuenta");
+      }, 2000);
+
+    } catch (error) {
+      console.error(error);
+      setMensaje("❌ Error conectando con el servidor.");
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <div className="verificacion-container">
+      <form
+        className="verificacion-form"
+        onSubmit={solicitarVerificacion}
+      >
+        <h1>🪪 Verificación de identidad</h1>
+
+        <p>
+          Solicita la verificación de identidad de tu cuenta.
+        </p>
+
+        <label htmlFor="verificacion-documento">Documento</label>
+
+        <input
+          id="verificacion-documento"
+          type="text"
+          value={documento}
+          onChange={(e) => setDocumento(e.target.value)}
+          placeholder="Número de documento"
+        />
+
+        <label htmlFor="verificacion-motivo">Motivo de la solicitud</label>
+
+        <textarea
+          id="verificacion-motivo"
+          value={motivo}
+          onChange={(e) => setMotivo(e.target.value)}
+          placeholder="Explica por qué deseas verificar tu identidad"
+          rows="4"
+        />
+
+        <label htmlFor="verificacion-codigo">Código de verificación (4 dígitos)</label>
+        <input
+          id="verificacion-codigo"
+          type="text"
+          value={codigoVerificacion}
+          onChange={(e) =>
+            setCodigoVerificacion(e.target.value.replace(/\D/g, "").slice(0, 4))
+          }
+          placeholder="0000"
+          maxLength={4}
+          inputMode="numeric"
+        />
+
+        {mensaje && (
+          <p className="mensaje">
+            {mensaje}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={enviando}
+        >
+          {enviando
+            ? "Enviando..."
+            : "Solicitar verificación"}
+        </button>
+
+        <button
+          type="button"
+          className="volver"
+          onClick={() => navigate("/cuenta")}
+        >
+          Volver a mi cuenta
+        </button>
+      </form>
+    </div>
+  );
+}
+
+export default VerificacionIdentidad;
+

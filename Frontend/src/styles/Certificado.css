@@ -1,0 +1,376 @@
+.certificado-page {
+  display: flex;
+  justify-content: center;
+  padding: 40px;
+  background: #f4f6fb;
+}
+
+.certificado-real {
+  box-sizing: border-box;
+  width: 8in;
+  height: 10in;
+  background: white;
+  padding: 0.55in;
+  font-family: Arial, sans-serif;
+  color: #222;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ENCABEZADO */
+.certificado-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 36px;
+}
+
+.logo-certificado {
+  width: 86px;
+  height: 86px;
+  flex: 0 0 86px;
+  object-fit: contain;
+}
+
+.logo-section h1 {
+  color: #005baa;
+  font-size: 36px;
+  margin: 0;
+  font-weight: bold;
+}
+
+.logo-section p {
+  color: #005baa;
+  margin-top: 8px;
+  font-size: 18px;
+}
+
+.empresa-box {
+  border-left: 3px solid #005baa;
+  padding-left: 20px;
+  text-align: left;
+}
+
+.empresa-box p {
+  margin: 0;
+  font-size: 14px;
+  color: #555;
+}
+
+.empresa-box h3 {
+  margin-top: 5px;
+  color: #005baa;
+  font-size: 20px;
+}
+
+/* TITULO */
+.titulo-certificado {
+  text-align: center;
+  font-size: 25px;
+  font-weight: bold;
+  margin-bottom: 36px;
+}
+
+/* CLIENTE */
+.cliente-info p {
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.cliente-line {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 0;
+  font-size: 18px;
+  flex-wrap: wrap;
+}
+
+.nombre-cliente {
+  font-weight: bold;
+}
+
+.documento-cliente {
+  font-weight: bold;
+}
+
+/* TABLA */
+.tabla-datos {
+  margin-top: 30px;
+  margin-bottom: 36px;
+}
+
+.tabla-datos h3 {
+  text-align: center;
+  font-size: 22px;
+  margin-bottom: 22px;
+}
+
+.fila {
+  display: flex;
+  margin-bottom: 14px;
+  font-size: 17px;
+}
+
+.fila strong {
+  width: 220px;
+}
+
+/* FINAL */
+.texto-final p {
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.cordialmente {
+  margin-top: 42px;
+}
+
+.texto-final h3 {
+  margin-top: 90px;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+/* FIRMA */
+.certificado-footer {
+  margin-top: 42px;
+  text-align: center;
+}
+
+.firma-linea {
+  width: 320px;
+  height: 2px;
+  background: #000;
+  margin: 0 auto 15px;
+}
+
+.certificado-footer p {
+  margin: 5px 0;
+}
+
+.certificado-footer .firma-certificado {
+  color: #111;
+  font-family: "Brush Script MT", "Segoe Script", cursive;
+  font-size: 36px;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* BOTÓN PDF */
+.pdf-btn-container {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 35px;
+  margin-bottom: 30px;
+}
+
+.volver-btn {
+  background: #e8eef8;
+  color: #0a2a66;
+  border: 1px solid #b8c8e2;
+  padding: 16px 30px;
+  font-size: 17px;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.volver-btn:hover {
+  background: #d8e3f4;
+  transform: translateY(-3px);
+}
+
+.descargar-btn {
+  background: linear-gradient(135deg, #0a2a66, #1546a0);
+  color: white;
+  border: none;
+  padding: 16px 38px;
+  font-size: 17px;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(10, 42, 102, 0.25);
+  transition: all 0.3s ease;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.descargar-btn:hover {
+  background: linear-gradient(135deg, #1546a0, #0a2a66);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(10, 42, 102, 0.35);
+}
+
+.descargar-btn:active {
+  transform: scale(0.98);
+}
+
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+  .certificado-real {
+    width: 95%;
+    padding: 40px;
+  }
+
+  .cliente-info p,
+  .fila,
+  .texto-final p {
+    font-size: 20px;
+  }
+
+  .titulo-certificado {
+    font-size: 28px;
+  }
+
+  .logo-section h1 {
+    font-size: 36px;
+  }
+
+  .descargar-btn {
+    width: 90%;
+    justify-content: center;
+    font-size: 15px;
+    padding: 14px 20px;
+  }
+
+  .pdf-btn-container {
+    flex-direction: column;
+  }
+
+  .volver-btn {
+    width: 90%;
+    font-size: 15px;
+    padding: 14px 20px;
+  }
+}
+
+.certificado-editar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(10, 24, 48, 0.65);
+}
+
+.certificado-editar-modal {
+  box-sizing: border-box;
+  width: min(100%, 760px);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 28px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 20px 55px rgba(0, 0, 0, 0.25);
+}
+
+.certificado-editar-encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.certificado-editar-encabezado h2 {
+  margin: 0;
+  color: #0a2a66;
+}
+
+.certificado-editar-cerrar {
+  border: 0;
+  background: transparent;
+  color: #526174;
+  cursor: pointer;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.certificado-editar-campos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.certificado-editar-campos label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #26364d;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.certificado-editar-campos input,
+.certificado-editar-campos select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #c7d2e1;
+  border-radius: 7px;
+  background: #fff;
+  color: #222;
+  font: inherit;
+}
+
+.certificado-editar-campos input:focus,
+.certificado-editar-campos select:focus {
+  border-color: #1546a0;
+  outline: 2px solid rgba(21, 70, 160, 0.15);
+}
+
+.certificado-editar-mensaje {
+  margin: 16px 0 0;
+  color: #9a3412;
+  font-size: 14px;
+}
+
+.certificado-editar-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.certificado-editar-acciones .descargar-btn {
+  width: auto;
+}
+
+.certificado-editar-cancelar {
+  padding: 12px 20px;
+  border: 1px solid #b8c8e2;
+  border-radius: 10px;
+  background: #e8eef8;
+  color: #0a2a66;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .certificado-editar-modal {
+    padding: 22px 18px;
+  }
+
+  .certificado-editar-campos {
+    grid-template-columns: 1fr;
+  }
+
+  .certificado-editar-acciones {
+    flex-direction: column-reverse;
+  }
+
+  .certificado-editar-acciones button {
+    width: 100%;
+    justify-content: center;
+  }
+}

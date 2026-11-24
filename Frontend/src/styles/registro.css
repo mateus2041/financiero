@@ -1,0 +1,257 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(to right, #0a0f2c, #0d1b3d);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.container.registro-modal-container {
+  display: block;
+  height: auto !important;
+  min-height: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  padding: 0;
+}
+
+.container.registro-modal-container .form-box {
+  position: relative;
+  width: 100%;
+  padding-top: 42px;
+}
+
+.registro-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  z-index: 2;
+  display: block;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: #0d1b3d;
+  color: white;
+  cursor: pointer;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.form-box {
+  width: 350px;
+  color: white;
+}
+
+h1 {
+  text-align: center;
+  color: #f5c542;
+  margin-bottom: 20px;
+}
+
+.registro-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.registro-tabs button {
+  flex: 1;
+  padding: 10px 6px;
+  border: 1px solid #555;
+  border-radius: 8px;
+  background: #1e2a4a;
+  color: white;
+  cursor: pointer;
+}
+
+.registro-tabs .tab-activa {
+  border-color: #f5c542;
+  color: #f5c542;
+}
+
+label {
+  display: block;
+  margin-top: 10px;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.form-box input,
+.form-box select {
+  width: 100%;
+  padding: 10px;
+  padding-right: 50px; /* espacio para el ojo */
+  border-radius: 10px;
+  border: 1px solid #555;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  outline: none;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+.form-box input:-webkit-autofill,
+.form-box input:-webkit-autofill:hover,
+.form-box input:-webkit-autofill:focus,
+.form-box input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
+  -webkit-text-fill-color: #000000 !important;
+  caret-color: #000000;
+}
+
+.input-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.eye-btn {
+  position: absolute;
+  right: 5px;
+  width: 40px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background-color: #0f1a35;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn {
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px;
+  background-color: black;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.registro-actions {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.registro-actions .btn {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+
+.codigo-registro {
+  padding: 12px;
+  border: 1px solid #f5c542;
+  border-radius: 10px;
+  color: #f5c542;
+  text-align: center;
+}
+
+.codigo-registro strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 24px;
+  letter-spacing: 2px;
+}
+
+.terms {
+  font-size: 12px;
+  margin-top: 15px;
+}
+
+.login {
+  font-size: 13px;
+  margin-top: 10px;
+}
+
+.login a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.registro-enlaces {
+  margin-top: 14px;
+}
+
+.registro-enlaces .login {
+  margin: 6px 0;
+}
+
+.registro-opciones-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(3, 10, 28, 0.72);
+}
+
+.registro-opciones-modal {
+  position: relative;
+  width: min(100%, 360px);
+  padding: 28px;
+  border: 1px solid #f5c542;
+  border-radius: 12px;
+  background: #0d1b3d;
+  color: white;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+}
+
+.registro-opciones-modal h2 {
+  margin: 0 0 20px;
+  color: #f5c542;
+  text-align: center;
+}
+
+.registro-opciones-cerrar {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  border: 0;
+  background: transparent;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.registro-opciones-modal .login {
+  margin-top: 14px;
+}
+
+.registro-login-modal {
+  position: relative;
+  width: min(100%, 420px);
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 12px;
+  background: #0d1b3d;
+}
+
+.registro-login-modal .registro-opciones-cerrar {
+  z-index: 1;
+}
+
+.registro-recovery-modal {
+  position: relative;
+  width: min(100%, 420px);
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 15px;
+}

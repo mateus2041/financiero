@@ -1,0 +1,302 @@
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import AsistenteMovil from "../components/AsistenteMovil";
+import FinancialSidebar from "../components/FinancialSidebar";
+import AssistantModal from "../components/AssistantModal";
+import useResponsiveMenu from "../hooks/useResponsiveMenu";
+import useModalDismissal from "../hooks/useModalDismissal";
+import "../styles/transferencias.css";
+import "../styles/navegacionMovil.css";
+
+const API_URL = "http://127.0.0.1:8000";
+
+export default function RegistrarLlaveBreB({ isModal = false }) {
+    const navigate = useNavigate();
+    const [llave, setLlave] = useState("");
+    const [cuentas, setCuentas] = useState([]);
+    const [cuentaSeleccionada, setCuentaSeleccionada] = useState("");
+    const [mensaje, setMensaje] = useState("");
+    const [error, setError] = useState("");
+    const [cargando, setCargando] = useState(false);
+    const [cargandoCuentas, setCargandoCuentas] = useState(true);
+
+    const [openCertificado, setOpenCertificado] = useState(false);
+    const [asistenteAbierto, setAsistenteAbierto] = useState(false);
+    const [menuAbierto, setMenuAbierto] = useResponsiveMenu();
+
+    useModalDismissal(asistenteAbierto, setAsistenteAbierto, true);
+
+    const chatbotActivo = true;
+
+    useEffect(() => {
+        const cargarCuentas = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                const respuesta = await axios.get(
+                    `${API_URL}/cuentas/mis-cuentas`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                );
+
+                const cuentasActivas = (respuesta.data || []).filter(
+                    (cuenta) => cuenta.estado === "activa"
+                );
+
+                setCuentas(cuentasActivas);
+                if (cuentasActivas.length > 0) {
+                    setCuentaSeleccionada(String(cuentasActivas[0].id_cuenta));
+                }
+            } catch (err) {
+                setError(
+                    err.response?.data?.detail ||
+                    "No se pudieron cargar tus cuentas."
+                );
+            } finally {
+                setCargandoCuentas(false);
+            }
+        };
+
+        void cargarCuentas();
+    }, []);
+
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("usuario_id");
+        localStorage.removeItem("documento");
+
+        window.location.href = "/login";
+    };
+
+    const registrarLlave = async (e) => {
+        e.preventDefault();
+
+        setMensaje("");
+        setError("");
+
+        const numeroTelefono = llave.replace(/\D/g, "");
+
+        if (!numeroTelefono) {
+            setError("Ingrese un número telefónico.");
+            return;
+        }
+
+        if (!/^\d{10}$/.test(numeroTelefono)) {
+            setError("El número telefónico debe tener exactamente 10 dígitos.");
+            return;
+        }
+
+        if (!cuentaSeleccionada) {
+            setError("Seleccione una cuenta activa.");
+            return;
+        }
+
+        try {
+            setCargando(true);
+
+            const token = localStorage.getItem("token");
+            const llaveCompleta = `@financiero${numeroTelefono}`;
+
+            const respuesta = await axios.put(
+                `${API_URL}/bre-b/llave`,
+                {
+                    llave: llaveCompleta,
+                    id_cuenta: Number(cuentaSeleccionada)
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            setMensaje(
+                respuesta.data.mensaje ||
+                "Llave Bre-B registrada correctamente"
+            );
+
+            setLlave("");
+        } catch (err) {
+            if (err.response) {
+                setError(
+                    err.response.data.detail ||
+                    "No fue posible registrar la llave Bre-B"
+                );
+            } else {
+                setError("No se pudo conectar con el servidor");
+            }
+        } finally {
+            setCargando(false);
+        }
+    };
+
+    const formularioLlave = (
+        <section className="breb-card">
+            <h2>Registrar tu llave Bre-B</h2>
+            <p className="breb-intro">
+                Selecciona la cuenta que quieres asociar a tu llave.
+            </p>
+
+            {cargandoCuentas ? (
+                <p className="breb-state">Cargando tus cuentas...</p>
+            ) : cuentas.length === 0 ? (
+                <p className="breb-state breb-error">
+                    No tienes cuentas activas disponibles.
+                </p>
+            ) : (
+                <form onSubmit={registrarLlave}>
+                    <div className="breb-cuentas">
+                        <h3>Tus cuentas</h3>
+                        {cuentas.map((cuenta) => (
+                            <label
+                                className={`breb-cuenta ${String(cuentaSeleccionada) === String(cuenta.id_cuenta) ? "seleccionada" : ""}`}
+                                key={cuenta.id_cuenta}
+                            >
+                                <input
+                                    type="radio"
+                                    name="cuenta-breb"
+                                    value={cuenta.id_cuenta}
+                                    checked={String(cuentaSeleccionada) === String(cuenta.id_cuenta)}
+                                    onChange={(e) => setCuentaSeleccionada(e.target.value)}
+                                />
+                                <span>
+                                    <strong>{cuenta.tipo_cuenta}</strong>
+                                    <small>Cuenta {cuenta.numero_cuenta || cuenta.id_cuenta}</small>
+                                </span>
+                                <b>${Number(cuenta.saldo || 0).toLocaleString("es-CO")}</b>
+                            </label>
+                        ))}
+                    </div>
+
+                    <label className="breb-label" htmlFor="llave-breb">
+                        Llave Bre-B
+                    </label>
+                    <div className="breb-llave-fields">
+                        <span className="breb-prefijo">@financiero</span>
+                        <input
+                            id="llave-breb"
+                            className="breb-input"
+                            type="tel"
+                            inputMode="numeric"
+                            value={llave}
+                            onChange={(e) => setLlave(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                            placeholder="3001234567"
+                            minLength={10}
+                            maxLength={10}
+                            disabled={cargando}
+                        />
+                    </div>
+
+                    <button className="breb-button" type="submit" disabled={cargando}>
+                        {cargando ? "Registrando..." : "Registrar llave"}
+                    </button>
+                </form>
+            )}
+
+            {mensaje && <p className="breb-state breb-success">{mensaje}</p>}
+            {error && <p className="breb-state breb-error">{error}</p>}
+        </section>
+    );
+
+    if (isModal) {
+        return (
+            <div className="llave-breb-modal-contenido">
+                {formularioLlave}
+            </div>
+        );
+    }
+
+    return (
+        <div className="panel-financiero">
+
+            <button
+                type="button"
+                className={`menu-hamburguesa ${menuAbierto ? "activo" : ""}`}
+                onClick={() => setMenuAbierto((actual) => !actual)}
+                aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+                aria-expanded={menuAbierto}
+            >
+                ☰
+            </button>
+
+            <AsistenteMovil onClick={() => setAsistenteAbierto(true)} />
+
+            <FinancialSidebar
+                menuAbierto={menuAbierto}
+                onLogout={handleLogout}
+                onAssistantOpen={() => setAsistenteAbierto(true)}
+                reportLabel="📜 Reportes"
+                showCardLink={false}
+                showAssistant={chatbotActivo}
+                assistantClassName="sidebar-link asistente-trigger asistente-sidebar-trigger"
+            />
+
+            <main className="contenido-principal">
+
+                {formularioLlave}
+
+            </main>
+
+            {openCertificado && (
+                <div
+                    className="modal-certificado-overlay"
+                    role="presentation"
+                    onMouseDown={(evento) => {
+                        if (evento.target === evento.currentTarget) setOpenCertificado(false);
+                    }}
+                >
+                    <section
+                        className="modal-certificado"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="certificado-modal-title"
+                    >
+                        <button
+                            type="button"
+                            className="modal-certificado-cerrar"
+                            aria-label="Cerrar modal de certificado"
+                            onClick={() => setOpenCertificado(false)}
+                        >
+                            ×
+                        </button>
+
+                        <h2 id="certificado-modal-title">
+                            Certificado bancario
+                        </h2>
+                        <p>
+                            Consulta y descarga tu certificado bancario.
+                        </p>
+
+                        <div className="modal-certificado-acciones">
+                            <button
+                                type="button"
+                                className="modal-certificado-secundario"
+                                onClick={() => setOpenCertificado(false)}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                className="modal-certificado-principal"
+                                onClick={() => {
+                                    setOpenCertificado(false);
+                                    navigate("/certificado");
+                                }}
+                            >
+                                Ver certificado
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            )}
+
+            {asistenteAbierto && (
+                <AssistantModal onClose={() => setAsistenteAbierto(false)} />
+            )}
+
+        </div>
+    );
+}
