@@ -29,11 +29,7 @@ jobs:
       contents: read
       packages: write
     steps:
-<<<<<<< HEAD
       - uses: actions/checkout@v7
-=======
-      - uses: actions/checkout@v5
->>>>>>> develop
 
       - name: Calcular versión e imagen
         run: |
