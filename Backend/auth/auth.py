@@ -1,7 +1,10 @@
 # app/auth.py
 
+<<<<<<< HEAD
 from datetime import timedelta
 
+=======
+>>>>>>> develop
 from flask import Blueprint, request, jsonify
 from .dependencias import db, bcrypt
 from .database import Usuario
@@ -80,10 +83,17 @@ def login():
     if not usuario or not bcrypt.check_password_hash(usuario.password, password):
         return jsonify({'error': 'Credenciales inválidas'}), 401
 
+<<<<<<< HEAD
     # La sesión requiere autenticarse de nuevo cada 30 minutos.
     access_token = create_access_token(
         identity=usuario.id,
         expires_delta=timedelta(minutes=30)
+=======
+    # La sesión permanece activa hasta que el usuario cierre sesión.
+    access_token = create_access_token(
+        identity=usuario.id,
+        expires_delta=False
+>>>>>>> develop
     )
 
     if getattr(usuario, 'email', None):

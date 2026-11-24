@@ -1,5 +1,9 @@
 from sqlalchemy import (
     Column,
+<<<<<<< HEAD
+=======
+    Date,
+>>>>>>> develop
     Integer,
     String,
     ForeignKey,
@@ -14,7 +18,11 @@ from sqlalchemy import (
 )
 
 from sqlalchemy.orm import relationship
+<<<<<<< HEAD
 from datetime import datetime, timezone
+=======
+from datetime import date, datetime, timezone
+>>>>>>> develop
 
 from Backend.database.database import Base
 
@@ -156,6 +164,25 @@ class Usuario(Base):
         default=utc_now_naive
     )
 
+<<<<<<< HEAD
+=======
+    fecha_nacimiento = Column(Date, nullable=True)
+
+    discapacidad_confirmada = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("0")
+    )
+
+    beneficio_habilitado = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("0")
+    )
+
+>>>>>>> develop
     # =====================================================
     # 🔹 RELACIÓN TIPO DOCUMENTO
     # =====================================================
@@ -258,6 +285,7 @@ class AsesorBanco(Base):
     )
 
 
+<<<<<<< HEAD
 class VerificacionLogin(Base):
 
     __tablename__ = "verificaciones_login"
@@ -273,6 +301,8 @@ class VerificacionLogin(Base):
     intentos = Column(Integer, nullable=False, default=0, server_default=text("0"))
 
 
+=======
+>>>>>>> develop
 # =========================================================
 # 🔹 CUENTAS
 # =========================================================

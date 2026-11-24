@@ -32,13 +32,6 @@ describe("validation helpers", () => {
     expect(parsePositiveInteger(null)).toBeNull();
   });
 
-  test("accepts only supported login roles from browser input", () => {
-    expect(normalizeLoginRole("asesor")).toBe("asesor");
-    expect(normalizeLoginRole("administrador")).toBe("administrador");
-    expect(normalizeLoginRole("<script>")).toBe("usuario");
-    expect(normalizeLoginRole(null)).toBe("usuario");
-  });
-
   test("validates names read from browser storage before reuse", () => {
     expect(sanitizeLocalName(" María O'Connor ")).toBe("María O'Connor");
     expect(sanitizeLocalName("<img src=x onerror=alert(1)>")).toBe("Sin nombre");

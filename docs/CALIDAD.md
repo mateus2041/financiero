@@ -21,6 +21,7 @@ se basan en las siguientes metas:
 - Operación: healthchecks de contenedor y smoke test local.
 - Seguridad: configuración CORS, cabeceras HTTP y pruebas de acceso.
 
+<<<<<<< HEAD
 ## SonarQube Cloud
 
 El workflow `.github/workflows/ci.yml` ejecuta análisis CI después de las pruebas y publica
@@ -30,6 +31,8 @@ ejecutar ambos métodos a la vez. El workflow requiere el secreto `SONAR_TOKEN`;
 lo proporciona GitHub Actions. La clave y organización del proyecto se configuran en
 `sonar-project.properties`.
 
+=======
+>>>>>>> develop
 ## Plan de mejora
 
 1. Reducir el acoplamiento de `Backend/main.py` mediante extracción gradual de routers.

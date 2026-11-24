@@ -10,7 +10,10 @@ from Backend.schemas import (
     AsesoresRespuesta,
     CuentasAdministradorRespuesta,
     LoginRespuesta,
+<<<<<<< HEAD
     LoginPendienteRespuesta,
+=======
+>>>>>>> develop
     NuevaCuenta,
     PerfilActualizacionSchema,
     TransferenciaEntreCuentasSchema,
@@ -118,8 +121,11 @@ def test_respuestas_de_autenticacion_se_publican_en_openapi():
     assert app.openapi()
     assert app.openapi_schema["components"]["schemas"]["LoginRespuesta"]
     assert LoginRespuesta.model_fields["token"].is_required()
+<<<<<<< HEAD
     assert app.openapi_schema["components"]["schemas"]["LoginPendienteRespuesta"]
     assert "token" not in LoginPendienteRespuesta.model_fields
+=======
+>>>>>>> develop
 
 
 def test_esquemas_de_respuesta_validan_usuarios_asesores_y_cuentas():

@@ -1006,6 +1006,7 @@ export default function TarjetasUsuario({ esAsesor = false }) {
                         )}
                       </td>
                       <td data-label="Acciones">
+<<<<<<< HEAD
                         <button
                           type="button"
                           className="boton-anadir-tarjeta"
@@ -1051,6 +1052,41 @@ export default function TarjetasUsuario({ esAsesor = false }) {
                                 : "Eliminar tarjeta"}
                           </button>
                         ) : null}
+=======
+                        <div className="menu-acciones-tarjeta">
+                          <button
+                            type="button"
+                            className="boton-menu-acciones-tarjeta"
+                            onClick={() =>
+                              setModalOpcionesTarjeta({
+                                usuario,
+                                tarjeta: tarjetaUsuario,
+                              })
+                            }
+                            disabled={actualizando}
+                          >
+                            Opciones
+                          </button>
+                        </div>
+                        {!cargandoTarjetas &&
+                          !errorTarjetas &&
+                          tarjetaUsuario &&
+                          tarjetaUsuario.estado !== "activa" && (
+                            <button
+                              type="button"
+                              className="boton-eliminar-tarjeta"
+                              onClick={() =>
+                                abrirModalEliminarTarjeta(
+                                  usuario,
+                                  tarjetaUsuario
+                                )
+                              }
+                              disabled={actualizando}
+                            >
+                              Eliminar tarjeta
+                            </button>
+                          )}
+>>>>>>> develop
                       </td>
                     </tr>
                   );
@@ -1061,6 +1097,98 @@ export default function TarjetasUsuario({ esAsesor = false }) {
           </table>
         </div>
 
+<<<<<<< HEAD
+=======
+        {modalOpcionesTarjeta && (
+          <div
+            className="modal-tarjeta-overlay"
+            role="presentation"
+            onClick={(evento) => {
+              if (evento.target === evento.currentTarget) {
+                setModalOpcionesTarjeta(null);
+              }
+            }}
+          >
+            <section
+              className="modal-tarjeta modal-opciones-tarjeta"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="titulo-modal-opciones-tarjeta"
+            >
+              <button
+                type="button"
+                className="cerrar-modal-tarjeta"
+                onClick={() => setModalOpcionesTarjeta(null)}
+                aria-label="Cerrar opciones"
+              >
+                ×
+              </button>
+              <h2 id="titulo-modal-opciones-tarjeta">
+                Opciones de tarjeta
+              </h2>
+              <p className="cliente-modal-tarjeta">
+                Cliente:{" "}
+                <strong>
+                  {modalOpcionesTarjeta.usuario.nombre || "Usuario"}
+                </strong>
+              </p>
+              <div className="opciones-acciones-tarjeta">
+                <button
+                  type="button"
+                  className="boton-anadir-tarjeta"
+                  onClick={() => {
+                    const { usuario } = modalOpcionesTarjeta;
+                    setModalOpcionesTarjeta(null);
+                    abrirModalTarjeta(usuario);
+                  }}
+                >
+                  Añadir tarjeta
+                </button>
+                {cargandoTarjetas ? (
+                  <button
+                    type="button"
+                    className="boton-anadir-tarjeta"
+                    disabled
+                  >
+                    Consultando tarjeta...
+                  </button>
+                ) : modalOpcionesTarjeta.tarjeta && !errorTarjetas ? (
+                  <>
+                    <button
+                      type="button"
+                      className="boton-anadir-tarjeta"
+                      onClick={() => {
+                        const { usuario, tarjeta } = modalOpcionesTarjeta;
+                        setModalOpcionesTarjeta(null);
+                        void editarTarjetaDeUsuario(
+                          usuario,
+                          tarjeta.id_tarjeta
+                        );
+                      }}
+                    >
+                      Editar tarjeta
+                    </button>
+                    {modalOpcionesTarjeta.tarjeta.estado === "activa" && (
+                      <button
+                        type="button"
+                        className="boton-anadir-tarjeta"
+                        onClick={() => {
+                          const { usuario, tarjeta } = modalOpcionesTarjeta;
+                          setModalOpcionesTarjeta(null);
+                          void cambiarEstadoTarjeta(usuario, tarjeta);
+                        }}
+                      >
+                        Inhabilitar tarjeta
+                      </button>
+                    )}
+                  </>
+                ) : null}
+              </div>
+            </section>
+          </div>
+        )}
+
+>>>>>>> develop
         {modalEliminarTarjeta && (
           <div
             className="modal-tarjeta-overlay"

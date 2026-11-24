@@ -25,7 +25,18 @@ const obtenerMensajeError = (detalle) => {
   return detalle == null ? "No se pudo completar el registro." : String(detalle);
 };
 
+<<<<<<< HEAD
 function Registro({ isModal = false, onClose }) {
+=======
+const obtenerFechaLocal = () => {
+  const hoy = new Date();
+  const mes = String(hoy.getMonth() + 1).padStart(2, "0");
+  const dia = String(hoy.getDate()).padStart(2, "0");
+  return `${hoy.getFullYear()}-${mes}-${dia}`;
+};
+
+function Registro({ isModal = false, onClose, onRegistered }) {
+>>>>>>> develop
   const navigate = useNavigate();
 
   const [paso, setPaso] = useState(1);

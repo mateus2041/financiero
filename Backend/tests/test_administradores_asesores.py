@@ -11,7 +11,11 @@ from Backend.models import Administrador, AsesorBanco, Usuario
 from Backend.security import hash_password
 
 
+<<<<<<< HEAD
 def test_registro_y_restablecimiento_generan_codigos_alfanumericos_unicos(monkeypatch):
+=======
+def test_registro_estado_restablecimiento_y_eliminacion(monkeypatch):
+>>>>>>> develop
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -68,6 +72,26 @@ def test_registro_y_restablecimiento_generan_codigos_alfanumericos_unicos(monkey
     id_asesor = db.execute(
         text("SELECT id_asesor FROM asesores_banco ORDER BY id_asesor LIMIT 1")
     ).scalar_one()
+<<<<<<< HEAD
+=======
+    response = client.put(
+        f"/administradores/asesores/{id_asesor}",
+        json={
+            "id_asesor": id_asesor,
+            "codigo_asesor": codigos[0],
+            "estado": "inactivo",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["estado"] == "inactivo"
+    estado_guardado = db.execute(
+        text("SELECT estado FROM asesores_banco WHERE id_asesor = :id_asesor"),
+        {"id_asesor": id_asesor},
+    ).scalar_one()
+    assert estado_guardado == "inactivo"
+
+>>>>>>> develop
     response = client.post(
         f"/administradores/asesores/{id_asesor}/restablecer-codigo",
         json={},
@@ -86,6 +110,19 @@ def test_registro_y_restablecimiento_generan_codigos_alfanumericos_unicos(monkey
     ).scalar_one()
     assert codigo_guardado == nuevo_codigo
 
+<<<<<<< HEAD
+=======
+    response = client.delete(f"/administradores/asesores/{id_asesor}")
+
+    assert response.status_code == 200
+    assert response.json()["id_asesor"] == id_asesor
+    asesor_eliminado = db.execute(
+        text("SELECT id_asesor FROM asesores_banco WHERE id_asesor = :id_asesor"),
+        {"id_asesor": id_asesor},
+    ).first()
+    assert asesor_eliminado is None
+
+>>>>>>> develop
     db.close()
     engine.dispose()
 
@@ -185,11 +222,14 @@ def test_login_asesor_ignora_usuario_administrador_con_mismo_email(monkeypatch):
     db.commit()
 
     monkeypatch.setitem(main.app.dependency_overrides, main.get_db, lambda: db)
+<<<<<<< HEAD
     correos = []
     monkeypatch.setattr(
         "Backend.main.enviar_correo",
         lambda destinatario, asunto, mensaje: correos.append(mensaje) or True,
     )
+=======
+>>>>>>> develop
     client = TestClient(main.app)
     response = client.post(
         "/asesor-login",
@@ -202,6 +242,7 @@ def test_login_asesor_ignora_usuario_administrador_con_mismo_email(monkeypatch):
     assert response.status_code == 200
     assert response.json()["usuario"]["rol"] == "asesor"
     assert response.json()["usuario"]["id"] < 0
+<<<<<<< HEAD
     assert "token" not in response.json()
     assert "codigo_verificacion" not in response.json()
 
@@ -218,6 +259,8 @@ def test_login_asesor_ignora_usuario_administrador_con_mismo_email(monkeypatch):
     )
     assert verificado.status_code == 200
     assert verificado.json()["usuario"]["id"] < 0
+=======
+>>>>>>> develop
 
     db.close()
     engine.dispose()
