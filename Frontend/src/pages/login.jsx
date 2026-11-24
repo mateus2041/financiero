@@ -377,7 +377,6 @@ function Login({ isModal = false }) {
               onChange={(e) => {
                 const nuevoRol = normalizeLoginRole(e.target.value);
                 setRol(nuevoRol);
-                localStorage.setItem("rol", nuevoRol);
               }}
               disabled={bloqueado || iniciandoSesion}
             >

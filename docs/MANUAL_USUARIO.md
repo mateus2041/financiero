@@ -66,7 +66,7 @@ No. BRE-B y otras operaciones se deben considerar simuladas hasta que exista int
 certificación explícita del proveedor autorizado.
 
 **¿Por qué una sesión caduca?**  
-Los tokens tienen expiración. Vuelva a iniciar sesión; no reutilice tokens ni los comparta.
+Los tokens expiran tras 30 minutos. Vuelva a iniciar sesión; no reutilice tokens ni los comparta.
 
 **¿Qué hago ante un error de transferencia?**  
 No reintente hasta confirmar que la operación no quedó registrada en el historial.

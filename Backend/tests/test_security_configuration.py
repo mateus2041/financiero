@@ -1,12 +1,54 @@
+from datetime import datetime, timedelta, timezone
 import os
 from pathlib import Path
 import subprocess
 import sys
 
 import pytest
+from fastapi import HTTPException
+from fastapi.security import HTTPAuthorizationCredentials
+from jose import jwt
+
+from Backend.security import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    ALGORITHM,
+    SECRET_KEY,
+    generate_token,
+    token_required,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_generated_jwt_has_bounded_lifetime():
+    payload = jwt.decode(
+        generate_token(42),
+        SECRET_KEY,
+        algorithms=[ALGORITHM],
+    )
+
+    assert payload["sub"] == "42"
+    assert payload["exp"] - payload["iat"] == ACCESS_TOKEN_EXPIRE_MINUTES * 60
+
+
+def test_expired_jwt_is_rejected():
+    token = jwt.encode(
+        {
+            "sub": "42",
+            "exp": datetime.now(timezone.utc) - timedelta(seconds=1),
+        },
+        SECRET_KEY,
+        algorithm=ALGORITHM,
+    )
+
+    with pytest.raises(HTTPException) as error:
+        token_required(
+            HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+        )
+
+    assert error.value.status_code == 401
+    assert error.value.detail == "Token inválido o expirado"
 
 
 @pytest.mark.parametrize(

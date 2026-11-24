@@ -66,7 +66,7 @@ export const normalizarMensajesAdmin = (mensajes) => {
   }
 
   return mensajes
-    .map(normalizarMensajeAdmin)
+    .map((mensaje, index) => normalizarMensajeAdmin(mensaje, index))
     .filter(Boolean);
 };
 

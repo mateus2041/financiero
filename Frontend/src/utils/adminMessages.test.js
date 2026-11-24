@@ -8,6 +8,10 @@ describe("admin message storage normalization", () => {
     localStorage.clear();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   test("normalizes names and message text from untrusted browser storage", () => {
     const [mensaje] = normalizarMensajesAdmin([
       {
@@ -28,6 +32,15 @@ describe("admin message storage normalization", () => {
       { texto: "mensaje", imagen: "data:text/html;base64,PHNjcmlwdD4=" },
     ]);
     expect(mensaje.imagen).toBeNull();
+  });
+
+  test("uses each message index when generating fallback identifiers", () => {
+    jest.spyOn(Date, "now").mockReturnValue(100);
+
+    expect(normalizarMensajesAdmin([{}, {}]).map(({ id }) => id)).toEqual([
+      100,
+      101,
+    ]);
   });
 
   test("sanitizes newly created messages before persisting them", () => {
