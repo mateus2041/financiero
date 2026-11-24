@@ -6,10 +6,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import logging
 import os
 import secrets
-<<<<<<< HEAD
 from datetime import datetime, timedelta, timezone
-=======
->>>>>>> develop
 
 from dotenv import load_dotenv
 
@@ -51,10 +48,7 @@ elif len(SECRET_KEY.encode("utf-8")) < 32:
     raise RuntimeError("JWT_SECRET_KEY/SECRET_KEY debe contener al menos 32 bytes.")
 
 ALGORITHM = "HS256"
-<<<<<<< HEAD
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-=======
->>>>>>> develop
 
 
 security = HTTPBearer(
@@ -97,16 +91,11 @@ def check_password(
 # =========================
 
 def generate_token(identity: int):
-<<<<<<< HEAD
     issued_at = datetime.now(timezone.utc)
     payload = {
         "sub": str(identity),
         "iat": issued_at,
         "exp": issued_at + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
-=======
-    payload = {
-        "sub": str(identity)
->>>>>>> develop
     }
 
     token = jwt.encode(

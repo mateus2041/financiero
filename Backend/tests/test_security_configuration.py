@@ -1,14 +1,10 @@
-<<<<<<< HEAD
 from datetime import datetime, timedelta, timezone
-=======
->>>>>>> develop
 import os
 from pathlib import Path
 import subprocess
 import sys
 
 import pytest
-<<<<<<< HEAD
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 from jose import jwt
@@ -20,14 +16,11 @@ from Backend.security import (
     generate_token,
     token_required,
 )
-=======
->>>>>>> develop
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
-<<<<<<< HEAD
 def test_generated_jwt_has_bounded_lifetime():
     payload = jwt.decode(
         generate_token(42),
@@ -58,8 +51,6 @@ def test_expired_jwt_is_rejected():
     assert error.value.detail == "Token inválido o expirado"
 
 
-=======
->>>>>>> develop
 @pytest.mark.parametrize(
     ("app_env", "jwt_secret_key", "secret_key", "expected_status"),
     [

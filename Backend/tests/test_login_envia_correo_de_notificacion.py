@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
@@ -20,19 +19,6 @@ from Backend.main import (
     login,
 )
 from Backend.models import Cuenta, Usuario, VerificacionLogin
-=======
-from pathlib import Path
-
-import pytest
-from fastapi import HTTPException
-from pydantic import ValidationError
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-from Backend.database.database import Base
-from Backend.main import enviar_correos_acceso, login
-from Backend.models import Cuenta, Usuario
->>>>>>> develop
 from Backend.security import check_password, hash_password
 
 
@@ -93,15 +79,11 @@ def test_email_service_devuelve_none_si_faltan_credenciales(monkeypatch):
 
 
 def test_login_envia_correo_de_notificacion(monkeypatch):
-<<<<<<< HEAD
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-=======
-    engine = create_engine("sqlite://")
->>>>>>> develop
     Base.metadata.create_all(bind=engine)
     SessionLocal = sessionmaker(bind=engine)
     db = SessionLocal()
@@ -139,10 +121,7 @@ def test_login_envia_correo_de_notificacion(monkeypatch):
         return True
 
     monkeypatch.setattr("Backend.main.enviar_correo", fake_enviar_correo)
-<<<<<<< HEAD
     monkeypatch.setitem(app.dependency_overrides, get_db, lambda: db)
-=======
->>>>>>> develop
 
     resultado = login(
         {"documento": "1000000000", "password": "Segura123", "rol": "usuario"},
@@ -150,14 +129,9 @@ def test_login_envia_correo_de_notificacion(monkeypatch):
     )
 
     assert resultado["message"] == "Login exitoso"
-<<<<<<< HEAD
     assert resultado["challenge_id"]
     assert "token" not in resultado
     assert "codigo_verificacion" not in resultado
-=======
-    assert resultado["codigo_verificacion"].isdigit()
-    assert len(resultado["codigo_verificacion"]) == 4
->>>>>>> develop
     assert len(llamadas) == 2
     assert "Código de verificación" in llamadas[0]["asunto"]
     assert "Fecha y hora" in llamadas[1]["asunto"]
@@ -172,14 +146,10 @@ def test_login_envia_correo_de_notificacion(monkeypatch):
     assert correo_codigo["destinatario"] == "ana@test.com"
     assert "Ana Gómez" in correo_codigo["mensaje_html"]
     assert "Estimado cliente" in correo_codigo["mensaje_html"]
-<<<<<<< HEAD
     codigo = re.search(
         r"Tu código de verificación es: <strong[^>]*>(\d{4})</strong>",
         correo_codigo["mensaje_html"],
     ).group(1)
-=======
-    assert resultado["codigo_verificacion"] in correo_codigo["mensaje_html"]
->>>>>>> develop
     assert "Este código de verificación vencerá en 10 minutos." in correo_codigo["mensaje_html"]
     assert correo_codigo["mensaje_html"].index(
         "Este código de verificación vencerá en 10 minutos."
@@ -187,7 +157,6 @@ def test_login_envia_correo_de_notificacion(monkeypatch):
     assert "ingreso a tu cuenta" in correo_notificacion["mensaje_html"].lower()
     assert "fecha" in correo_notificacion["mensaje_html"].lower()
     assert "hora" in correo_notificacion["mensaje_html"].lower()
-<<<<<<< HEAD
     reto = db.query(VerificacionLogin).filter_by(
         challenge_id=resultado["challenge_id"]
     ).one()
@@ -216,13 +185,10 @@ def test_login_envia_correo_de_notificacion(monkeypatch):
         json={"challenge_id": resultado["challenge_id"], "codigo": codigo},
     )
     assert repetido.status_code == 401
-=======
->>>>>>> develop
 
     db.close()
 
 
-<<<<<<< HEAD
 def test_verificacion_login_bloquea_despues_de_cinco_codigos_incorrectos(
     monkeypatch,
 ):
@@ -272,9 +238,6 @@ def test_verificacion_login_bloquea_despues_de_cinco_codigos_incorrectos(
 
 
 def test_login_no_emite_reto_si_falla_el_envio_del_correo(monkeypatch):
-=======
-def test_login_sigue_con_el_acceso_si_falla_el_envio_del_correo(monkeypatch):
->>>>>>> develop
     engine = create_engine("sqlite://")
     Base.metadata.create_all(bind=engine)
     SessionLocal = sessionmaker(bind=engine)
@@ -304,7 +267,6 @@ def test_login_sigue_con_el_acceso_si_falla_el_envio_del_correo(monkeypatch):
 
     monkeypatch.setattr("Backend.main.enviar_correos_acceso", lambda *args: False)
 
-<<<<<<< HEAD
     with pytest.raises(HTTPException) as error:
         login(
             {"documento": "2000000000", "password": "Segura123", "rol": "usuario"},
@@ -313,17 +275,6 @@ def test_login_sigue_con_el_acceso_si_falla_el_envio_del_correo(monkeypatch):
 
     assert error.value.status_code == 503
     assert db.query(VerificacionLogin).count() == 0
-=======
-    resultado = login(
-        {"documento": "2000000000", "password": "Segura123", "rol": "usuario"},
-        db=db,
-    )
-
-    assert resultado["message"] == "Login exitoso"
-    assert resultado["codigo_verificacion"].isdigit()
-    assert len(resultado["codigo_verificacion"]) == 4
-
->>>>>>> develop
     db.close()
 
 

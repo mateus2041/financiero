@@ -5,12 +5,7 @@ import os
 import re
 import hmac
 import time
-<<<<<<< HEAD
-from datetime import datetime, timedelta, timezone
-=======
-from datetime import date, datetime
-from datetime import timezone
->>>>>>> develop
+from datetime import date, datetime, timedelta, timezone
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import json
@@ -31,15 +26,10 @@ from Backend.schemas import (
     AsesorLoginSchema,
     AsesorRegistroSchema,
     AsesoresRespuesta,
-<<<<<<< HEAD
-    CuentasAdministradorRespuesta,
-    LoginRespuesta,
-    LoginPendienteRespuesta,
-=======
     BeneficioUsuarioActualizacionSchema,
     CuentasAdministradorRespuesta,
     LoginRespuesta,
->>>>>>> develop
+    LoginPendienteRespuesta,
     NuevaCuenta,
     PerfilActualizacionSchema,
     RegistroRespuesta,
@@ -48,10 +38,7 @@ from Backend.schemas import (
     UsuarioActualizacionSchema,
     UsuarioLoginSchema,
     UsuarioRegistroSchema,
-<<<<<<< HEAD
     VerificarLoginSchema,
-=======
->>>>>>> develop
     UsuarioRespuesta,
 )
 
@@ -141,12 +128,8 @@ from Backend.models import (
     Transaccion,
     LlaveBreb,
     TransferenciaBreb,
-<<<<<<< HEAD
     Notificacion,
-    VerificacionLogin
-=======
-    Notificacion
->>>>>>> develop
+    VerificacionLogin,
 )
 from Backend.dependencias import get_db
 from Backend.email_service.email_service import crear_plantilla_email, enviar_correo
@@ -155,12 +138,8 @@ from Backend.security import (
     hash_password,
     check_password,
     generate_token,
-<<<<<<< HEAD
     token_required,
     SECRET_KEY,
-=======
-    token_required
->>>>>>> develop
 )
 
 
@@ -777,12 +756,8 @@ def registrar_usuario(
 
         rol=rol,
 
-<<<<<<< HEAD
-        codigo_registro=codigo_registro
-=======
         codigo_registro=codigo_registro,
         fecha_nacimiento=data.get("fecha_nacimiento"),
->>>>>>> develop
 
     )
 
@@ -933,7 +908,6 @@ def generar_codigo_verificacion() -> str:
     return f"{secrets.randbelow(10000):04d}"
 
 
-<<<<<<< HEAD
 def _hash_codigo_login(challenge_id: str, codigo: str) -> str:
     mensaje = f"{challenge_id}:{codigo}".encode("utf-8")
     return hmac.new(SECRET_KEY.encode("utf-8"), mensaje, "sha256").hexdigest()
@@ -967,8 +941,6 @@ def _crear_reto_login(
     return challenge_id
 
 
-=======
->>>>>>> develop
 def enviar_correos_acceso(
     destinatario: str,
     asunto_codigo: str,
@@ -1026,11 +998,7 @@ def formatear_numero_cuenta(numero_actual: str | None, ultimos_digitos: str) -> 
 # LOGIN
 # ==========================================================
 
-<<<<<<< HEAD
 @app.post("/asesor-login", response_model=LoginPendienteRespuesta)
-=======
-@app.post("/asesor-login", response_model=LoginRespuesta)
->>>>>>> develop
 def asesor_login(
     data: AsesorLoginSchema,
     db: Session = Depends(get_db)
@@ -1124,19 +1092,13 @@ def asesor_login(
         """
     )
     if not enviar_correo(asesor["email"], asunto, mensaje):
-<<<<<<< HEAD
         raise HTTPException(
             status_code=503,
             detail="No se pudo enviar el código de verificación. Inténtalo nuevamente."
-=======
-        logger.warning(
-            "No se pudo enviar el código de verificación por correo para el asesor"
->>>>>>> develop
         )
 
     return {
         "message": "Acceso de asesor exitoso",
-<<<<<<< HEAD
         "challenge_id": _crear_reto_login(
             db,
             asesor["id_usuario"]
@@ -1144,13 +1106,6 @@ def asesor_login(
             else -asesor["id_asesor"],
             "asesor",
             codigo_verificacion,
-=======
-        "codigo_verificacion": codigo_verificacion,
-        "token": generate_token(
-            asesor["id_usuario"]
-            if asesor["id_usuario"] is not None
-            else -asesor["id_asesor"]
->>>>>>> develop
         ),
         "usuario": {
             "id": asesor["id_usuario"]
@@ -1520,11 +1475,7 @@ def actualizar_asesor(
     }
 
 
-<<<<<<< HEAD
 @app.post("/administrador-login", response_model=LoginPendienteRespuesta)
-=======
-@app.post("/administrador-login", response_model=LoginRespuesta)
->>>>>>> develop
 def administrador_login(
     data: AdministradorLoginSchema,
     db: Session = Depends(get_db)
@@ -1598,29 +1549,19 @@ def administrador_login(
         """
     )
     if not enviar_correo(usuario.email, asunto, mensaje):
-<<<<<<< HEAD
         raise HTTPException(
             status_code=503,
             detail="No se pudo enviar el código de verificación. Inténtalo nuevamente."
-=======
-        logger.warning(
-            "No se pudo enviar el código de verificación por correo para el administrador"
->>>>>>> develop
         )
 
     return {
         "message": "Acceso de administrador exitoso",
-<<<<<<< HEAD
         "challenge_id": _crear_reto_login(
             db,
             usuario.id_usuario,
             "administrador",
             codigo_verificacion,
         ),
-=======
-        "codigo_verificacion": codigo_verificacion,
-        "token": generate_token(usuario.id_usuario),
->>>>>>> develop
         "usuario": {
             "id": usuario.id_usuario,
             "nombre": usuario.nombre,
@@ -1629,11 +1570,7 @@ def administrador_login(
         }
     }
 
-<<<<<<< HEAD
 @app.post("/login", response_model=LoginPendienteRespuesta)
-=======
-@app.post("/login", response_model=LoginRespuesta)
->>>>>>> develop
 def login(
 
     data: UsuarioLoginSchema,
@@ -1750,13 +1687,6 @@ def login(
             detail="No tienes un correo electrónico registrado para recibir el código de verificación"
         )
 
-<<<<<<< HEAD
-=======
-    token = generate_token(
-        usuario.id_usuario
-    )
-
->>>>>>> develop
     codigo_verificacion = generar_codigo_verificacion()
     fecha_hora_ingreso = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
@@ -1809,14 +1739,9 @@ def login(
         asunto_notificacion_ingreso,
         mensaje_notificacion_ingreso,
     ):
-<<<<<<< HEAD
         raise HTTPException(
             status_code=503,
             detail="No se pudo enviar el código de verificación. Inténtalo nuevamente."
-=======
-        logger.warning(
-            "No se pudo enviar el código de verificación ni la notificación por correo"
->>>>>>> develop
         )
 
     db.add(
@@ -1833,7 +1758,6 @@ def login(
         "message":
         "Login exitoso",
 
-<<<<<<< HEAD
         "challenge_id":
         _crear_reto_login(
             db,
@@ -1841,13 +1765,6 @@ def login(
             usuario.rol,
             codigo_verificacion,
         ),
-=======
-        "codigo_verificacion":
-        codigo_verificacion,
-
-        "token":
-        token,
->>>>>>> develop
 
         "usuario": {
 
@@ -1868,7 +1785,6 @@ def login(
     }
 
 
-<<<<<<< HEAD
 @app.post("/verificar-login", response_model=LoginRespuesta)
 def verificar_login(
     data: VerificarLoginSchema,
@@ -1977,8 +1893,6 @@ def verificar_login(
     }
 
 
-=======
->>>>>>> develop
 # ==========================================================
 # PERFIL
 # ==========================================================
@@ -2055,12 +1969,9 @@ def listar_usuarios(
     if despues_de is not None:
         consulta = consulta.filter(Usuario.id_usuario > despues_de)
     usuarios = consulta.order_by(Usuario.id_usuario).limit(limite).all()
-<<<<<<< HEAD
-=======
     es_administrador = db.query(Administrador.id_administrador).filter(
         Administrador.id_usuario == current_user
     ).first() is not None
->>>>>>> develop
 
     return [
         {
@@ -2077,9 +1988,6 @@ def listar_usuarios(
             "codigo_registro": usuario.codigo_registro,
             "estado": getattr(usuario, "estado", "activo"),
             "fecha_creacion": usuario.fecha_creacion.isoformat()
-<<<<<<< HEAD
-            if usuario.fecha_creacion else None
-=======
             if usuario.fecha_creacion else None,
             "fecha_nacimiento": (
                 None if es_administrador else usuario.fecha_nacimiento
@@ -2098,14 +2006,11 @@ def listar_usuarios(
                 if es_administrador
                 else clasificar_beneficio(usuario.fecha_nacimiento)
             ),
->>>>>>> develop
         }
         for usuario in usuarios
     ]
 
 
-<<<<<<< HEAD
-=======
 def calcular_edad(fecha_nacimiento: date | None, hoy: date | None = None) -> int | None:
     if fecha_nacimiento is None:
         return None
@@ -2184,7 +2089,6 @@ def actualizar_beneficio_usuario(
     }
 
 
->>>>>>> develop
 @app.get("/administradores/cuentas", response_model=CuentasAdministradorRespuesta)
 def listar_cuentas_admin(
     current_user: int = Depends(administrador_o_asesor_requerido),
