@@ -25,9 +25,6 @@ const obtenerMensajeError = (detalle) => {
   return detalle == null ? "No se pudo completar el registro." : String(detalle);
 };
 
-<<<<<<< HEAD
-function Registro({ isModal = false, onClose }) {
-=======
 const obtenerFechaLocal = () => {
   const hoy = new Date();
   const mes = String(hoy.getMonth() + 1).padStart(2, "0");
@@ -36,7 +33,6 @@ const obtenerFechaLocal = () => {
 };
 
 function Registro({ isModal = false, onClose, onRegistered }) {
->>>>>>> develop
   const navigate = useNavigate();
 
   const [paso, setPaso] = useState(1);
@@ -125,6 +121,16 @@ function Registro({ isModal = false, onClose, onRegistered }) {
       return;
     }
 
+    if (!fechaNacimiento) {
+      setMensaje("Ingresa la fecha de nacimiento para calcular la edad.");
+      return;
+    }
+
+    if (fechaNacimiento > obtenerFechaLocal()) {
+      setMensaje("La fecha de nacimiento no puede ser futura.");
+      return;
+    }
+
     if (!/^\d{6}$/.test(codigoCorrespondencia.trim())) {
       setMensaje("El código postal debe tener 6 números");
       return;
@@ -149,6 +155,7 @@ function Registro({ isModal = false, onClose, onRegistered }) {
           localidad,
           barrio,
           codigo_correspondencia: codigoCorrespondencia,
+          fecha_nacimiento: fechaNacimiento,
         }),
       });
 
@@ -181,6 +188,7 @@ function Registro({ isModal = false, onClose, onRegistered }) {
       );
       setCodigoRegistro(data.codigo_registro);
       setMostrarOpciones(true);
+      onRegistered?.();
     } catch (error) {
       console.error(error);
       setMensaje("No se pudo conectar con el servidor. Inténtalo nuevamente.");
