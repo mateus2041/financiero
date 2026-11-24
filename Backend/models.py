@@ -1,5 +1,6 @@
 from sqlalchemy import (
     Column,
+    Date,
     Integer,
     String,
     ForeignKey,
@@ -14,7 +15,7 @@ from sqlalchemy import (
 )
 
 from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from Backend.database.database import Base
 
@@ -154,6 +155,22 @@ class Usuario(Base):
     fecha_creacion = Column(
         DateTime,
         default=utc_now_naive
+    )
+
+    fecha_nacimiento = Column(Date, nullable=True)
+
+    discapacidad_confirmada = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("0")
+    )
+
+    beneficio_habilitado = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("0")
     )
 
     # =====================================================

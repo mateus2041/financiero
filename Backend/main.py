@@ -5,7 +5,7 @@ import os
 import re
 import hmac
 import time
-from datetime import datetime
+from datetime import date, datetime
 from datetime import timezone
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -27,6 +27,7 @@ from Backend.schemas import (
     AsesorLoginSchema,
     AsesorRegistroSchema,
     AsesoresRespuesta,
+    BeneficioUsuarioActualizacionSchema,
     CuentasAdministradorRespuesta,
     LoginRespuesta,
     NuevaCuenta,
@@ -752,7 +753,8 @@ def registrar_usuario(
 
         rol=rol,
 
-        codigo_registro=codigo_registro
+        codigo_registro=codigo_registro,
+        fecha_nacimiento=data.get("fecha_nacimiento"),
 
     )
 
@@ -1816,6 +1818,9 @@ def listar_usuarios(
     if despues_de is not None:
         consulta = consulta.filter(Usuario.id_usuario > despues_de)
     usuarios = consulta.order_by(Usuario.id_usuario).limit(limite).all()
+    es_administrador = db.query(Administrador.id_administrador).filter(
+        Administrador.id_usuario == current_user
+    ).first() is not None
 
     return [
         {
@@ -1832,10 +1837,105 @@ def listar_usuarios(
             "codigo_registro": usuario.codigo_registro,
             "estado": getattr(usuario, "estado", "activo"),
             "fecha_creacion": usuario.fecha_creacion.isoformat()
-            if usuario.fecha_creacion else None
+            if usuario.fecha_creacion else None,
+            "fecha_nacimiento": (
+                None if es_administrador else usuario.fecha_nacimiento
+            ),
+            "discapacidad_confirmada": (
+                None if es_administrador else usuario.discapacidad_confirmada
+            ),
+            "beneficio_habilitado": (
+                None if es_administrador else usuario.beneficio_habilitado
+            ),
+            "edad": (
+                None if es_administrador else calcular_edad(usuario.fecha_nacimiento)
+            ),
+            "tipo_beneficio": (
+                None
+                if es_administrador
+                else clasificar_beneficio(usuario.fecha_nacimiento)
+            ),
         }
         for usuario in usuarios
     ]
+
+
+def calcular_edad(fecha_nacimiento: date | None, hoy: date | None = None) -> int | None:
+    if fecha_nacimiento is None:
+        return None
+
+    fecha_actual = hoy or date.today()
+    return fecha_actual.year - fecha_nacimiento.year - (
+        (fecha_actual.month, fecha_actual.day)
+        < (fecha_nacimiento.month, fecha_nacimiento.day)
+    )
+
+
+def clasificar_beneficio(fecha_nacimiento: date | None) -> str | None:
+    edad = calcular_edad(fecha_nacimiento)
+    if edad is None:
+        return None
+    if edad >= 60:
+        return "pensionado"
+    if edad >= 18:
+        return "joven"
+    return "no_elegible"
+
+
+@app.put("/usuarios/{id_usuario}/beneficio")
+def actualizar_beneficio_usuario(
+    id_usuario: int,
+    data: BeneficioUsuarioActualizacionSchema,
+    asesor=Depends(asesor_requerido),
+    db: Session = Depends(get_db),
+):
+    usuario = db.query(Usuario).filter(
+        Usuario.id_usuario == id_usuario,
+        Usuario.rol == "usuario",
+        ~Usuario.id_usuario.in_(db.query(Administrador.id_usuario)),
+        ~db.query(AsesorBanco.id_asesor)
+        .filter(
+            func.lower(func.trim(AsesorBanco.documento))
+            == func.lower(func.trim(Usuario.documento))
+        )
+        .exists(),
+    ).first()
+
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    edad = calcular_edad(usuario.fecha_nacimiento)
+    if data.habilitado:
+        if edad is None or edad < 18:
+            raise HTTPException(
+                status_code=400,
+                detail="El usuario no cumple la edad mínima para el beneficio",
+            )
+        if edad < 60 and not data.confirmar_discapacidad:
+            raise HTTPException(
+                status_code=400,
+                detail="El asesor debe confirmar la discapacidad para habilitar el beneficio",
+            )
+
+    usuario.beneficio_habilitado = data.habilitado
+    usuario.discapacidad_confirmada = data.confirmar_discapacidad
+    db.commit()
+    db.refresh(usuario)
+
+    return {
+        "message": (
+            "Beneficio habilitado correctamente"
+            if usuario.beneficio_habilitado
+            else "Beneficio deshabilitado correctamente"
+        ),
+        "usuario": {
+            "id_usuario": usuario.id_usuario,
+            "discapacidad_confirmada": usuario.discapacidad_confirmada,
+            "beneficio_habilitado": usuario.beneficio_habilitado,
+            "edad": edad,
+            "tipo_beneficio": clasificar_beneficio(usuario.fecha_nacimiento),
+        },
+    }
 
 
 @app.get("/administradores/cuentas", response_model=CuentasAdministradorRespuesta)

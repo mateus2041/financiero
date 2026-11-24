@@ -63,6 +63,9 @@ export default function ListaUsuarios() {
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
   const [errorEdicion, setErrorEdicion] = useState("");
   const [mensajeEdicion, setMensajeEdicion] = useState("");
+  const [confirmacionesDiscapacidad, setConfirmacionesDiscapacidad] = useState({});
+  const [guardandoBeneficio, setGuardandoBeneficio] = useState(null);
+  const [erroresBeneficio, setErroresBeneficio] = useState({});
   const [formularioEdicion, setFormularioEdicion] = useState({
     nombre: "",
     email: "",
@@ -199,6 +202,13 @@ export default function ListaUsuarios() {
       usuario.estado,
     ].some((valor) => normalizarTexto(valor).includes(textoBusqueda));
   });
+  const puedeGestionarBeneficios =
+    esAsesor &&
+    usuarios.some(
+      (usuario) =>
+        typeof usuario.beneficio_habilitado === "boolean" &&
+        typeof usuario.discapacidad_confirmada === "boolean"
+    );
 
   const cargarUsuarios = async (cargarMas = false) => {
     try {
@@ -527,6 +537,62 @@ export default function ListaUsuarios() {
     }
   };
 
+  const actualizarBeneficioUsuario = async (usuario) => {
+    const confirmarDiscapacidad =
+      confirmacionesDiscapacidad[usuario.id_usuario] ??
+      Boolean(usuario.discapacidad_confirmada);
+
+    try {
+      setGuardandoBeneficio(usuario.id_usuario);
+      setErroresBeneficio((actuales) => ({
+        ...actuales,
+        [usuario.id_usuario]: "",
+      }));
+
+      const token = localStorage.getItem("token");
+      const respuesta = await axios.put(
+        `${API_URL}/usuarios/${usuario.id_usuario}/beneficio`,
+        {
+          habilitado: !usuario.beneficio_habilitado,
+          confirmar_discapacidad: confirmarDiscapacidad,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const datosActualizados = respuesta.data?.usuario || {};
+      const usuarioActualizado = { ...usuario, ...datosActualizados };
+      setUsuarios((actuales) =>
+        actuales.map((item) =>
+          item.id_usuario === usuario.id_usuario ? usuarioActualizado : item
+        )
+      );
+      setConfirmacionesDiscapacidad((actuales) => ({
+        ...actuales,
+        [usuario.id_usuario]: Boolean(
+          datosActualizados.discapacidad_confirmada
+        ),
+      }));
+      setMensajeAccion(
+        respuesta.data?.message || "Beneficio actualizado correctamente."
+      );
+    } catch (error) {
+      console.error("Error al actualizar el beneficio del usuario:", error);
+      setErroresBeneficio((actuales) => ({
+        ...actuales,
+        [usuario.id_usuario]: obtenerMensajeError(
+          error,
+          "No se pudo actualizar el beneficio."
+        ),
+      }));
+    } finally {
+      setGuardandoBeneficio(null);
+    }
+  };
+
   const inhabilitarUsuario = (idUsuario) => {
     const usuario = usuarios.find(
       (item) => item.id_usuario === idUsuario
@@ -826,11 +892,22 @@ export default function ListaUsuarios() {
                 onTouchEnd={terminarArrastreTabla}
                 onTouchCancel={terminarArrastreTabla}
               >
-                <table className="tabla-asesores">
+                <table
+                  className={`tabla-asesores ${
+                    puedeGestionarBeneficios ? "tabla-usuarios" : ""
+                  }`}
+                >
                   <thead>
                     <tr>
                       <th>Nombre</th>
                       <th>Número de documento</th>
+                      {puedeGestionarBeneficios && (
+                        <>
+                          <th>Edad</th>
+                          <th>Clasificación</th>
+                          <th>Beneficio</th>
+                        </>
+                      )}
                       <th>Dirección</th>
                       <th>Código postal</th>
                       <th>Acciones</th>
@@ -848,6 +925,97 @@ export default function ListaUsuarios() {
                         <td>
                           {usuario.documento || "No registrado"}
                         </td>
+
+                        {puedeGestionarBeneficios && (
+                          <>
+                            <td>
+                              {Number.isInteger(usuario.edad)
+                                ? `${usuario.edad} años`
+                                : "Sin fecha de nacimiento"}
+                            </td>
+
+                            <td>
+                              {usuario.tipo_beneficio === "pensionado"
+                                ? "Pensionado (60 años o más)"
+                                : usuario.tipo_beneficio === "joven"
+                                  ? "Joven (requiere confirmar discapacidad)"
+                                  : usuario.tipo_beneficio === "no_elegible"
+                                    ? "No elegible"
+                                    : "Sin clasificación"}
+                            </td>
+
+                            <td>
+                              <span
+                                className={`estado-badge ${
+                                  usuario.beneficio_habilitado
+                                    ? "activo"
+                                    : "inactivo"
+                                }`}
+                              >
+                                {usuario.beneficio_habilitado
+                                  ? "Habilitado"
+                                  : "Deshabilitado"}
+                              </span>
+                              {usuario.tipo_beneficio === "joven" && (
+                                <label className="confirmar-discapacidad">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      confirmacionesDiscapacidad[
+                                        usuario.id_usuario
+                                      ] ??
+                                      Boolean(usuario.discapacidad_confirmada)
+                                    }
+                                    onChange={(evento) =>
+                                      setConfirmacionesDiscapacidad(
+                                        (actuales) => ({
+                                          ...actuales,
+                                          [usuario.id_usuario]:
+                                            evento.target.checked,
+                                        })
+                                      )
+                                    }
+                                    disabled={
+                                      usuario.beneficio_habilitado ||
+                                      guardandoBeneficio === usuario.id_usuario
+                                    }
+                                  />
+                                  Confirmo discapacidad
+                                </label>
+                              )}
+                              <button
+                                type="button"
+                                className="boton-registrar-usuario"
+                                onClick={() => actualizarBeneficioUsuario(usuario)}
+                                disabled={
+                                  guardandoBeneficio === usuario.id_usuario ||
+                                  (!usuario.beneficio_habilitado &&
+                                    usuario.tipo_beneficio !== "pensionado" &&
+                                    usuario.tipo_beneficio !== "joven") ||
+                                  (!usuario.beneficio_habilitado &&
+                                    usuario.tipo_beneficio === "joven" &&
+                                    !(
+                                      confirmacionesDiscapacidad[
+                                        usuario.id_usuario
+                                      ] ??
+                                      Boolean(usuario.discapacidad_confirmada)
+                                    ))
+                                }
+                              >
+                                {guardandoBeneficio === usuario.id_usuario
+                                  ? "Guardando..."
+                                  : usuario.beneficio_habilitado
+                                    ? "Deshabilitar"
+                                    : "Habilitar"}
+                              </button>
+                              {erroresBeneficio[usuario.id_usuario] && (
+                                <p className="mensaje-error" role="alert">
+                                  {erroresBeneficio[usuario.id_usuario]}
+                                </p>
+                              )}
+                            </td>
+                          </>
+                        )}
 
                         <td>
                           {usuario.direccion || "No registrada"}
@@ -943,7 +1111,7 @@ export default function ListaUsuarios() {
                   </button>
                 </div>
 
-                <Registro isModal />
+                <Registro isModal onRegistered={cargarUsuarios} />
               </div>
             </div>
           )}

@@ -794,6 +794,20 @@ body {
   border-collapse: collapse;
 }
 
+.tabla-usuarios {
+  min-width: 1150px;
+}
+
+.confirmar-discapacidad {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+  color: var(--texto-secundario);
+  font-size: 12px;
+}
+
 .tabla-asesores th,
 .tabla-asesores td {
   padding: 15px 16px;

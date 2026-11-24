@@ -52,6 +52,7 @@ export default function AsesorBancario() {
     tarjetasActivas: 0,
   });
   const [cargandoEstadisticas, setCargandoEstadisticas] = useState(true);
+  const [errorEstadisticas, setErrorEstadisticas] = useState("");
 
   useEffect(() => {
     const actualizarEstadoMenu = () => {
@@ -89,9 +90,9 @@ export default function AsesorBancario() {
         const datos = respuesta.data ?? {};
 
         setEstadisticas(normalizarEstadisticas(datos));
-        setMensaje("");
+        setErrorEstadisticas("");
       } catch (error) {
-        setMensaje(
+        setErrorEstadisticas(
           error.response?.data?.detail ||
             "No fue posible cargar las estadísticas del panel."
         );
@@ -790,6 +791,9 @@ export default function AsesorBancario() {
             </div>
           </div>
 
+          {errorEstadisticas && (
+            <p className="mensaje-error">{errorEstadisticas}</p>
+          )}
           {mensaje && <p className="mensaje-error">{mensaje}</p>}
           {mensajeExito && <p className="mensaje-exito">{mensajeExito}</p>}
         </section>

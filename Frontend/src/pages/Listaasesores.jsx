@@ -30,6 +30,8 @@ export default function Administradores() {
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
   const [guardandoRegistro, setGuardandoRegistro] = useState(false);
   const [actualizandoEstado, setActualizandoEstado] = useState(null);
+  const [eliminandoAsesor, setEliminandoAsesor] = useState(null);
+  const [modalEliminacion, setModalEliminacion] = useState(null);
   const [restableciendoCodigo, setRestableciendoCodigo] = useState(false);
   const [confirmacionRestablecerAbierta, setConfirmacionRestablecerAbierta] =
     useState(false);
@@ -54,12 +56,18 @@ export default function Administradores() {
   useEffect(() => {
     const cerrarConEscape = (evento) => {
       if (evento.key === "Escape") {
+        if (modalEliminacion) {
+          if (!eliminandoAsesor) {
+            setModalEliminacion(null);
+          }
+          return;
+        }
         setAsesorEditando(null);
         setRegistroModalAbierto(false);
       }
     };
 
-    if (asesorEditando || registroModalAbierto) {
+    if (asesorEditando || registroModalAbierto || modalEliminacion) {
       document.addEventListener("keydown", cerrarConEscape);
       document.body.style.overflow = "hidden";
     }
@@ -68,7 +76,7 @@ export default function Administradores() {
       document.removeEventListener("keydown", cerrarConEscape);
       document.body.style.overflow = "";
     };
-  }, [asesorEditando, registroModalAbierto]);
+  }, [asesorEditando, registroModalAbierto, modalEliminacion, eliminandoAsesor]);
 
   const formatearError = (error, mensajeFallback) => {
     const detalle = error?.response?.data?.detail;
@@ -382,6 +390,52 @@ export default function Administradores() {
     }
   };
 
+  const confirmarEliminacionAsesor = async () => {
+    const asesor = modalEliminacion?.asesor;
+    if (!asesor || modalEliminacion.tipo !== "confirmacion") {
+      return;
+    }
+
+    try {
+      setError("");
+      setMensaje("");
+      setEliminandoAsesor(asesor.id_asesor);
+
+      const token = localStorage.getItem("token");
+      const respuesta = await axios.delete(
+        `${API_URL}/administradores/asesores/${asesor.id_asesor}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setAsesores((actuales) =>
+        actuales.filter(
+          (asesorActual) => asesorActual.id_asesor !== asesor.id_asesor
+        )
+      );
+      if (asesorEditando?.id_asesor === asesor.id_asesor) {
+        setAsesorEditando(null);
+      }
+      setModalEliminacion({
+        tipo: "resultado",
+        exito: true,
+        mensaje: respuesta.data?.mensaje || "Asesor eliminado correctamente.",
+      });
+    } catch (error) {
+      console.error(error);
+      setModalEliminacion({
+        tipo: "resultado",
+        exito: false,
+        mensaje: formatearError(error, "No se pudo eliminar el asesor."),
+      });
+    } finally {
+      setEliminandoAsesor(null);
+    }
+  };
+
   const cerrarSesion = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("usuario_id");
@@ -629,6 +683,10 @@ export default function Administradores() {
                             type="button"
                             className="boton-editar-asesor"
                             onClick={() => abrirEdicion(asesor)}
+                            disabled={
+                              actualizandoEstado === asesor.id_asesor ||
+                              eliminandoAsesor === asesor.id_asesor
+                            }
                             aria-label={`Editar información de ${asesor.nombre || "asesor"}`}
                             title="Editar información del asesor"
                           >
@@ -636,23 +694,50 @@ export default function Administradores() {
                           </button>
                           <button
                             type="button"
-                            className="boton-estado-asesor boton-deshabilitar-asesor"
-                            onClick={() => cambiarEstadoAsesor(asesor, "inactivo")}
-                            disabled={asesor.estado === "inactivo" || actualizandoEstado === asesor.id_asesor}
-                            aria-label="Deshabilitar asesor"
-                            title="Deshabilitar asesor"
+                            className={`boton-estado-asesor ${
+                              asesor.estado === "inactivo"
+                                ? "boton-habilitar-asesor"
+                                : "boton-deshabilitar-asesor"
+                            }`}
+                            onClick={() =>
+                              cambiarEstadoAsesor(
+                                asesor,
+                                asesor.estado === "inactivo" ? "activo" : "inactivo"
+                              )
+                            }
+                            disabled={
+                              actualizandoEstado === asesor.id_asesor ||
+                              eliminandoAsesor === asesor.id_asesor
+                            }
+                            aria-label={
+                              asesor.estado === "inactivo"
+                                ? "Habilitar asesor"
+                                : "Deshabilitar asesor"
+                            }
+                            title={
+                              asesor.estado === "inactivo"
+                                ? "Habilitar asesor"
+                                : "Deshabilitar asesor"
+                            }
                           >
-                            ⛔
+                            {asesor.estado === "inactivo" ? "✓" : "⛔"}
                           </button>
                           <button
                             type="button"
-                            className="boton-estado-asesor boton-habilitar-asesor"
-                            onClick={() => cambiarEstadoAsesor(asesor, "activo")}
-                            disabled={asesor.estado !== "inactivo" || actualizandoEstado === asesor.id_asesor}
-                            aria-label="Habilitar asesor"
-                            title="Habilitar asesor"
+                            className="boton-eliminar-asesor"
+                            onClick={() => {
+                              setError("");
+                              setMensaje("");
+                              setModalEliminacion({ tipo: "confirmacion", asesor });
+                            }}
+                            disabled={
+                              actualizandoEstado === asesor.id_asesor ||
+                              eliminandoAsesor === asesor.id_asesor
+                            }
+                            aria-label={`Eliminar a ${asesor.nombre || "este asesor"}`}
+                            title="Eliminar asesor"
                           >
-                            ✓
+                            🗑
                           </button>
                         </div>
                       </div>
@@ -964,6 +1049,95 @@ export default function Administradores() {
                     </section>
                   </div>
                 )}
+              </section>
+            </div>
+          )}
+
+          {modalEliminacion && (
+            <div
+              className="modal-eliminacion-overlay"
+              role="presentation"
+              onMouseDown={(evento) => {
+                if (
+                  evento.target === evento.currentTarget &&
+                  !eliminandoAsesor
+                ) {
+                  setModalEliminacion(null);
+                }
+              }}
+            >
+              <section
+                className="modal-eliminacion-asesor"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="titulo-modal-eliminacion"
+                aria-describedby="mensaje-modal-eliminacion"
+              >
+                <h2
+                  id="titulo-modal-eliminacion"
+                  className={
+                    modalEliminacion.tipo === "resultado" &&
+                    modalEliminacion.exito
+                      ? "resultado-exitoso"
+                      : ""
+                  }
+                >
+                  {modalEliminacion.tipo === "confirmacion"
+                    ? "Eliminar asesor"
+                    : modalEliminacion.exito
+                      ? "Asesor eliminado"
+                      : "No se pudo eliminar"}
+                </h2>
+                <p
+                  id="mensaje-modal-eliminacion"
+                  role={
+                    modalEliminacion.tipo === "resultado"
+                      ? modalEliminacion.exito
+                        ? "status"
+                        : "alert"
+                      : undefined
+                  }
+                >
+                  {modalEliminacion.tipo === "confirmacion"
+                    ? `¿Deseas eliminar permanentemente a ${
+                        modalEliminacion.asesor.nombre || "este asesor"
+                      }? Esta acción no se puede deshacer.`
+                    : modalEliminacion.mensaje}
+                </p>
+                <div className="acciones-modal-eliminacion">
+                  {modalEliminacion.tipo === "confirmacion" ? (
+                    <>
+                      <button
+                        type="button"
+                        className="boton-cancelar-eliminacion"
+                        onClick={() => setModalEliminacion(null)}
+                        disabled={Boolean(eliminandoAsesor)}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        className="boton-confirmar-eliminacion"
+                        onClick={confirmarEliminacionAsesor}
+                        disabled={Boolean(eliminandoAsesor)}
+                      >
+                        {eliminandoAsesor ? "Eliminando..." : "Eliminar"}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      className={
+                        modalEliminacion.exito
+                          ? "boton-aceptar-eliminacion"
+                          : "boton-confirmar-eliminacion"
+                      }
+                      onClick={() => setModalEliminacion(null)}
+                    >
+                      Aceptar
+                    </button>
+                  )}
+                </div>
               </section>
             </div>
           )}
