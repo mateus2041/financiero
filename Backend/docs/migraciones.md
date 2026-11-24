@@ -1,48 +1,39 @@
 # Migraciones de base de datos
 
-Alembic es la unica via para cambiar el esquema. FastAPI no crea ni modifica tablas al iniciar. Las migraciones no se ejecutan con `docker compose up`; se ejecutan como un paso operativo explicito para que una actualizacion no aplique DDL sin respaldo o revision.
+Alembic es la unica via para cambiar el esquema. FastAPI no crea ni modifica tablas por su cuenta. En Compose, el comando del servicio `backend` aplica las migraciones antes de iniciar Uvicorn; por eso `docker compose up` puede modificar el esquema. Realiza y valida un respaldo antes de actualizar una base con datos.
 
-<<<<<<< HEAD
-La revisión `91d8b15c4a22` copia a `asesores_banco` los datos que antes se obtenían mediante `id_usuario` y luego elimina esa columna. Aplique el cambio con `uv run alembic -c Backend/alembic.ini upgrade head` (o el comando equivalente de Docker Compose descrito abajo).
+La revision `91d8b15c4a22` copia a `asesores_banco` los datos que antes se obtenian mediante `id_usuario` y luego elimina esa columna.
 
-## Configuración
-
-Para ejecutar el backend fuera de Docker, configure `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` y `DB_NAME` en el entorno. En Compose, el host es `db` y el puerto `3306`. Compose lee el archivo `.env` de la raíz, junto a `compose.yml`; use `.env.example` como plantilla. Se requieren `MYSQL_ROOT_PASSWORD`, `DB_PASSWORD` y `JWT_SECRET_KEY` (mínimo 32 caracteres). `DB_PASSWORD` debe coincidir con la contraseña del usuario de aplicación. Para el volumen MySQL existente, conserve las credenciales que lo inicializaron; cambiar las variables no cambia automáticamente las contraseñas almacenadas en el volumen. No copie secretos a este documento ni a `alembic.ini`.
-=======
 ## Configuracion
 
-Compose lee las variables del archivo `.env` en la raiz del repositorio. Usa las credenciales de MySQL que ya correspondan al volumen persistente:
+Compose lee el archivo `.env` de la raiz, junto a `compose.yml`; usa `.env.example` como plantilla. Se requieren `MYSQL_ROOT_PASSWORD`, `DB_PASSWORD` y `JWT_SECRET_KEY` (minimo 32 bytes). `DB_PASSWORD` debe coincidir con la contraseña del usuario de aplicacion. Para el volumen MySQL existente, conserva las credenciales con las que se inicializo; cambiar las variables no actualiza las contraseñas almacenadas en el volumen.
 
-- `MYSQL_ROOT_PASSWORD`
-- `MYSQL_APP_USER` (opcional; por defecto `app_user`)
-- `MYSQL_APP_PASSWORD`
-- `MYSQL_DATABASE` (opcional; por defecto `billetera`)
->>>>>>> 37fa596c1605a4d561e0ff704b1b6cba5c5ab799
+Para ejecutar el backend fuera de Docker, configura `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` y `DB_NAME`. En Compose, el host es `db` y el puerto `3306`. No copies secretos a este documento ni a `alembic.ini`.
 
 El backend tambien usa `APP_ENV`, `SECRET_KEY` y `CORS_ALLOWED_ORIGINS`. En desarrollo, si `SECRET_KEY` esta vacia, el backend genera una clave temporal para ese proceso; los tokens dejan de ser validos al reiniciarlo. Fuera de desarrollo se requiere una clave aleatoria de al menos 32 bytes. No pongas secretos reales en plantillas ni en el control de versiones.
 
 ## Aplicar migraciones con Compose
 
-Revisa que el volumen/base seleccionados sean los esperados. Inicia MySQL, crea un respaldo, ejecuta el servicio del perfil `maintenance` (espera el healthcheck y aplica `upgrade head`) y luego inicia los servicios de la aplicacion:
+Revisa que el volumen y la base seleccionados sean los esperados. Inicia MySQL, crea y valida un respaldo antes de actualizar, y luego inicia el backend. Compose aplica las migraciones al arrancar el backend:
 
 ```powershell
 docker compose up -d db
 python scripts\database_backup.py backup
-docker compose --profile maintenance run --rm migrate
-docker compose up -d --build
+docker compose up -d --build backend
+docker compose logs -f backend
 ```
 
-El servicio `migrate` no participa en el arranque normal y el backend no queda esperando una migracion automatica. Para consultar el estado desde el contenedor backend activo:
+Comprueba en los logs que Alembic termine correctamente antes de iniciar o exponer el frontend. Para consultar el estado desde el contenedor backend activo:
 
 ```powershell
 docker compose exec backend alembic -c Backend/alembic.ini current
 docker compose exec backend alembic -c Backend/alembic.ini history
 ```
 
-Para generar una revision, actualiza primero el codigo/modelos y revisa cada cambio autogenerado antes de aplicarlo:
+Para generar una revision, configura una conexion a la base, actualiza primero el codigo/modelos y revisa cada cambio autogenerado antes de aplicarlo:
 
 ```powershell
-docker compose --profile maintenance run --rm migrate alembic -c Backend/alembic.ini revision --autogenerate -m "descripcion-del-cambio"
+alembic -c Backend/alembic.ini revision --autogenerate -m "descripcion-del-cambio"
 ```
 
 No uses `downgrade` como mecanismo de recuperacion de datos. Una migracion hacia atras solo es segura si su codigo restaura correctamente estructura y datos.

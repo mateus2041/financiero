@@ -185,6 +185,11 @@ def test_login_asesor_ignora_usuario_administrador_con_mismo_email(monkeypatch):
     db.commit()
 
     monkeypatch.setitem(main.app.dependency_overrides, main.get_db, lambda: db)
+    correos = []
+    monkeypatch.setattr(
+        "Backend.main.enviar_correo",
+        lambda destinatario, asunto, mensaje: correos.append(mensaje) or True,
+    )
     client = TestClient(main.app)
     response = client.post(
         "/asesor-login",
@@ -197,6 +202,22 @@ def test_login_asesor_ignora_usuario_administrador_con_mismo_email(monkeypatch):
     assert response.status_code == 200
     assert response.json()["usuario"]["rol"] == "asesor"
     assert response.json()["usuario"]["id"] < 0
+    assert "token" not in response.json()
+    assert "codigo_verificacion" not in response.json()
+
+    codigo = re.search(
+        r"Tu código de verificación es: <strong[^>]*>(\d{4})</strong>",
+        correos[0],
+    ).group(1)
+    verificado = client.post(
+        "/verificar-login",
+        json={
+            "challenge_id": response.json()["challenge_id"],
+            "codigo": codigo,
+        },
+    )
+    assert verificado.status_code == 200
+    assert verificado.json()["usuario"]["id"] < 0
 
     db.close()
     engine.dispose()

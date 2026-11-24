@@ -139,9 +139,19 @@ class RegistroRespuesta(SchemaBase):
 
 class LoginRespuesta(SchemaBase):
     message: str
-    codigo_verificacion: str
     token: str
     usuario: UsuarioAutenticadoRespuesta
+
+
+class LoginPendienteRespuesta(SchemaBase):
+    message: str
+    challenge_id: str
+    usuario: UsuarioAutenticadoRespuesta
+
+
+class VerificarLoginSchema(SchemaBase):
+    challenge_id: str = Field(min_length=32, max_length=64)
+    codigo: str = Field(pattern=r"^\d{4}$")
 
 
 class UsuarioRespuesta(SchemaBase):

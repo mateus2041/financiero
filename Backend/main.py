@@ -5,8 +5,7 @@ import os
 import re
 import hmac
 import time
-from datetime import datetime
-from datetime import timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import json
@@ -29,6 +28,7 @@ from Backend.schemas import (
     AsesoresRespuesta,
     CuentasAdministradorRespuesta,
     LoginRespuesta,
+    LoginPendienteRespuesta,
     NuevaCuenta,
     PerfilActualizacionSchema,
     RegistroRespuesta,
@@ -37,6 +37,7 @@ from Backend.schemas import (
     UsuarioActualizacionSchema,
     UsuarioLoginSchema,
     UsuarioRegistroSchema,
+    VerificarLoginSchema,
     UsuarioRespuesta,
 )
 
@@ -126,7 +127,8 @@ from Backend.models import (
     Transaccion,
     LlaveBreb,
     TransferenciaBreb,
-    Notificacion
+    Notificacion,
+    VerificacionLogin
 )
 from Backend.dependencias import get_db
 from Backend.email_service.email_service import crear_plantilla_email, enviar_correo
@@ -135,7 +137,8 @@ from Backend.security import (
     hash_password,
     check_password,
     generate_token,
-    token_required
+    token_required,
+    SECRET_KEY,
 )
 
 
@@ -903,6 +906,39 @@ def generar_codigo_verificacion() -> str:
     return f"{secrets.randbelow(10000):04d}"
 
 
+def _hash_codigo_login(challenge_id: str, codigo: str) -> str:
+    mensaje = f"{challenge_id}:{codigo}".encode("utf-8")
+    return hmac.new(SECRET_KEY.encode("utf-8"), mensaje, "sha256").hexdigest()
+
+
+def _crear_reto_login(
+    db: Session,
+    id_usuario: int,
+    rol: str,
+    codigo: str,
+) -> str:
+    ahora = datetime.now(timezone.utc).replace(tzinfo=None)
+    db.query(VerificacionLogin).filter(
+        VerificacionLogin.expira_en <= ahora
+    ).delete(synchronize_session=False)
+    db.query(VerificacionLogin).filter(
+        VerificacionLogin.id_usuario == id_usuario
+    ).delete(synchronize_session=False)
+
+    challenge_id = secrets.token_urlsafe(32)
+    db.add(
+        VerificacionLogin(
+            challenge_id=challenge_id,
+            id_usuario=id_usuario,
+            rol=rol,
+            codigo_hash=_hash_codigo_login(challenge_id, codigo),
+            expira_en=ahora + timedelta(minutes=10),
+        )
+    )
+    db.commit()
+    return challenge_id
+
+
 def enviar_correos_acceso(
     destinatario: str,
     asunto_codigo: str,
@@ -960,7 +996,7 @@ def formatear_numero_cuenta(numero_actual: str | None, ultimos_digitos: str) -> 
 # LOGIN
 # ==========================================================
 
-@app.post("/asesor-login", response_model=LoginRespuesta)
+@app.post("/asesor-login", response_model=LoginPendienteRespuesta)
 def asesor_login(
     data: AsesorLoginSchema,
     db: Session = Depends(get_db)
@@ -1054,17 +1090,20 @@ def asesor_login(
         """
     )
     if not enviar_correo(asesor["email"], asunto, mensaje):
-        logger.warning(
-            "No se pudo enviar el código de verificación por correo para el asesor"
+        raise HTTPException(
+            status_code=503,
+            detail="No se pudo enviar el código de verificación. Inténtalo nuevamente."
         )
 
     return {
         "message": "Acceso de asesor exitoso",
-        "codigo_verificacion": codigo_verificacion,
-        "token": generate_token(
+        "challenge_id": _crear_reto_login(
+            db,
             asesor["id_usuario"]
             if asesor["id_usuario"] is not None
-            else -asesor["id_asesor"]
+            else -asesor["id_asesor"],
+            "asesor",
+            codigo_verificacion,
         ),
         "usuario": {
             "id": asesor["id_usuario"]
@@ -1434,7 +1473,7 @@ def actualizar_asesor(
     }
 
 
-@app.post("/administrador-login", response_model=LoginRespuesta)
+@app.post("/administrador-login", response_model=LoginPendienteRespuesta)
 def administrador_login(
     data: AdministradorLoginSchema,
     db: Session = Depends(get_db)
@@ -1508,14 +1547,19 @@ def administrador_login(
         """
     )
     if not enviar_correo(usuario.email, asunto, mensaje):
-        logger.warning(
-            "No se pudo enviar el código de verificación por correo para el administrador"
+        raise HTTPException(
+            status_code=503,
+            detail="No se pudo enviar el código de verificación. Inténtalo nuevamente."
         )
 
     return {
         "message": "Acceso de administrador exitoso",
-        "codigo_verificacion": codigo_verificacion,
-        "token": generate_token(usuario.id_usuario),
+        "challenge_id": _crear_reto_login(
+            db,
+            usuario.id_usuario,
+            "administrador",
+            codigo_verificacion,
+        ),
         "usuario": {
             "id": usuario.id_usuario,
             "nombre": usuario.nombre,
@@ -1524,7 +1568,7 @@ def administrador_login(
         }
     }
 
-@app.post("/login", response_model=LoginRespuesta)
+@app.post("/login", response_model=LoginPendienteRespuesta)
 def login(
 
     data: UsuarioLoginSchema,
@@ -1641,10 +1685,6 @@ def login(
             detail="No tienes un correo electrónico registrado para recibir el código de verificación"
         )
 
-    token = generate_token(
-        usuario.id_usuario
-    )
-
     codigo_verificacion = generar_codigo_verificacion()
     fecha_hora_ingreso = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
@@ -1697,8 +1737,9 @@ def login(
         asunto_notificacion_ingreso,
         mensaje_notificacion_ingreso,
     ):
-        logger.warning(
-            "No se pudo enviar el código de verificación ni la notificación por correo"
+        raise HTTPException(
+            status_code=503,
+            detail="No se pudo enviar el código de verificación. Inténtalo nuevamente."
         )
 
     db.add(
@@ -1715,11 +1756,13 @@ def login(
         "message":
         "Login exitoso",
 
-        "codigo_verificacion":
-        codigo_verificacion,
-
-        "token":
-        token,
+        "challenge_id":
+        _crear_reto_login(
+            db,
+            usuario.id_usuario,
+            usuario.rol,
+            codigo_verificacion,
+        ),
 
         "usuario": {
 
@@ -1737,6 +1780,114 @@ def login(
 
         }
 
+    }
+
+
+@app.post("/verificar-login", response_model=LoginRespuesta)
+def verificar_login(
+    data: VerificarLoginSchema,
+    db: Session = Depends(get_db),
+):
+    ahora = datetime.now(timezone.utc).replace(tzinfo=None)
+    reto = db.query(VerificacionLogin).filter(
+        VerificacionLogin.challenge_id == data.challenge_id
+    ).with_for_update().first()
+
+    if not reto:
+        raise HTTPException(
+            status_code=401,
+            detail="El código de verificación no es válido o expiró.",
+        )
+
+    if reto.expira_en <= ahora:
+        db.delete(reto)
+        db.commit()
+        raise HTTPException(
+            status_code=410,
+            detail="El código de verificación expiró. Inicia sesión nuevamente.",
+        )
+
+    if reto.intentos >= 5:
+        db.delete(reto)
+        db.commit()
+        raise HTTPException(
+            status_code=429,
+            detail="Se agotaron los intentos. Inicia sesión nuevamente.",
+        )
+
+    codigo_esperado = _hash_codigo_login(reto.challenge_id, data.codigo)
+    if not hmac.compare_digest(reto.codigo_hash, codigo_esperado):
+        reto.intentos += 1
+        intentos_agotados = reto.intentos >= 5
+        if intentos_agotados:
+            db.delete(reto)
+        db.commit()
+        if intentos_agotados:
+            raise HTTPException(
+                status_code=429,
+                detail="Se agotaron los intentos. Inicia sesión nuevamente.",
+            )
+        raise HTTPException(
+            status_code=401,
+            detail="El código de verificación no es válido o expiró.",
+        )
+
+    id_usuario = reto.id_usuario
+    rol = reto.rol
+    if id_usuario < 0 and rol == "asesor":
+        asesor_activo = db.query(AsesorBanco).filter(
+            AsesorBanco.id_asesor == -id_usuario,
+            AsesorBanco.estado == "activo",
+        ).first()
+        autorizado = asesor_activo is not None
+        usuario_respuesta = {
+            "id": id_usuario,
+            "nombre": asesor_activo.nombre if asesor_activo else "",
+            "documento": asesor_activo.documento if asesor_activo else None,
+            "rol": rol,
+        }
+    else:
+        usuario = db.query(Usuario).filter(
+            Usuario.id_usuario == id_usuario,
+            Usuario.rol == rol,
+        ).first()
+        autorizado = usuario is not None
+        usuario_respuesta = {
+            "id": id_usuario,
+            "nombre": usuario.nombre if usuario else "",
+            "documento": usuario.documento if usuario else None,
+            "rol": rol,
+        }
+        if autorizado and rol == "administrador":
+            autorizado = db.query(Administrador.id_administrador).filter(
+                Administrador.id_usuario == id_usuario
+            ).first() is not None
+        elif autorizado and rol == "asesor":
+            autorizado = db.query(AsesorBanco.id_asesor).filter(
+                func.lower(func.trim(AsesorBanco.email))
+                == func.lower(func.trim(usuario.email)),
+                AsesorBanco.estado == "activo",
+            ).first() is not None
+        elif autorizado and rol == "usuario":
+            autorizado = db.query(Cuenta.id_cuenta).filter(
+                Cuenta.id_usuario == id_usuario,
+                Cuenta.estado == "activa",
+            ).first() is not None
+
+    if not autorizado:
+        db.delete(reto)
+        db.commit()
+        raise HTTPException(
+            status_code=401,
+            detail="La cuenta ya no está habilitada para iniciar sesión.",
+        )
+
+    db.delete(reto)
+    db.commit()
+    return {
+        "message": "Inicio de sesión verificado.",
+        "token": generate_token(id_usuario),
+        "usuario": usuario_respuesta,
     }
 
 

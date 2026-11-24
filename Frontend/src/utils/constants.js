@@ -5,7 +5,7 @@
 
 // 1. Configuración de API (Detecta automáticamente si estás en local o producción)
 export const API_CONFIG = {
-  BASE_URL: import.meta.env?.VITE_API_URL || 'https://api.tuempresa.com/v1',
+  BASE_URL: process.env.REACT_APP_API_URL || "http://127.0.0.1:8000",
   TIMEOUT: 10000, // 10 segundos
 };
 

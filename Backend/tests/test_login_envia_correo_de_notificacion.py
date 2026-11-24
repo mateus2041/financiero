@@ -1,14 +1,24 @@
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import re
 
 import pytest
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from Backend.database.database import Base
-from Backend.main import enviar_correos_acceso, login
-from Backend.models import Cuenta, Usuario
+from Backend.main import (
+    _hash_codigo_login,
+    app,
+    enviar_correos_acceso,
+    get_db,
+    login,
+)
+from Backend.models import Cuenta, Usuario, VerificacionLogin
 from Backend.security import check_password, hash_password
 
 
@@ -69,7 +79,11 @@ def test_email_service_devuelve_none_si_faltan_credenciales(monkeypatch):
 
 
 def test_login_envia_correo_de_notificacion(monkeypatch):
-    engine = create_engine("sqlite://")
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(bind=engine)
     SessionLocal = sessionmaker(bind=engine)
     db = SessionLocal()
@@ -107,6 +121,7 @@ def test_login_envia_correo_de_notificacion(monkeypatch):
         return True
 
     monkeypatch.setattr("Backend.main.enviar_correo", fake_enviar_correo)
+    monkeypatch.setitem(app.dependency_overrides, get_db, lambda: db)
 
     resultado = login(
         {"documento": "1000000000", "password": "Segura123", "rol": "usuario"},
@@ -114,8 +129,9 @@ def test_login_envia_correo_de_notificacion(monkeypatch):
     )
 
     assert resultado["message"] == "Login exitoso"
-    assert resultado["codigo_verificacion"].isdigit()
-    assert len(resultado["codigo_verificacion"]) == 4
+    assert resultado["challenge_id"]
+    assert "token" not in resultado
+    assert "codigo_verificacion" not in resultado
     assert len(llamadas) == 2
     assert "Código de verificación" in llamadas[0]["asunto"]
     assert "Fecha y hora" in llamadas[1]["asunto"]
@@ -130,7 +146,10 @@ def test_login_envia_correo_de_notificacion(monkeypatch):
     assert correo_codigo["destinatario"] == "ana@test.com"
     assert "Ana Gómez" in correo_codigo["mensaje_html"]
     assert "Estimado cliente" in correo_codigo["mensaje_html"]
-    assert resultado["codigo_verificacion"] in correo_codigo["mensaje_html"]
+    codigo = re.search(
+        r"Tu código de verificación es: <strong[^>]*>(\d{4})</strong>",
+        correo_codigo["mensaje_html"],
+    ).group(1)
     assert "Este código de verificación vencerá en 10 minutos." in correo_codigo["mensaje_html"]
     assert correo_codigo["mensaje_html"].index(
         "Este código de verificación vencerá en 10 minutos."
@@ -138,11 +157,87 @@ def test_login_envia_correo_de_notificacion(monkeypatch):
     assert "ingreso a tu cuenta" in correo_notificacion["mensaje_html"].lower()
     assert "fecha" in correo_notificacion["mensaje_html"].lower()
     assert "hora" in correo_notificacion["mensaje_html"].lower()
+    reto = db.query(VerificacionLogin).filter_by(
+        challenge_id=resultado["challenge_id"]
+    ).one()
+    assert reto.codigo_hash != codigo
+
+    client = TestClient(app)
+    codigo_incorrecto = "0000" if codigo != "0000" else "0001"
+    incorrecto = client.post(
+        "/verificar-login",
+        json={
+            "challenge_id": resultado["challenge_id"],
+            "codigo": codigo_incorrecto,
+        },
+    )
+    assert incorrecto.status_code == 401
+
+    verificado = client.post(
+        "/verificar-login",
+        json={"challenge_id": resultado["challenge_id"], "codigo": codigo},
+    )
+    assert verificado.status_code == 200
+    assert verificado.json()["token"]
+
+    repetido = client.post(
+        "/verificar-login",
+        json={"challenge_id": resultado["challenge_id"], "codigo": codigo},
+    )
+    assert repetido.status_code == 401
 
     db.close()
 
 
-def test_login_sigue_con_el_acceso_si_falla_el_envio_del_correo(monkeypatch):
+def test_verificacion_login_bloquea_despues_de_cinco_codigos_incorrectos(
+    monkeypatch,
+):
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=engine)
+    db = sessionmaker(bind=engine)()
+    challenge_id = "a" * 43
+    codigo_correcto = "1234"
+    db.add(
+        VerificacionLogin(
+            challenge_id=challenge_id,
+            id_usuario=1,
+            rol="usuario",
+            codigo_hash=_hash_codigo_login(challenge_id, codigo_correcto),
+            expira_en=datetime.now(timezone.utc).replace(tzinfo=None)
+            + timedelta(minutes=10),
+        )
+    )
+    db.commit()
+    monkeypatch.setitem(app.dependency_overrides, get_db, lambda: db)
+    client = TestClient(app)
+
+    responses = [
+        client.post(
+            "/verificar-login",
+            json={"challenge_id": challenge_id, "codigo": "9999"},
+        )
+        for _ in range(5)
+    ]
+
+    assert [response.status_code for response in responses] == [
+        401,
+        401,
+        401,
+        401,
+        429,
+    ]
+    assert db.query(VerificacionLogin).filter_by(
+        challenge_id=challenge_id
+    ).first() is None
+
+    db.close()
+
+
+def test_login_no_emite_reto_si_falla_el_envio_del_correo(monkeypatch):
     engine = create_engine("sqlite://")
     Base.metadata.create_all(bind=engine)
     SessionLocal = sessionmaker(bind=engine)
@@ -172,15 +267,14 @@ def test_login_sigue_con_el_acceso_si_falla_el_envio_del_correo(monkeypatch):
 
     monkeypatch.setattr("Backend.main.enviar_correos_acceso", lambda *args: False)
 
-    resultado = login(
-        {"documento": "2000000000", "password": "Segura123", "rol": "usuario"},
-        db=db,
-    )
+    with pytest.raises(HTTPException) as error:
+        login(
+            {"documento": "2000000000", "password": "Segura123", "rol": "usuario"},
+            db=db,
+        )
 
-    assert resultado["message"] == "Login exitoso"
-    assert resultado["codigo_verificacion"].isdigit()
-    assert len(resultado["codigo_verificacion"]) == 4
-
+    assert error.value.status_code == 503
+    assert db.query(VerificacionLogin).count() == 0
     db.close()
 
 

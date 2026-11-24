@@ -10,6 +10,7 @@ __pycache__/
 .pytest_cache/
 .coverage
 .coverage.*
+/coverage.xml
 .vscode/
 .idea/
 
@@ -20,7 +21,8 @@ node_modules/
 # Archivos generados
 /Frontend/dist/
 /Frontend/build/
-
+/Frontend/coverage/
+/frontend/.env.example/
 # Operational data
 /backups/
 

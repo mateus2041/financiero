@@ -258,6 +258,21 @@ class AsesorBanco(Base):
     )
 
 
+class VerificacionLogin(Base):
+
+    __tablename__ = "verificaciones_login"
+    __table_args__ = (
+        Index("ix_verificaciones_login_expira_en", "expira_en"),
+    )
+
+    challenge_id = Column(String(64), primary_key=True)
+    id_usuario = Column(Integer, nullable=False)
+    rol = Column(String(20), nullable=False)
+    codigo_hash = Column(String(64), nullable=False)
+    expira_en = Column(DateTime, nullable=False)
+    intentos = Column(Integer, nullable=False, default=0, server_default=text("0"))
+
+
 # =========================================================
 # 🔹 CUENTAS
 # =========================================================

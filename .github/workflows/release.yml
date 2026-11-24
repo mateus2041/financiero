@@ -87,8 +87,8 @@ jobs:
           HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
           if [ -z "$HOOK" ]; then
-            echo "::warning::Falta el secreto RENDER_DEPLOY_HOOK_URL: no se desplegó."
-            exit 0
+            echo "::error::Falta el secreto RENDER_DEPLOY_HOOK_URL; no se puede desplegar."
+            exit 1
           fi
           curl -fsS -X POST -G "$HOOK" --data-urlencode "imgURL=$IMAGEN:$VERSION" > /dev/null
           echo "Despliegue de $VERSION solicitado a Render."
@@ -98,8 +98,8 @@ jobs:
           URL: ${{ vars.PRODUCCION_URL }}
         run: |
           if [ -z "$URL" ]; then
-            echo "::warning::Falta la variable PRODUCCION_URL: no se verificó el despliegue."
-            exit 0
+            echo "::error::Falta la variable PRODUCCION_URL; no se puede verificar el despliegue."
+            exit 1
           fi
           for intento in $(seq 1 40); do
             if curl -fsS "$URL/api/version" | grep -q "\"$VERSION\""; then

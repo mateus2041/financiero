@@ -31,7 +31,31 @@ const obtenerMensajeError = (detalle) => {
 
 function Login({ isModal = false }) {
   const navigate = useNavigate();
-  const rolActual = normalizeLoginRole(localStorage.getItem("rol"));
+  const [documento, setDocumento] = useState("");
+  const [documentoAdministrador, setDocumentoAdministrador] = useState("");
+  const [password, setPassword] = useState("");
+  const [emailAsesor, setEmailAsesor] = useState("");
+  const [codigoAsesor, setCodigoAsesor] = useState("");
+  const [codigoAdministrador, setCodigoAdministrador] = useState("");
+  const [rol, setRol] = useState("usuario");
+  const [mostrarPass, setMostrarPass] = useState(false);
+  const [mensaje, setMensaje] = useState("");
+  const [mostrarEnlaceRecuperacion, setMostrarEnlaceRecuperacion] = useState(false);
+  const [mostrarRecuperacion, setMostrarRecuperacion] = useState(false);
+  const [mostrarRegistro, setMostrarRegistro] = useState(false);
+
+  const [intentos, setIntentos] = useState(0);
+  const [bloqueado, setBloqueado] = useState(false);
+  const [iniciandoSesion, setIniciandoSesion] = useState(false);
+
+  // Estados para verificación
+  const [loginExitoso, setLoginExitoso] = useState(false);
+  const [codigoVerificacionInput, setCodigoVerificacionInput] = useState("");
+  const [challengeId, setChallengeId] = useState("");
+  const [usuarioPendiente, setUsuarioPendiente] = useState(null);
+  const [verificandoCodigo, setVerificandoCodigo] = useState(false);
+
+  const rolActual = normalizeLoginRole(usuarioPendiente?.rol || rol);
   const textosAcceso = {
     usuario: {
       etiqueta: "usuario",
@@ -58,29 +82,6 @@ function Login({ isModal = false }) {
     boton: "🏦 Entrar a mi cuenta",
   };
 
-  const [documento, setDocumento] = useState("");
-  const [documentoAdministrador, setDocumentoAdministrador] = useState("");
-  const [password, setPassword] = useState("");
-  const [emailAsesor, setEmailAsesor] = useState("");
-  const [codigoAsesor, setCodigoAsesor] = useState("");
-  const [codigoAdministrador, setCodigoAdministrador] = useState("");
-  const [rol, setRol] = useState("usuario");
-  const [mostrarPass, setMostrarPass] = useState(false);
-  const [mensaje, setMensaje] = useState("");
-  const [mostrarEnlaceRecuperacion, setMostrarEnlaceRecuperacion] = useState(false);
-  const [mostrarRecuperacion, setMostrarRecuperacion] = useState(false);
-  const [mostrarRegistro, setMostrarRegistro] = useState(false);
-
-  const [intentos, setIntentos] = useState(0);
-  const [bloqueado, setBloqueado] = useState(false);
-  const [iniciandoSesion, setIniciandoSesion] = useState(false);
-
-  // Estados para verificación
-  const [loginExitoso, setLoginExitoso] = useState(false);
-  const [codigoVerificacionInput, setCodigoVerificacionInput] = useState("");
-  const [codigoVerificacionEsperado, setCodigoVerificacionEsperado] = useState("");
-  const [verificandoCodigo, setVerificandoCodigo] = useState(false);
-
   const irRegistro = () => {
     setMostrarRegistro(true);
   };
@@ -93,32 +94,72 @@ function Login({ isModal = false }) {
     navigate("/verificacion-identidad");
   };
 
-  const validarCodigoCuenta = () => {
+  const validarCodigoCuenta = async () => {
     if (!/^\d{4}$/.test(codigoVerificacionInput)) {
       setMensaje("❌ Ingresa un código de verificación de 4 dígitos.");
       return;
     }
 
-    if (codigoVerificacionInput !== codigoVerificacionEsperado) {
-      setMensaje("❌ El código de verificación no es correcto.");
+    if (!challengeId || !usuarioPendiente) {
+      setMensaje("❌ Inicia sesión nuevamente para solicitar otro código.");
       return;
     }
 
     setVerificandoCodigo(true);
-    setMensaje(
-      `✅ Código correcto. Redirigiendo a ${textosAcceso.destino}...`
-    );
+    try {
+      const res = await fetch("http://127.0.0.1:8000/verificar-login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          challenge_id: challengeId,
+          codigo: codigoVerificacionInput,
+        }),
+      });
+      const data = await res.json();
 
-    setTimeout(() => {
-      const rolUsuario = normalizeLoginRole(localStorage.getItem("rol"));
-      navigate(
-        rolUsuario === "asesor"
-          ? "/asesor-bancario"
-          : rolUsuario === "administrador"
-            ? "/administradores"
-            : "/cuenta"
+      if (!res.ok) {
+        setMensaje(`❌ ${data.detail || "No se pudo validar el código."}`);
+        if (res.status === 410 || res.status === 429) {
+          setLoginExitoso(false);
+          setChallengeId("");
+          setUsuarioPendiente(null);
+          setCodigoVerificacionInput("");
+        }
+        return;
+      }
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem(
+        "documento",
+        usuarioPendiente.documento || documento || documentoAdministrador
       );
-    }, 800);
+      localStorage.setItem("usuario_id", usuarioPendiente.id);
+      localStorage.setItem("nombre_usuario", usuarioPendiente.nombre);
+      localStorage.setItem("rol", normalizeLoginRole(usuarioPendiente.rol));
+      if (usuarioPendiente.rol === "asesor") {
+        localStorage.setItem("nombre_asesor", usuarioPendiente.nombre);
+      }
+      localStorage.removeItem("codigo_verificacion");
+
+      setMensaje(`✅ Código correcto. Redirigiendo a ${textosAcceso.destino}...`);
+      setTimeout(() => {
+        const rolUsuario = normalizeLoginRole(usuarioPendiente.rol);
+        navigate(
+          rolUsuario === "asesor"
+            ? "/asesor-bancario"
+            : rolUsuario === "administrador"
+              ? "/administradores"
+              : "/cuenta"
+        );
+      }, 800);
+    } catch (error) {
+      console.error(error);
+      setMensaje("❌ Error conectando con el servidor.");
+    } finally {
+      setVerificandoCodigo(false);
+    }
   };
 
   const manejarSubmit = async (e) => {
@@ -229,37 +270,13 @@ function Login({ isModal = false }) {
 
       // Login exitoso
       setIntentos(0);
-      setCodigoVerificacionEsperado(data.codigo_verificacion || "");
       setCodigoVerificacionInput("");
-      setLoginExitoso(Boolean(data.codigo_verificacion));
-      setMensaje(
-        esAdministrador
-          ? data.codigo_verificacion
-            ? "✅ Acceso exitoso. Se envió un código de verificación a tu correo."
-            : "❌ El servidor no devolvió el código de verificación. Reinicia el backend e inténtalo nuevamente."
-          : esAsesor
-          ? data.codigo_verificacion
-            ? "✅ Acceso exitoso. Se envió un código de verificación a tu correo."
-            : "❌ El servidor no devolvió el código de verificación. Reinicia el backend e inténtalo nuevamente."
-          : data.codigo_verificacion
-            ? "✅ Login exitoso. Se envió un código de verificación a tu correo."
-            : "✅ Login exitoso"
-      );
-
-      localStorage.setItem("token", data.token);
-      localStorage.setItem(
-        "documento",
-        data.usuario.documento || documento || documentoAdministrador
-      );
-      localStorage.setItem("usuario_id", data.usuario.id);
-      localStorage.setItem("nombre_usuario", data.usuario.nombre);
-      localStorage.setItem("rol", normalizeLoginRole(data.usuario.rol));
-      if (esAsesor) {
-        localStorage.setItem("nombre_asesor", data.usuario.nombre);
-      }
-      if (data.codigo_verificacion) {
-        localStorage.setItem("codigo_verificacion", data.codigo_verificacion);
-      }
+      setChallengeId(data.challenge_id || "");
+      setUsuarioPendiente(data.usuario || null);
+      setLoginExitoso(Boolean(data.challenge_id && data.usuario));
+      setMensaje("✅ Se envió un código de verificación a tu correo.");
+      localStorage.removeItem("token");
+      localStorage.removeItem("codigo_verificacion");
 
       // Mostramos las opciones al usuario normal.
 
@@ -473,7 +490,7 @@ function Login({ isModal = false }) {
             aria-labelledby="login-verification-title"
           >
             <h2 id="login-verification-title">Verificación de acceso</h2>
-            <p>✅ Bienvenido, {localStorage.getItem("nombre_usuario")}</p>
+            <p>✅ Bienvenido, {usuarioPendiente?.nombre}</p>
             <p>Has iniciado sesión como {textosAcceso.etiqueta}.</p>
             <p>{textosAcceso.instruccion}</p>
 
