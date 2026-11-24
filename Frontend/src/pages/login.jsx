@@ -497,7 +497,7 @@ function Login({ isModal = false }) {
             <form
               onSubmit={(event) => {
                 event.preventDefault();
-                validarCodigoCuenta();
+                void validarCodigoCuenta();
               }}
             >
               <label htmlFor="codigo-verificacion-login">
