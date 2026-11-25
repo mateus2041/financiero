@@ -1,8 +1,16 @@
+<<<<<<< HEAD
 from datetime import datetime
 from decimal import Decimal
 from typing import Literal
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field
+=======
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Literal
+
+from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field, field_validator
+>>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
 
 
 class SchemaBase(BaseModel):
@@ -28,6 +36,22 @@ class UsuarioRegistroSchema(SchemaBase):
     )
     codigo_autorizacion: str | None = None
     especialidad: str | None = Field(default=None, max_length=100)
+<<<<<<< HEAD
+=======
+    fecha_nacimiento: date | None = None
+
+    @field_validator("fecha_nacimiento")
+    @classmethod
+    def validar_fecha_nacimiento(cls, valor):
+        if valor is not None and valor > date.today():
+            raise ValueError("La fecha de nacimiento no puede ser futura")
+        return valor
+
+
+class BeneficioUsuarioActualizacionSchema(SchemaBase):
+    habilitado: bool
+    confirmar_discapacidad: bool = False
+>>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
 
 
 class UsuarioLoginSchema(SchemaBase):
@@ -58,6 +82,17 @@ class UsuarioActualizacionSchema(SchemaBase):
     ciudad: str | None = Field(default=None, max_length=100)
     localidad: str | None = Field(default=None, max_length=100)
     barrio: str | None = Field(default=None, max_length=100)
+<<<<<<< HEAD
+=======
+    fecha_nacimiento: date | None = None
+
+    @field_validator("fecha_nacimiento")
+    @classmethod
+    def validar_fecha_nacimiento(cls, valor):
+        if valor is not None and valor > date.today():
+            raise ValueError("La fecha de nacimiento no puede ser futura")
+        return valor
+>>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
 
 
 class PerfilActualizacionSchema(UsuarioActualizacionSchema):
@@ -91,9 +126,21 @@ class AsesorRegistroSchema(SchemaBase):
     documento_adicional: str | None = None
 
 
+<<<<<<< HEAD
 class AsesorActualizacionSchema(AsesorRegistroSchema):
     id_asesor: int = Field(gt=0)
     codigo_asesor: str = Field(min_length=1, max_length=30)
+=======
+class AsesorActualizacionSchema(SchemaBase):
+    id_asesor: int = Field(gt=0)
+    codigo_asesor: str = Field(min_length=1, max_length=30)
+    nombre: str | None = Field(default=None, min_length=1, max_length=100)
+    documento: str | None = Field(default=None, min_length=1, max_length=50)
+    tipo_documento: str | None = Field(default=None, min_length=1, max_length=50)
+    cargo: str | None = Field(default=None, max_length=100)
+    email: EmailStr | None = None
+    documento_adicional: str | None = None
+>>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
     estado: Literal["activo", "inactivo"] | None = None
 
 
@@ -165,6 +212,18 @@ class UsuarioRespuesta(SchemaBase):
     codigo_registro: str | None = None
     estado: str = "activo"
     fecha_creacion: datetime | None = None
+<<<<<<< HEAD
+=======
+    fecha_nacimiento: date | None = None
+    discapacidad_confirmada: bool | None = None
+    beneficio_habilitado: bool | None = None
+    edad: int | None = None
+    tipo_beneficio: Literal[
+        "pensionado",
+        "joven",
+        "no_elegible",
+    ] | None = None
+>>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
 
 
 class CuentaRespuesta(SchemaBase):

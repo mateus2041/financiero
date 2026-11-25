@@ -1,5 +1,9 @@
 from sqlalchemy import (
     Column,
+<<<<<<< HEAD
+=======
+    Date,
+>>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
     Integer,
     String,
     ForeignKey,
@@ -14,7 +18,11 @@ from sqlalchemy import (
 )
 
 from sqlalchemy.orm import relationship
+<<<<<<< HEAD
 from datetime import datetime, timezone
+=======
+from datetime import date, datetime, timezone
+>>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
 
 from Backend.database.database import Base
 
@@ -156,6 +164,25 @@ class Usuario(Base):
         default=utc_now_naive
     )
 
+<<<<<<< HEAD
+=======
+    fecha_nacimiento = Column(Date, nullable=True)
+
+    discapacidad_confirmada = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("0")
+    )
+
+    beneficio_habilitado = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("0")
+    )
+
+>>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
     # =====================================================
     # 🔹 RELACIÓN TIPO DOCUMENTO
     # =====================================================

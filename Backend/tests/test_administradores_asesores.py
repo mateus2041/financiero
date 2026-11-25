@@ -11,7 +11,11 @@ from Backend.models import Administrador, AsesorBanco, Usuario
 from Backend.security import hash_password
 
 
+<<<<<<< HEAD
 def test_registro_y_restablecimiento_generan_codigos_alfanumericos_unicos(monkeypatch):
+=======
+def test_registro_estado_restablecimiento_y_eliminacion(monkeypatch):
+>>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -68,6 +72,26 @@ def test_registro_y_restablecimiento_generan_codigos_alfanumericos_unicos(monkey
     id_asesor = db.execute(
         text("SELECT id_asesor FROM asesores_banco ORDER BY id_asesor LIMIT 1")
     ).scalar_one()
+<<<<<<< HEAD
+=======
+    response = client.put(
+        f"/administradores/asesores/{id_asesor}",
+        json={
+            "id_asesor": id_asesor,
+            "codigo_asesor": codigos[0],
+            "estado": "inactivo",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["estado"] == "inactivo"
+    estado_guardado = db.execute(
+        text("SELECT estado FROM asesores_banco WHERE id_asesor = :id_asesor"),
+        {"id_asesor": id_asesor},
+    ).scalar_one()
+    assert estado_guardado == "inactivo"
+
+>>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
     response = client.post(
         f"/administradores/asesores/{id_asesor}/restablecer-codigo",
         json={},
@@ -86,6 +110,19 @@ def test_registro_y_restablecimiento_generan_codigos_alfanumericos_unicos(monkey
     ).scalar_one()
     assert codigo_guardado == nuevo_codigo
 
+<<<<<<< HEAD
+=======
+    response = client.delete(f"/administradores/asesores/{id_asesor}")
+
+    assert response.status_code == 200
+    assert response.json()["id_asesor"] == id_asesor
+    asesor_eliminado = db.execute(
+        text("SELECT id_asesor FROM asesores_banco WHERE id_asesor = :id_asesor"),
+        {"id_asesor": id_asesor},
+    ).first()
+    assert asesor_eliminado is None
+
+>>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
     db.close()
     engine.dispose()
 

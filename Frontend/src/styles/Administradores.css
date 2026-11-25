@@ -794,6 +794,23 @@ body {
   border-collapse: collapse;
 }
 
+<<<<<<< HEAD
+=======
+.tabla-usuarios {
+  min-width: 1150px;
+}
+
+.confirmar-discapacidad {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+  color: var(--texto-secundario);
+  font-size: 12px;
+}
+
+>>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
 .tabla-asesores th,
 .tabla-asesores td {
   padding: 15px 16px;

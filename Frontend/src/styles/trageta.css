@@ -142,6 +142,84 @@ body {
   background: #f4cf70;
 }
 
+<<<<<<< HEAD
+=======
+.menu-acciones-tarjeta {
+  display: flex;
+  min-width: 150px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.boton-menu-acciones-tarjeta {
+  padding: 9px 14px;
+  border: 1px solid #eab94b;
+  border-radius: 7px;
+  background: #eab94b;
+  color: #121829;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.boton-menu-acciones-tarjeta:hover {
+  background: #f4cf70;
+}
+
+.opciones-acciones-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(234, 185, 75, 0.35);
+  border-radius: 8px;
+  background: #121829;
+}
+
+.modal-opciones-tarjeta .cliente-modal-tarjeta {
+  margin-bottom: 20px;
+}
+
+.modal-opciones-tarjeta .opciones-acciones-tarjeta {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.opciones-acciones-tarjeta .boton-anadir-tarjeta {
+  width: 100%;
+  white-space: normal;
+}
+
+.boton-eliminar-tarjeta {
+  padding: 9px 14px;
+  border: 1px solid #e06b6b;
+  border-radius: 7px;
+  background: transparent;
+  color: #f3a5a5;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.boton-eliminar-tarjeta:hover {
+  background: #e06b6b;
+  color: #ffffff;
+}
+
+.boton-eliminar-tarjeta:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.boton-menu-acciones-tarjeta:disabled,
+.opciones-acciones-tarjeta button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+>>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
 .modal-tarjeta-overlay {
   position: fixed;
   inset: 0;
@@ -171,6 +249,46 @@ body {
   text-align: center;
 }
 
+<<<<<<< HEAD
+=======
+.modal-eliminar-tarjeta .cliente-modal-tarjeta {
+  margin-bottom: 0;
+  line-height: 1.5;
+}
+
+.acciones-modal-eliminar-tarjeta {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.acciones-modal-eliminar-tarjeta button {
+  flex: 1;
+  padding: 11px 14px;
+  border: 1px solid #eab94b;
+  border-radius: 7px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.boton-cancelar-eliminar-tarjeta {
+  background: transparent;
+  color: #f5f5f5;
+}
+
+.boton-confirmar-eliminar-tarjeta {
+  background: #eab94b;
+  color: #121829;
+}
+
+.acciones-modal-eliminar-tarjeta button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+>>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
 .cliente-modal-tarjeta {
   margin: 0 0 24px;
   color: #a8b3cf;
@@ -1657,6 +1775,14 @@ button:hover {
     white-space: normal;
   }
 
+<<<<<<< HEAD
+=======
+  .menu-acciones-tarjeta {
+    width: 100%;
+    min-width: 0;
+  }
+
+>>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
   .panel-financiero {
     flex-direction: column;
   }
