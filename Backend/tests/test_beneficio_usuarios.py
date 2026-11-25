@@ -144,6 +144,33 @@ def test_usuario_no_asesor_no_puede_habilitar_beneficio(monkeypatch):
         engine.dispose()
 
 
+def test_usuario_consulta_estado_actual_de_su_beneficio(monkeypatch):
+    usuario = Usuario(
+        nombre="Usuario beneficiario",
+        email="beneficiario@example.com",
+        documento="90000009",
+        password="hash",
+        beneficio_habilitado=True,
+    )
+    engine, db = crear_contexto(monkeypatch, usuario)
+    db.add(usuario)
+    db.commit()
+    db.refresh(usuario)
+
+    try:
+        client = TestClient(main.app)
+        assert client.get("/usuario").json()["beneficio_habilitado"] is True
+
+        usuario.beneficio_habilitado = False
+        db.commit()
+
+        assert client.get("/usuario").json()["beneficio_habilitado"] is False
+    finally:
+        main.app.dependency_overrides.clear()
+        db.close()
+        engine.dispose()
+
+
 def test_lista_no_expone_datos_del_beneficio_al_administrador(monkeypatch):
     administrador_usuario = Usuario(
         nombre="Administrador",

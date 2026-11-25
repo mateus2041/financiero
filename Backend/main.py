@@ -1860,6 +1860,32 @@ def listar_usuarios(
     ]
 
 
+@app.delete("/usuarios/{id_usuario}")
+def eliminar_cuenta_usuario(
+    id_usuario: int,
+    current_user: int = Depends(administrador_o_asesor_requerido),
+    db: Session = Depends(get_db),
+):
+    usuario = db.query(Usuario).filter(
+        Usuario.id_usuario == id_usuario,
+        Usuario.rol == "usuario",
+    ).first()
+
+    if not usuario:
+        raise HTTPException(
+            status_code=404,
+            detail="Usuario no encontrado",
+        )
+
+    db.delete(usuario)
+    db.commit()
+
+    return {
+        "mensaje": "Cuenta eliminada correctamente",
+        "id_usuario": id_usuario,
+    }
+
+
 def calcular_edad(fecha_nacimiento: date | None, hoy: date | None = None) -> int | None:
     if fecha_nacimiento is None:
         return None
@@ -1954,6 +1980,9 @@ def listar_cuentas_admin(
     if despues_de is not None:
         consulta = consulta.filter(Cuenta.id_cuenta > despues_de)
     cuentas = consulta.order_by(Cuenta.id_cuenta).limit(limite).all()
+    es_administrador = db.query(Administrador.id_administrador).filter(
+        Administrador.id_usuario == current_user
+    ).first() is not None
 
     return {
         "cuentas": [
@@ -1974,6 +2003,24 @@ def listar_cuentas_admin(
                 "estado": "activo" if cuenta.estado == "activa" else "inactivo",
                 "fecha_estado": cuenta.fecha_estado.isoformat()
                 if cuenta.fecha_estado else None,
+                "edad": (
+                    None
+                    if es_administrador
+                    else calcular_edad(usuario.fecha_nacimiento)
+                ),
+                "discapacidad_confirmada": (
+                    None
+                    if es_administrador
+                    else usuario.discapacidad_confirmada
+                ),
+                "beneficio_habilitado": (
+                    None if es_administrador else usuario.beneficio_habilitado
+                ),
+                "tipo_beneficio": (
+                    None
+                    if es_administrador
+                    else clasificar_beneficio(usuario.fecha_nacimiento)
+                ),
             }
             for cuenta, usuario in cuentas
         ]
@@ -2291,6 +2338,9 @@ def obtener_usuario(
 
         "documento":
         usuario.documento,
+
+        "beneficio_habilitado":
+        usuario.beneficio_habilitado is True,
 
         "telefono":
         usuario.telefono,

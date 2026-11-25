@@ -1,3 +1,5 @@
+from datetime import date
+
 import pytest
 from fastapi import HTTPException
 from sqlalchemy import create_engine
@@ -28,6 +30,7 @@ def test_registrar_usuario_crea_cuentas_pendientes_de_aprobacion(monkeypatch):
         "localidad": "La Candelaria",
         "barrio": "La Candelaria",
         "codigo_correspondencia": "110111",
+        "fecha_nacimiento": date(1990, 5, 20),
     }
 
     resultado = registrar_usuario(data, db, "usuario")
@@ -46,6 +49,7 @@ def test_registrar_usuario_crea_cuentas_pendientes_de_aprobacion(monkeypatch):
     assert usuario.barrio == "La Candelaria"
     assert usuario.codigo_postal == "110111"
     assert usuario.id_tipo_doc is not None
+    assert usuario.fecha_nacimiento == date(1990, 5, 20)
 
     db.close()
 

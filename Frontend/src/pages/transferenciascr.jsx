@@ -6,6 +6,7 @@ import FinancialSidebar from "../components/FinancialSidebar";
 import AssistantModal from "../components/AssistantModal";
 import useResponsiveMenu from "../hooks/useResponsiveMenu";
 import useModalDismissal from "../hooks/useModalDismissal";
+import useAssistantBenefit from "../hooks/useAssistantBenefit";
 import "../styles/transferencias.css";
 import "../styles/navegacionMovil.css";
 
@@ -24,10 +25,15 @@ export default function RegistrarLlaveBreB({ isModal = false }) {
     const [openCertificado, setOpenCertificado] = useState(false);
     const [asistenteAbierto, setAsistenteAbierto] = useState(false);
     const [menuAbierto, setMenuAbierto] = useResponsiveMenu();
+    const beneficioHabilitado = useAssistantBenefit();
 
     useModalDismissal(asistenteAbierto, setAsistenteAbierto, true);
 
-    const chatbotActivo = true;
+    useEffect(() => {
+        if (beneficioHabilitado === false) {
+            setAsistenteAbierto(false);
+        }
+    }, [beneficioHabilitado]);
 
     useEffect(() => {
         const cargarCuentas = async () => {
@@ -222,15 +228,18 @@ export default function RegistrarLlaveBreB({ isModal = false }) {
                 ☰
             </button>
 
-            <AsistenteMovil onClick={() => setAsistenteAbierto(true)} />
+            {beneficioHabilitado === true && (
+                <AsistenteMovil onClick={() => setAsistenteAbierto(true)} />
+            )}
 
             <FinancialSidebar
                 menuAbierto={menuAbierto}
                 onLogout={handleLogout}
                 onAssistantOpen={() => setAsistenteAbierto(true)}
                 reportLabel="📜 Reportes"
-                showCardLink={false}
-                showAssistant={chatbotActivo}
+                cardLabel="🚫 Bloqueo de tarjeta"
+                showCardLink={true}
+                showAssistant={beneficioHabilitado === true}
                 assistantClassName="sidebar-link asistente-trigger asistente-sidebar-trigger"
             />
 

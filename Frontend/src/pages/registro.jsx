@@ -138,6 +138,7 @@ function Registro({ isModal = false, onClose }) {
           localidad,
           barrio,
           codigo_correspondencia: codigoCorrespondencia,
+          fecha_nacimiento: fechaNacimiento,
         }),
       });
 

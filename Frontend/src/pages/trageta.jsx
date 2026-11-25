@@ -69,6 +69,10 @@ export default function TarjetasUsuario({ esAsesor = false }) {
   const [busquedaUsuario, setBusquedaUsuario] = useState("");
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
   const [tarjetaEditando, setTarjetaEditando] = useState(null);
+  const [tarjetaEliminando, setTarjetaEliminando] = useState(null);
+  const [tarjetaConfirmarEliminacion, setTarjetaConfirmarEliminacion] =
+    useState(null);
+  const [errorEliminacionTarjeta, setErrorEliminacionTarjeta] = useState("");
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [mostrarMensajeAdmin, setMostrarMensajeAdmin] = useState(false);
   const [mensajeAdmin, setMensajeAdmin] = useState("");
@@ -537,6 +541,45 @@ export default function TarjetasUsuario({ esAsesor = false }) {
     }
   };
 
+  const eliminarTarjetaUsuario = async (usuario, tarjeta) => {
+    const tarjetaId = parsePositiveInteger(tarjeta?.id_tarjeta);
+    if (tarjetaId === null) {
+      setErrorEliminacionTarjeta("El identificador de la tarjeta no es válido");
+      return;
+    }
+
+    try {
+      setTarjetaEliminando(tarjetaId);
+      const token = localStorage.getItem("token");
+
+      await axios.delete(`/tarjetas/${tarjetaId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setTarjetasPorUsuario((actuales) => {
+        const tarjetasUsuario = actuales[usuario.id_usuario] || [];
+        return {
+          ...actuales,
+          [usuario.id_usuario]: tarjetasUsuario.filter(
+            (item) => parsePositiveInteger(item.id_tarjeta) !== tarjetaId
+          ),
+        };
+      });
+      setTarjetaConfirmarEliminacion(null);
+      setMensaje("Tarjeta eliminada correctamente");
+    } catch (error) {
+      console.error("Error al eliminar la tarjeta:", error);
+      setErrorEliminacionTarjeta(
+        error.response?.data?.detail ||
+          "No se pudo eliminar la tarjeta"
+      );
+    } finally {
+      setTarjetaEliminando(null);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("rol");
@@ -641,6 +684,12 @@ export default function TarjetasUsuario({ esAsesor = false }) {
       setErrorMensajeAdmin("No se pudo enviar el mensaje");
     }
   };
+
+  const tarjetaEnConfirmacion = tarjetaConfirmarEliminacion?.tarjeta;
+  const eliminandoTarjetaConfirmada =
+    tarjetaEnConfirmacion !== undefined &&
+    tarjetaEliminando ===
+      parsePositiveInteger(tarjetaEnConfirmacion.id_tarjeta);
 
   return (
     <div className="contenedor-lista-cuentas">
@@ -828,6 +877,82 @@ export default function TarjetasUsuario({ esAsesor = false }) {
         </div>
       )}
 
+      {tarjetaConfirmarEliminacion && (
+        <div
+          className="modal-tarjeta-overlay"
+          role="presentation"
+          onMouseDown={(evento) => {
+            if (
+              evento.target === evento.currentTarget &&
+              !eliminandoTarjetaConfirmada
+            ) {
+              setTarjetaConfirmarEliminacion(null);
+              setErrorEliminacionTarjeta("");
+            }
+          }}
+        >
+          <section
+            className="modal-tarjeta modal-eliminar-tarjeta"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-confirmar-eliminacion-tarjeta"
+          >
+            <h2 id="titulo-confirmar-eliminacion-tarjeta">
+              Eliminar tarjeta
+            </h2>
+            <p className="cliente-modal-tarjeta">
+              ¿Deseas eliminar la tarjeta{" "}
+              {tarjetaEnConfirmacion.numero_tarjeta ? (
+                <>
+                  terminada en{" "}
+                  <strong>
+                    {tarjetaEnConfirmacion.numero_tarjeta.slice(-4)}
+                  </strong>{" "}
+                </>
+              ) : null}
+              de{" "}
+              <strong>
+                {tarjetaConfirmarEliminacion.usuario.nombre || "este usuario"}
+              </strong>
+              ? Esta acción no se puede deshacer.
+            </p>
+            {errorEliminacionTarjeta && (
+              <p className="error-mensaje-tarjeta" role="alert">
+                {errorEliminacionTarjeta}
+              </p>
+            )}
+            <div className="acciones-modal-eliminar-tarjeta">
+              <button
+                type="button"
+                className="boton-cancelar-eliminar-tarjeta"
+                disabled={eliminandoTarjetaConfirmada}
+                onClick={() => {
+                  setTarjetaConfirmarEliminacion(null);
+                  setErrorEliminacionTarjeta("");
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="boton-confirmar-eliminar-tarjeta"
+                disabled={eliminandoTarjetaConfirmada}
+                onClick={() =>
+                  eliminarTarjetaUsuario(
+                    tarjetaConfirmarEliminacion.usuario,
+                    tarjetaEnConfirmacion
+                  )
+                }
+              >
+                {eliminandoTarjetaConfirmada
+                  ? "Eliminando..."
+                  : "Eliminar tarjeta"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
       <main
         style={{
           flex: 1,
@@ -897,6 +1022,11 @@ export default function TarjetasUsuario({ esAsesor = false }) {
                     tarjetaUsuario &&
                       tarjetaActualizando === tarjetaUsuario.id_tarjeta
                   );
+                  const eliminando = Boolean(
+                    tarjetaUsuario &&
+                      tarjetaEliminando ===
+                        parsePositiveInteger(tarjetaUsuario.id_tarjeta)
+                  );
 
                   return (
                     <tr
@@ -949,49 +1079,78 @@ export default function TarjetasUsuario({ esAsesor = false }) {
                         )}
                       </td>
                       <td data-label="Acciones">
-                        <button
-                          type="button"
-                          className="boton-anadir-tarjeta"
-                          onClick={() => abrirModalTarjeta(usuario)}
+                        <select
+                          className="selector-acciones-tarjeta"
+                          aria-label={`Acciones para las tarjetas de ${
+                            usuario.nombre || "este usuario"
+                          }`}
+                          value=""
+                          disabled={actualizando}
+                          onChange={(evento) => {
+                            const accion = evento.target.value;
+
+                            if (accion === "anadir") {
+                              abrirModalTarjeta(usuario);
+                            } else if (accion === "editar") {
+                              editarTarjetaDeUsuario(
+                                usuario,
+                                tarjetaUsuario?.id_tarjeta
+                              );
+                            } else if (
+                              accion === "inhabilitar" &&
+                              tarjetaUsuario
+                            ) {
+                              cambiarEstadoTarjeta(usuario, tarjetaUsuario);
+                            }
+                          }}
                         >
-                          Añadir tarjeta
-                        </button>
+                          <option value="">Seleccionar opción...</option>
+                          <option value="anadir">Añadir tarjeta</option>
+                          <option
+                            value="editar"
+                            disabled={
+                              cargandoTarjetas ||
+                              !tarjetaUsuario ||
+                              errorTarjetas
+                            }
+                          >
+                            Editar tarjeta
+                          </option>
+                          <option
+                            value="inhabilitar"
+                            disabled={
+                              cargandoTarjetas ||
+                              !tarjetaUsuario ||
+                              tarjetaUsuario.estado !== "activa" ||
+                              errorTarjetas
+                            }
+                          >
+                            Inhabilitar tarjeta
+                          </option>
+                        </select>
                         <button
                           type="button"
-                          className="boton-anadir-tarjeta"
-                          onClick={() =>
-                            editarTarjetaDeUsuario(
+                          className="boton-eliminar-tarjeta"
+                          onClick={() => {
+                            if (!tarjetaUsuario) {
+                              return;
+                            }
+                            setErrorEliminacionTarjeta("");
+                            setTarjetaConfirmarEliminacion({
                               usuario,
-                              tarjetaUsuario?.id_tarjeta
-                            )
+                              tarjeta: tarjetaUsuario,
+                            });
+                          }}
+                          disabled={
+                            !tarjetaUsuario ||
+                            cargandoTarjetas ||
+                            errorTarjetas ||
+                            actualizando ||
+                            eliminando
                           }
                         >
-                          Editar tarjeta
+                          {eliminando ? "Eliminando..." : "Eliminar tarjeta"}
                         </button>
-                        {cargandoTarjetas ? (
-                          <button
-                            type="button"
-                            className="boton-anadir-tarjeta"
-                            disabled
-                          >
-                            Consultando tarjeta...
-                          </button>
-                        ) : tarjetaUsuario && !errorTarjetas ? (
-                          <button
-                            type="button"
-                            className="boton-anadir-tarjeta"
-                            onClick={() =>
-                              cambiarEstadoTarjeta(usuario, tarjetaUsuario)
-                            }
-                            disabled={actualizando}
-                          >
-                            {actualizando
-                              ? "Actualizando..."
-                              : tarjetaUsuario.estado === "activa"
-                              ? "Inhabilitar tarjeta"
-                              : "Habilitar tarjeta"}
-                          </button>
-                        ) : null}
                       </td>
                     </tr>
                   );

@@ -36,9 +36,9 @@ defecto. La URL para el navegador se configura mediante `REACT_APP_API_URL`.
 
 ## Esquema y migraciones
 
-Compose ejecuta `alembic upgrade head` en el servicio de una sola ejecución `migrate` después
-de que MySQL esté saludable y antes de iniciar la API. Si la base está vacía, Alembic crea el
-esquema. El backend no debe crear ni alterar tablas al iniciar.
+Después de que MySQL esté saludable, Compose ejecuta `alembic upgrade head` antes de iniciar la
+API. Si la base está vacía, Alembic crea el esquema; en bases existentes aplica las migraciones
+pendientes. El backend no debe crear ni alterar tablas fuera de este paso.
 
 Una base preexistente sin historial Alembic puede detener el servicio de migración. No fuerce
 `stamp head` ni borre el volumen: primero respalde la base, compare el esquema y siga el

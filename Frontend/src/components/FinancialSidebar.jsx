@@ -1,3 +1,4 @@
+import useAssistantBenefit from "../hooks/useAssistantBenefit";
 import { Link } from "react-router-dom";
 import OtherTransfersMenu from "./OtherTransfersMenu";
 
@@ -9,11 +10,13 @@ export default function FinancialSidebar({
   accountClassName = "active",
   reportLabel = "📊 Reportes",
   certificateClassName = "sidebar-link",
-  cardLabel = "🚫 bloque de trajeta ",
+  cardLabel = "🚫 Bloqueo de tarjeta",
   showCardLink = true,
   showAssistant = true,
   assistantClassName = "btn-nav asistente-sidebar-trigger",
 }) {
+  const beneficioHabilitado = useAssistantBenefit();
+
   return (
     <aside className={`sidebar ${menuAbierto ? "sidebar-abierto" : "sidebar-cerrado"}`}>
       <ul>
@@ -46,7 +49,7 @@ export default function FinancialSidebar({
             </Link>
           </li>
         )}
-        {showAssistant && (
+        {showAssistant && beneficioHabilitado && (
           <li>
             <button
               type="button"

@@ -9,6 +9,59 @@ from Backend.models import Administrador, AsesorBanco, Cuenta, Usuario
 from Backend.security import hash_password
 
 
+def test_administrador_puede_eliminar_cuenta_usuario(monkeypatch):
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=engine)
+    db = sessionmaker(bind=engine)()
+
+    administrador = Usuario(
+        nombre="Administrador",
+        email="administrador.eliminar@test.com",
+        documento="9000000001",
+        password=hash_password("Segura123"),
+        rol="usuario",
+    )
+    db.add(administrador)
+    db.commit()
+    db.refresh(administrador)
+    db.add(
+        Administrador(
+            id_usuario=administrador.id_usuario,
+            codigo_administrador="ADM-DELETE",
+        )
+    )
+
+    cliente = Usuario(
+        nombre="Cliente eliminar",
+        email="cliente.eliminar@test.com",
+        documento="9000000002",
+        password=hash_password("Segura123"),
+        rol="usuario",
+    )
+    db.add(cliente)
+    db.commit()
+    db.refresh(cliente)
+
+    monkeypatch.setitem(main.app.dependency_overrides, main.get_db, lambda: db)
+    monkeypatch.setitem(
+        main.app.dependency_overrides,
+        main.token_required,
+        lambda: administrador.id_usuario,
+    )
+
+    response = TestClient(main.app).delete(f"/usuarios/{cliente.id_usuario}")
+
+    assert response.status_code == 200
+    assert response.json()["id_usuario"] == cliente.id_usuario
+    assert db.query(Usuario).filter(
+        Usuario.id_usuario == cliente.id_usuario
+    ).first() is None
+
+
 def test_administrador_puede_listar_cuentas(monkeypatch):
     engine = create_engine(
         "sqlite://",
