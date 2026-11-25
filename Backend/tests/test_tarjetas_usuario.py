@@ -96,8 +96,6 @@ def test_usuario_puede_listar_sus_tarjetas(monkeypatch):
     engine.dispose()
 
 
-<<<<<<< HEAD
-=======
 def test_administrador_puede_eliminar_tarjeta_de_cliente(monkeypatch):
     client, db, _, engine = crear_contexto_tarjetas(
         monkeypatch,
@@ -124,7 +122,6 @@ def test_administrador_puede_eliminar_tarjeta_de_cliente(monkeypatch):
     engine.dispose()
 
 
->>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
 def test_administrador_puede_agregar_tarjeta_a_cuenta_de_ahorros(monkeypatch):
     client, db, cliente, engine = crear_contexto_tarjetas(
         monkeypatch,

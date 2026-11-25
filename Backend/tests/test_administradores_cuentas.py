@@ -36,6 +36,12 @@ def test_administrador_puede_listar_cuentas(monkeypatch):
             codigo_administrador="ADM-001",
         )
     )
+    db.add(
+        Administrador(
+            id_usuario=None,
+            codigo_administrador="ADM-SIN-USUARIO",
+        )
+    )
 
     cliente = Usuario(
         nombre="Cliente Uno",
@@ -58,26 +64,26 @@ def test_administrador_puede_listar_cuentas(monkeypatch):
         )
     )
 
-    asesor_como_usuario = Usuario(
-        nombre="Asesor con registro anterior",
-        email="asesor-usuario@test.com",
+    cliente_mismo_documento_asesor = Usuario(
+        nombre="Cliente con documento coincidente",
+        email="cliente-coincidente@test.com",
         documento="5555555555",
         password=hash_password("Segura123"),
         rol="usuario",
     )
-    db.add(asesor_como_usuario)
+    db.add(cliente_mismo_documento_asesor)
     db.commit()
-    db.refresh(asesor_como_usuario)
+    db.refresh(cliente_mismo_documento_asesor)
     db.add(
         AsesorBanco(
-            nombre=asesor_como_usuario.nombre,
-            documento=asesor_como_usuario.documento,
+            nombre="Asesor previo",
+            documento=cliente_mismo_documento_asesor.documento,
             codigo_asesor="ASESOR-001",
         )
     )
     db.add(
         Cuenta(
-            id_usuario=asesor_como_usuario.id_usuario,
+            id_usuario=cliente_mismo_documento_asesor.id_usuario,
             numero_cuenta="5555555555555555",
             tipo_cuenta="ahorros",
             saldo=1000,
@@ -96,10 +102,16 @@ def test_administrador_puede_listar_cuentas(monkeypatch):
     assert response.status_code == 200
     payload = response.json()
     assert "cuentas" in payload
-    assert len(payload["cuentas"]) == 1
-    assert payload["cuentas"][0]["nombre"] == "Cliente Uno"
-    assert payload["cuentas"][0]["numero_cuenta"] == "1234567890123456"
-    assert payload["cuentas"][0]["estado"] == "activo"
+    assert len(payload["cuentas"]) == 2
+    cuentas_por_nombre = {
+        cuenta["nombre"]: cuenta for cuenta in payload["cuentas"]
+    }
+    assert cuentas_por_nombre["Cliente Uno"]["numero_cuenta"] == "1234567890123456"
+    assert cuentas_por_nombre["Cliente Uno"]["estado"] == "activo"
+    assert (
+        cuentas_por_nombre["Cliente con documento coincidente"]["numero_cuenta"]
+        == "5555555555555555"
+    )
 
     app.dependency_overrides.clear()
     db.close()

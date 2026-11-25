@@ -113,6 +113,30 @@ export default function TarjetasUsuario({ esAsesor = false }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!usuarioSeleccionado) {
+      return undefined;
+    }
+
+    const desplazamientoAnterior = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const manejarEscape = (evento) => {
+      if (evento.key === "Escape") {
+        setUsuarioSeleccionado(null);
+        setTarjetaEditando(null);
+        setMostrarCVV(false);
+      }
+    };
+
+    document.addEventListener("keydown", manejarEscape);
+
+    return () => {
+      document.body.style.overflow = desplazamientoAnterior;
+      document.removeEventListener("keydown", manejarEscape);
+    };
+  }, [usuarioSeleccionado]);
+
   const obtenerUsuarios = async () => {
     try {
       const token = localStorage.getItem("token");

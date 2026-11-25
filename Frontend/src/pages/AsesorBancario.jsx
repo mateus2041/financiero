@@ -790,12 +790,6 @@ export default function AsesorBancario() {
             </div>
           </div>
 
-<<<<<<< HEAD
-=======
-          {errorEstadisticas && (
-            <p className="mensaje-error">{errorEstadisticas}</p>
-          )}
->>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
           {mensaje && <p className="mensaje-error">{mensaje}</p>}
           {mensajeExito && <p className="mensaje-exito">{mensajeExito}</p>}
         </section>

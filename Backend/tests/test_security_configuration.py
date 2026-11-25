@@ -10,17 +10,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.mark.parametrize(
-<<<<<<< HEAD
-    ("app_env", "secret_key", "expected_status"),
-    [
-        ("development", "", 0),
-        ("production", "", 1),
-        ("production", "short", 1),
-        ("production", "test-only-" + "x" * 40, 0),
-    ],
-)
-def test_jwt_secret_configuration(app_env, secret_key, expected_status):
-=======
     ("app_env", "jwt_secret_key", "secret_key", "expected_status"),
     [
         ("development", "", "", 0),
@@ -33,15 +22,11 @@ def test_jwt_secret_configuration(app_env, secret_key, expected_status):
 def test_jwt_secret_configuration(
     app_env, jwt_secret_key, secret_key, expected_status
 ):
->>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
     environment = os.environ.copy()
     environment.update(
         {
             "APP_ENV": app_env,
-<<<<<<< HEAD
-=======
             "JWT_SECRET_KEY": jwt_secret_key,
->>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
             "SECRET_KEY": secret_key,
             "PYTHON_DOTENV_DISABLED": "1",
             "PYTHONPATH": str(PROJECT_ROOT),
@@ -57,8 +42,6 @@ def test_jwt_secret_configuration(
     )
 
     assert result.returncode == expected_status
-<<<<<<< HEAD
-=======
 
 
 def test_jwt_token_is_valid_in_a_new_process():
@@ -102,4 +85,3 @@ def test_jwt_token_is_valid_in_a_new_process():
     )
 
     assert validation.stdout.strip() == "42"
->>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2

@@ -400,6 +400,12 @@
     font-weight: 600;
 }
 
+.numero-tarjeta-bloqueo-label {
+    color: #c5cede;
+    font-size: 13px;
+    font-weight: 600;
+}
+
 .formulario-bloqueo input {
     width: 100%;
     box-sizing: border-box;
@@ -413,6 +419,19 @@
     outline: none;
     caret-color: #f5c542;
     -webkit-text-fill-color: #ffffff;
+}
+
+.numero-tarjeta-bloqueo {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 13px;
+    border: 1px solid #465676;
+    border-radius: 9px;
+    background: #111827;
+    color: #ffffff;
+    font-size: 16px;
+    line-height: 1.4;
+    user-select: none;
 }
 
 .formulario-bloqueo input::placeholder {

@@ -425,15 +425,22 @@ function DesbloquearTarjeta() {
         fecha_expiracion: "--/--",
         codigo_seguridad: "000"
     };
+    const tarjetaSeleccionadaBloqueo =
+        tarjetaIdBloqueo === tarjeta?.id_tarjeta
+            ? tarjeta
+            : tarjetasAdicionales.find(
+                (tarjetaAdicional) =>
+                    tarjetaAdicional.id_tarjeta === tarjetaIdBloqueo
+            ) ?? tarjetaActual;
+    const numeroTarjetaSeleccionada =
+        String(tarjetaSeleccionadaBloqueo.numero_tarjeta || "")
+            .replace(/\D/g, "")
+            .replace(/(.{4})/g, "$1 ")
+            .trim() || "No disponible";
+
     const restableciendoCvvTarjetaActual = Boolean(
         tarjeta && restableciendoCvvIds.has(tarjeta.id_tarjeta)
     );
-    const [anioVencimientoVisible, mesVencimientoVisible] =
-        datosBloqueo.vencimiento.split("-");
-    const vencimientoVisible = anioVencimientoVisible && mesVencimientoVisible
-        ? `${mesVencimientoVisible}/${anioVencimientoVisible.slice(-2)}`
-        : "MM/AA";
-
     if (cargando) {
         return (
             <div className="tarjeta-container">
@@ -679,6 +686,15 @@ function DesbloquearTarjeta() {
                         <form className="formulario-bloqueo" onSubmit={confirmarBloqueo}>
                             {pasoBloqueo === 1 ? (
                                 <>
+                                    <span className="numero-tarjeta-bloqueo-label">
+                                        Número de tarjeta
+                                    </span>
+                                    <div
+                                        className="numero-tarjeta-bloqueo"
+                                        aria-label="Número de la tarjeta seleccionada"
+                                    >
+                                        {numeroTarjetaSeleccionada}
+                                    </div>
                                     <label htmlFor="documento-bloqueo">Número de documento</label>
                                     <input
                                         id="documento-bloqueo"
@@ -696,24 +712,19 @@ function DesbloquearTarjeta() {
                                         disabled={bloqueando}
                                     />
                                     <label htmlFor="vencimiento-bloqueo">Fecha de expiración del documento</label>
-                                    <div className="fecha-bloqueo-control">
-                                        <input
-                                            id="vencimiento-bloqueo"
-                                            type="month"
-                                            className="fecha-bloqueo-selector"
-                                            aria-label="Fecha de expiración del documento, mes y año"
-                                            required
-                                            value={datosBloqueo.vencimiento}
-                                            onChange={(evento) => setDatosBloqueo((actuales) => ({
-                                                ...actuales,
-                                                vencimiento: evento.target.value
-                                            }))}
-                                            disabled={bloqueando}
-                                        />
-                                        <span className="fecha-bloqueo-valor" aria-hidden="true">
-                                            {vencimientoVisible}
-                                        </span>
-                                    </div>
+                                    <input
+                                        id="vencimiento-bloqueo"
+                                        type="month"
+                                        className="fecha-bloqueo-selector"
+                                        aria-label="Fecha de expiración del documento, mes y año"
+                                        required
+                                        value={datosBloqueo.vencimiento}
+                                        onChange={(evento) => setDatosBloqueo((actuales) => ({
+                                            ...actuales,
+                                            vencimiento: evento.target.value
+                                        }))}
+                                        disabled={bloqueando}
+                                    />
                                 </>
                             ) : (
                                 <>
@@ -728,7 +739,7 @@ function DesbloquearTarjeta() {
                                     >
                                         <option value="">Selecciona un motivo</option>
                                         <option value="perdida">Pérdida</option>
-                                        <option value="robo">Robo</option>
+                                        <option value="robo">Ruto</option>
                                         <option value="sospecha_fraude">Sospecha de fraude</option>
                                         <option value="otro">Otro</option>
                                     </select>
