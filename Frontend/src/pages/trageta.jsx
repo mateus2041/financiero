@@ -46,6 +46,13 @@ const normalizarTexto = (valor) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
+const motivosBloqueo = {
+  perdida: "Pérdida",
+  robo: "Robo",
+  sospecha_fraude: "Sospecha de fraude",
+  otro: "Otro",
+};
+
 const generarFechaVencimiento = () => {
   const fecha = new Date();
   const anio = fecha.getFullYear() + 5;
@@ -996,6 +1003,7 @@ export default function TarjetasUsuario({ esAsesor = false }) {
                 <th>Dirección</th>
                 <th>Código postal</th>
                 <th>Tarjetas</th>
+                <th>Motivo del bloqueo</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -1003,7 +1011,7 @@ export default function TarjetasUsuario({ esAsesor = false }) {
             <tbody>
               {usuariosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={6}>No se encontraron usuarios.</td>
+                  <td colSpan={7}>No se encontraron usuarios.</td>
                 </tr>
               ) : (
                 usuariosFiltrados.map((usuario) => {
@@ -1077,6 +1085,13 @@ export default function TarjetasUsuario({ esAsesor = false }) {
                             Sin tarjeta
                           </span>
                         )}
+                      </td>
+                      <td data-label="Motivo del bloqueo">
+                        {tarjetaUsuario?.estado === "bloqueada"
+                          ? motivosBloqueo[tarjetaUsuario.motivo_bloqueo] ||
+                            tarjetaUsuario.motivo_bloqueo ||
+                            "No especificado"
+                          : "—"}
                       </td>
                       <td data-label="Acciones">
                         <select

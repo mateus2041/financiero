@@ -84,7 +84,7 @@ class ConfirmarBloqueoTarjeta(BaseModel):
     password: str | None = Field(default=None, min_length=1, max_length=128)
     documento: str | None = Field(default=None, min_length=1, max_length=50)
     fecha_expiracion_documento: str | None = Field(default=None, min_length=7, max_length=7)
-    motivo: Literal["perdida", "robo", "sospecha_fraude", "otro"] | None = None
+    motivo: str = Field(min_length=1, max_length=255)
 
 
 class SolicitudRecuperacion(BaseModel):
@@ -2779,6 +2779,7 @@ def activar_tarjeta_usuario(
         )
 
     tarjeta.estado = "activa"
+    tarjeta.motivo_bloqueo = None
     db.commit()
     db.refresh(tarjeta)
 
@@ -2809,6 +2810,7 @@ def desactivar_tarjeta_usuario(
         )
 
     tarjeta.estado = "bloqueada"
+    tarjeta.motivo_bloqueo = None
     db.commit()
     db.refresh(tarjeta)
 
@@ -2841,7 +2843,8 @@ def listar_tarjetas_administracion(
             "numero_tarjeta": f"**** **** **** {str(tarjeta.numero_tarjeta)[-4:]}",
             "fecha_vencimiento": tarjeta.fecha_expiracion,
             "tipo_tarjeta": "debito",
-            "estado": tarjeta.estado
+            "estado": tarjeta.estado,
+            "motivo_bloqueo": tarjeta.motivo_bloqueo
         }
         for tarjeta, id_usuario in tarjetas
     ]
@@ -3076,6 +3079,13 @@ def bloquear_tarjeta_especifica(
     current_user: int = Depends(token_required),
     db: Session = Depends(get_db)
 ):
+    motivo_bloqueo = datos.motivo.strip()
+    if not motivo_bloqueo:
+        raise HTTPException(
+            status_code=422,
+            detail="El motivo del bloqueo no puede estar vacío."
+        )
+
     usuario = db.query(Usuario).filter(
         Usuario.id_usuario == current_user
     ).first()
@@ -3108,12 +3118,14 @@ def bloquear_tarjeta_especifica(
         raise HTTPException(status_code=404, detail="Tarjeta no encontrada.")
 
     tarjeta.estado = "bloqueada"
+    tarjeta.motivo_bloqueo = motivo_bloqueo
     db.commit()
     db.refresh(tarjeta)
 
     return {
         "mensaje": "La tarjeta fue bloqueada correctamente.",
-        "estado": tarjeta.estado
+        "estado": tarjeta.estado,
+        "motivo_bloqueo": tarjeta.motivo_bloqueo
     }
 
 

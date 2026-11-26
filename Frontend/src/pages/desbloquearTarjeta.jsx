@@ -141,6 +141,7 @@ function DesbloquearTarjeta() {
     const [solicitandoDatosBloqueo, setSolicitandoDatosBloqueo] = useState(false);
     const [pasoBloqueo, setPasoBloqueo] = useState(1);
     const [motivoBloqueo, setMotivoBloqueo] = useState("");
+    const [detalleMotivoBloqueo, setDetalleMotivoBloqueo] = useState("");
     const [datosBloqueo, setDatosBloqueo] = useState({
         documento: "",
         vencimiento: ""
@@ -333,6 +334,7 @@ function DesbloquearTarjeta() {
         setMensaje("");
         setPasoBloqueo(1);
         setMotivoBloqueo("");
+        setDetalleMotivoBloqueo("");
         setDatosBloqueo({ documento: "", vencimiento: "" });
         setTarjetaIdBloqueo(idTarjeta);
         setSolicitandoDatosBloqueo(true);
@@ -342,6 +344,7 @@ function DesbloquearTarjeta() {
         setSolicitandoDatosBloqueo(false);
         setPasoBloqueo(1);
         setMotivoBloqueo("");
+        setDetalleMotivoBloqueo("");
         setDatosBloqueo({ documento: "", vencimiento: "" });
     };
 
@@ -369,6 +372,14 @@ function DesbloquearTarjeta() {
             return;
         }
 
+        const motivoFinal = motivoBloqueo === "otro"
+            ? detalleMotivoBloqueo.trim()
+            : motivoBloqueo;
+        if (!motivoFinal) {
+            setError("Escribe el motivo del bloqueo.");
+            return;
+        }
+
         try {
             setBloqueando(true);
             setMensaje("");
@@ -385,7 +396,7 @@ function DesbloquearTarjeta() {
                     body: JSON.stringify({
                         documento: datosBloqueo.documento.trim(),
                         fecha_expiracion_documento: datosBloqueo.vencimiento,
-                        motivo: motivoBloqueo
+                        motivo: motivoFinal
                     })
                 }
             );
@@ -785,10 +796,25 @@ function DesbloquearTarjeta() {
                                     >
                                         <option value="">Selecciona un motivo</option>
                                         <option value="perdida">Pérdida</option>
-                                        <option value="robo">Ruto</option>
+                                        <option value="robo">Robo</option>
                                         <option value="sospecha_fraude">Sospecha de fraude</option>
                                         <option value="otro">Otro</option>
                                     </select>
+                                    {motivoBloqueo === "otro" && (
+                                        <input
+                                            id="detalle-motivo-bloqueo"
+                                            type="text"
+                                            value={detalleMotivoBloqueo}
+                                            onChange={(evento) =>
+                                                setDetalleMotivoBloqueo(evento.target.value)
+                                            }
+                                            maxLength={255}
+                                            required
+                                            disabled={bloqueando}
+                                            placeholder="Escribe el motivo del bloqueo"
+                                            aria-label="Especifica otro motivo del bloqueo"
+                                        />
+                                    )}
                                 </>
                             )}
                             <div className="modal-bloqueo-acciones">
