@@ -253,6 +253,14 @@ class CuentaAdministradorRespuesta(CuentaRespuesta):
     rol: str
     tipos_cuenta: list[str]
     fecha_estado: datetime | None = None
+    edad: int | None = None
+    discapacidad_confirmada: bool | None = None
+    beneficio_habilitado: bool | None = None
+    tipo_beneficio: Literal[
+        "pensionado",
+        "joven",
+        "no_elegible",
+    ] | None = None
 
 
 class CuentasAdministradorRespuesta(SchemaBase):

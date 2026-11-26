@@ -347,6 +347,110 @@ body {
   opacity: 0.65;
 }
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+.boton-eliminar-asesor {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid #e06b6b;
+  border-radius: 6px;
+  background: transparent;
+  color: #f3a5a5;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.boton-eliminar-asesor:hover:not(:disabled),
+.boton-eliminar-asesor:focus-visible {
+  background: #e06b6b;
+  color: #ffffff;
+  outline: 2px solid #e06b6b;
+  outline-offset: 1px;
+}
+
+.boton-eliminar-asesor:disabled {
+  cursor: wait;
+  opacity: 0.45;
+}
+
+.modal-eliminacion-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(3, 7, 14, 0.78);
+}
+
+.modal-eliminacion-asesor {
+  width: min(100%, 400px);
+  padding: 22px;
+  border: 1px solid rgba(224, 107, 107, 0.55);
+  border-radius: 12px;
+  background: #131a2c;
+  color: #ffffff;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+}
+
+.modal-eliminacion-asesor h2 {
+  margin: 0 0 12px;
+  color: #f3a5a5;
+  font-size: 20px;
+}
+
+.modal-eliminacion-asesor h2.resultado-exitoso {
+  color: #82d6a5;
+}
+
+.modal-eliminacion-asesor p {
+  margin: 0 0 22px;
+  color: var(--texto-secundario);
+  line-height: 1.5;
+}
+
+.acciones-modal-eliminacion {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.acciones-modal-eliminacion button {
+  padding: 9px 14px;
+  border-radius: 7px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.boton-cancelar-eliminacion {
+  border: 1px solid #46516d;
+  background: transparent;
+  color: #ffffff;
+}
+
+.boton-confirmar-eliminacion {
+  border: 1px solid #e06b6b;
+  background: #e06b6b;
+  color: #ffffff;
+}
+
+.boton-aceptar-eliminacion {
+  border: 1px solid #82d6a5;
+  background: #82d6a5;
+  color: #0b0f16;
+}
+
+.acciones-modal-eliminacion button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+>>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
+>>>>>>> develop
 /* ==============================
    MENSAJES
    ============================== */

@@ -85,7 +85,7 @@ class ConfirmarBloqueoTarjeta(BaseModel):
     password: str | None = Field(default=None, min_length=1, max_length=128)
     documento: str | None = Field(default=None, min_length=1, max_length=50)
     fecha_expiracion_documento: str | None = Field(default=None, min_length=7, max_length=7)
-    motivo: Literal["perdida", "robo", "sospecha_fraude", "otro"] | None = None
+    motivo: str = Field(min_length=1, max_length=255)
 
 
 class SolicitudRecuperacion(BaseModel):
@@ -2011,6 +2011,32 @@ def listar_usuarios(
     ]
 
 
+@app.delete("/usuarios/{id_usuario}")
+def eliminar_cuenta_usuario(
+    id_usuario: int,
+    current_user: int = Depends(administrador_o_asesor_requerido),
+    db: Session = Depends(get_db),
+):
+    usuario = db.query(Usuario).filter(
+        Usuario.id_usuario == id_usuario,
+        Usuario.rol == "usuario",
+    ).first()
+
+    if not usuario:
+        raise HTTPException(
+            status_code=404,
+            detail="Usuario no encontrado",
+        )
+
+    db.delete(usuario)
+    db.commit()
+
+    return {
+        "mensaje": "Cuenta eliminada correctamente",
+        "id_usuario": id_usuario,
+    }
+
+
 def calcular_edad(fecha_nacimiento: date | None, hoy: date | None = None) -> int | None:
     if fecha_nacimiento is None:
         return None
@@ -2043,12 +2069,8 @@ def actualizar_beneficio_usuario(
     usuario = db.query(Usuario).filter(
         Usuario.id_usuario == id_usuario,
         Usuario.rol == "usuario",
-        ~Usuario.id_usuario.in_(db.query(Administrador.id_usuario)),
-        ~db.query(AsesorBanco.id_asesor)
-        .filter(
-            func.lower(func.trim(AsesorBanco.documento))
-            == func.lower(func.trim(Usuario.documento))
-        )
+        ~db.query(Administrador.id_administrador)
+        .filter(Administrador.id_usuario == Usuario.id_usuario)
         .exists(),
     ).first()
 
@@ -2100,21 +2122,18 @@ def listar_cuentas_admin(
         db.query(Cuenta, Usuario)
         .join(Usuario, Usuario.id_usuario == Cuenta.id_usuario)
         .filter(Usuario.rol == "usuario")
-        .filter(~Usuario.id_usuario.in_(
-            db.query(Administrador.id_usuario)
-        ))
         .filter(
-            ~db.query(AsesorBanco.id_asesor)
-            .filter(
-                func.lower(func.trim(AsesorBanco.documento))
-                == func.lower(func.trim(Usuario.documento))
-            )
+            ~db.query(Administrador.id_administrador)
+            .filter(Administrador.id_usuario == Usuario.id_usuario)
             .exists()
         )
     )
     if despues_de is not None:
         consulta = consulta.filter(Cuenta.id_cuenta > despues_de)
     cuentas = consulta.order_by(Cuenta.id_cuenta).limit(limite).all()
+    es_administrador = db.query(Administrador.id_administrador).filter(
+        Administrador.id_usuario == current_user
+    ).first() is not None
 
     return {
         "cuentas": [
@@ -2135,6 +2154,24 @@ def listar_cuentas_admin(
                 "estado": "activo" if cuenta.estado == "activa" else "inactivo",
                 "fecha_estado": cuenta.fecha_estado.isoformat()
                 if cuenta.fecha_estado else None,
+                "edad": (
+                    None
+                    if es_administrador
+                    else calcular_edad(usuario.fecha_nacimiento)
+                ),
+                "discapacidad_confirmada": (
+                    None
+                    if es_administrador
+                    else usuario.discapacidad_confirmada
+                ),
+                "beneficio_habilitado": (
+                    None if es_administrador else usuario.beneficio_habilitado
+                ),
+                "tipo_beneficio": (
+                    None
+                    if es_administrador
+                    else clasificar_beneficio(usuario.fecha_nacimiento)
+                ),
             }
             for cuenta, usuario in cuentas
         ]
@@ -2221,13 +2258,9 @@ def crear_cuenta_usuario(
     usuario = db.query(Usuario).filter(
         Usuario.id_usuario == id_usuario,
         Usuario.rol == "usuario",
-        ~Usuario.id_usuario.in_(db.query(Administrador.id_usuario)),
-        ~db.query(AsesorBanco.id_asesor)
-        .filter(
-            func.lower(func.trim(AsesorBanco.documento))
-            == func.lower(func.trim(Usuario.documento))
-        )
-        .exists()
+        ~db.query(Administrador.id_administrador)
+        .filter(Administrador.id_usuario == Usuario.id_usuario)
+        .exists(),
     ).first()
 
     if not usuario:
@@ -2295,15 +2328,9 @@ def listar_cuentas_usuario(
     usuario = db.query(Usuario).filter(
         Usuario.id_usuario == id_usuario,
         Usuario.rol == "usuario",
-        ~Usuario.id_usuario.in_(
-            db.query(Administrador.id_usuario)
-        ),
-        ~db.query(AsesorBanco.id_asesor)
-        .filter(
-            func.lower(func.trim(AsesorBanco.documento))
-            == func.lower(func.trim(Usuario.documento))
-        )
-        .exists()
+        ~db.query(Administrador.id_administrador)
+        .filter(Administrador.id_usuario == Usuario.id_usuario)
+        .exists(),
     ).first()
 
     if not usuario:
@@ -2342,13 +2369,9 @@ def actualizar_perfil_usuario(
     usuario = db.query(Usuario).filter(
         Usuario.id_usuario == id_usuario,
         Usuario.rol == "usuario",
-        ~Usuario.id_usuario.in_(db.query(Administrador.id_usuario)),
-        ~db.query(AsesorBanco.id_asesor)
-        .filter(
-            func.lower(func.trim(AsesorBanco.documento))
-            == func.lower(func.trim(Usuario.documento))
-        )
-        .exists()
+        ~db.query(Administrador.id_administrador)
+        .filter(Administrador.id_usuario == Usuario.id_usuario)
+        .exists(),
     ).first()
 
     if not usuario:
@@ -2466,6 +2489,9 @@ def obtener_usuario(
 
         "documento":
         usuario.documento,
+
+        "beneficio_habilitado":
+        usuario.beneficio_habilitado is True,
 
         "telefono":
         usuario.telefono,
@@ -2731,13 +2757,9 @@ def listar_tarjetas_cuenta(
     cuenta = db.query(Cuenta).join(Usuario).filter(
         Cuenta.id_cuenta == id_cuenta,
         Usuario.rol == "usuario",
-        ~Usuario.id_usuario.in_(db.query(Administrador.id_usuario)),
-        ~db.query(AsesorBanco.id_asesor)
-        .filter(
-            func.lower(func.trim(AsesorBanco.documento))
-            == func.lower(func.trim(Usuario.documento))
-        )
-        .exists()
+        ~db.query(Administrador.id_administrador)
+        .filter(Administrador.id_usuario == Usuario.id_usuario)
+        .exists(),
     ).first()
 
     if not cuenta:
@@ -2908,6 +2930,7 @@ def activar_tarjeta_usuario(
         )
 
     tarjeta.estado = "activa"
+    tarjeta.motivo_bloqueo = None
     db.commit()
     db.refresh(tarjeta)
 
@@ -2938,6 +2961,7 @@ def desactivar_tarjeta_usuario(
         )
 
     tarjeta.estado = "bloqueada"
+    tarjeta.motivo_bloqueo = None
     db.commit()
     db.refresh(tarjeta)
 
@@ -2970,7 +2994,8 @@ def listar_tarjetas_administracion(
             "numero_tarjeta": f"**** **** **** {str(tarjeta.numero_tarjeta)[-4:]}",
             "fecha_vencimiento": tarjeta.fecha_expiracion,
             "tipo_tarjeta": "debito",
-            "estado": tarjeta.estado
+            "estado": tarjeta.estado,
+            "motivo_bloqueo": tarjeta.motivo_bloqueo
         }
         for tarjeta, id_usuario in tarjetas
     ]
@@ -3205,6 +3230,13 @@ def bloquear_tarjeta_especifica(
     current_user: int = Depends(token_required),
     db: Session = Depends(get_db)
 ):
+    motivo_bloqueo = datos.motivo.strip()
+    if not motivo_bloqueo:
+        raise HTTPException(
+            status_code=422,
+            detail="El motivo del bloqueo no puede estar vacío."
+        )
+
     usuario = db.query(Usuario).filter(
         Usuario.id_usuario == current_user
     ).first()
@@ -3237,12 +3269,14 @@ def bloquear_tarjeta_especifica(
         raise HTTPException(status_code=404, detail="Tarjeta no encontrada.")
 
     tarjeta.estado = "bloqueada"
+    tarjeta.motivo_bloqueo = motivo_bloqueo
     db.commit()
     db.refresh(tarjeta)
 
     return {
         "mensaje": "La tarjeta fue bloqueada correctamente.",
-        "estado": tarjeta.estado
+        "estado": tarjeta.estado,
+        "motivo_bloqueo": tarjeta.motivo_bloqueo
     }
 
 

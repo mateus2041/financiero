@@ -1,17 +1,20 @@
 .tarjeta-container {
     min-height: 100vh;
-    width: 100%;
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 30px;
+    padding: 24px 30px;
     box-sizing: border-box;
 }
 
 .tarjeta-box {
-    width: 520px;
+    width: 420px;
     max-width: 100%;
-    padding: 35px;
+    padding: 28px;
     background-color: #1e2a4a;
     border: 1px solid #33415f;
     border-radius: 18px;
@@ -21,19 +24,33 @@
 }
 
 .tarjetas-lista {
-    width: min(1060px, 100%);
+    width: 420px;
     max-width: 100%;
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 420px);
     justify-content: center;
-    gap: 20px;
+    column-gap: 48px;
+    row-gap: 28px;
     align-items: start;
 }
 
+.tarjetas-lista-multiples {
+    width: min(1120px, 100%);
+    grid-template-columns: repeat(3, minmax(0, 420px));
+}
+
 .tarjetas-lista .tarjeta-box {
-    width: min(520px, 100%);
-    max-width: 520px;
-    flex: 1 1 480px;
+    width: 420px;
+    max-width: none;
+    min-width: 0;
+}
+
+.tarjetas-lista .tarjeta-principal {
+    justify-self: center;
+}
+
+.tarjetas-lista .tarjeta-box:not(.tarjeta-principal) {
+    width: 420px;
 }
 
 .tarjeta-titulo-nueva {
@@ -43,26 +60,40 @@
 }
 
 .tarjeta-box h1 {
+    margin: 0 0 10px;
+    color: #ffffff;
+    font-size: 24px;
+}
+
+.tarjeta-cabecera {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.tarjeta-cabecera h1 {
     margin: 0;
     color: #ffffff;
-    font-size: 27px;
+    font-size: 24px;
 }
 
 .tarjeta-descripcion {
     color: #aeb8cc;
     font-size: 14px;
     line-height: 1.5;
-    margin: 12px 0 25px;
+    margin: 0 0 22px;
 }
 
 /* TARJETA */
 
 .tarjeta-visual {
     position: relative;
-    height: 260px;
-    padding: 25px;
+    height: 210px;
+    padding: 22px;
     box-sizing: border-box;
-    border-radius: 18px;
+    border-radius: 14px;
     background: linear-gradient(135deg, #126e82 0%, #12355b 52%, #111827 100%);
     border: 1px solid #465676;
     text-align: left;
@@ -135,18 +166,18 @@
 
 .tarjeta-trasera-header {
     width: 100%;
-    min-height: 56px;
+    min-height: 38px;
     display: flex;
     align-items: center;
-    padding-left: 18px;
+    padding-left: 14px;
     box-sizing: border-box;
     color: rgba(255, 255, 255, 0.9);
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     letter-spacing: 0.6px;
     text-transform: uppercase;
     opacity: 0.95;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .tarjeta-trasera-licencia {
@@ -162,7 +193,7 @@
 
 .tarjeta-trasera-firma-box {
     flex: 1;
-    height: 52px;
+    height: 44px;
     display: flex;
     align-items: center;
     background: rgba(255, 255, 255, 0.8);
@@ -173,7 +204,7 @@
 
 .tarjeta-trasera-codigo-box {
     min-width: 90px;
-    height: 52px;
+    height: 44px;
     background: rgba(255, 255, 255, 0.9);
     border-radius: 8px;
     color: #111827;
@@ -189,7 +220,7 @@
 
 .tarjeta-trasera-mensaje {
     width: 100%;
-    margin-top: 18px;
+    margin-top: 10px;
     color: rgba(255, 255, 255, 0.8);
     font-size: 11px;
     line-height: 1.45;
@@ -199,7 +230,7 @@
 
 .tarjeta-trasera-footer {
     width: 100%;
-    margin-top: 18px;
+    margin-top: 10px;
     display: flex;
     justify-content: space-between;
     align-items: end;
@@ -246,7 +277,7 @@
 
 .tarjeta-acciones {
     display: grid;
-    grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.4fr);
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(0, 1.3fr);
     gap: 10px;
 }
 
@@ -280,8 +311,13 @@
 .btn-accion-tarjeta {
     width: 100%;
     min-width: 0;
-    padding: 12px 8px;
-    font-size: 13px;
+    min-height: 44px;
+    padding: 8px 4px;
+    font-size: 11px;
+    line-height: 1.2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
 }
 
 .btn-accion-tarjeta {
@@ -304,7 +340,38 @@
     cursor: not-allowed;
 }
 
+@media (max-width: 980px) {
+    .tarjetas-lista-multiples {
+        grid-template-columns: repeat(2, minmax(0, 420px));
+        column-gap: 24px;
+        row-gap: 24px;
+    }
+
+    .tarjetas-lista .tarjeta-box {
+        max-width: 100%;
+    }
+}
+
 @media (max-width: 560px) {
+    .tarjeta-container {
+        align-items: center;
+        padding: 76px 16px 24px;
+    }
+
+    .tarjetas-lista {
+        grid-template-columns: minmax(0, 1fr);
+        column-gap: 16px;
+        row-gap: 16px;
+    }
+
+    .tarjetas-lista .tarjeta-box {
+        width: 100%;
+    }
+
+    .tarjeta-box {
+        padding: 22px 18px;
+    }
+
     .tarjeta-acciones {
         grid-template-columns: 1fr;
     }
@@ -400,6 +467,12 @@
     font-weight: 600;
 }
 
+.numero-tarjeta-bloqueo-label {
+    color: #c5cede;
+    font-size: 13px;
+    font-weight: 600;
+}
+
 .formulario-bloqueo input {
     width: 100%;
     box-sizing: border-box;
@@ -413,6 +486,19 @@
     outline: none;
     caret-color: #f5c542;
     -webkit-text-fill-color: #ffffff;
+}
+
+.numero-tarjeta-bloqueo {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 13px;
+    border: 1px solid #465676;
+    border-radius: 9px;
+    background: #111827;
+    color: #ffffff;
+    font-size: 16px;
+    line-height: 1.4;
+    user-select: none;
 }
 
 .formulario-bloqueo input::placeholder {
@@ -443,6 +529,60 @@
     background: #1e2a4a;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
     box-sizing: border-box;
+}
+
+.modal-resultado-cvv-fondo {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(5, 10, 22, 0.72);
+}
+
+.modal-resultado-cvv {
+    width: min(420px, 100%);
+    padding: 28px;
+    border: 1px solid #465676;
+    border-radius: 14px;
+    background: #1e2a4a;
+    color: #c5cede;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    box-sizing: border-box;
+}
+
+.modal-resultado-cvv h2 {
+    margin: 0 0 12px;
+    color: #22c55e;
+    font-size: 22px;
+}
+
+.modal-resultado-cvv h2.error {
+    color: #ff6b6b;
+}
+
+.modal-resultado-cvv p {
+    margin: 0 0 22px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.btn-cerrar-resultado-cvv {
+    width: 100%;
+    padding: 12px 16px;
+    border: 0;
+    border-radius: 9px;
+    background: #f5c542;
+    color: #111827;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.btn-cerrar-resultado-cvv:hover {
+    filter: brightness(1.05);
 }
 
 .modal-bloqueo h2 {

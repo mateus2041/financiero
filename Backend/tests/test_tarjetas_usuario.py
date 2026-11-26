@@ -96,6 +96,68 @@ def test_usuario_puede_listar_sus_tarjetas(monkeypatch):
     engine.dispose()
 
 
+def test_bloquear_tarjeta_guarda_motivo_y_lo_expone_en_lista_admin(monkeypatch):
+    client, db, cliente, engine = crear_contexto_tarjetas(
+        monkeypatch,
+        cuenta=("corriente", "activa"),
+    )
+    cuenta = db.query(Cuenta).one()
+    tarjeta = Tarjeta(
+        id_cuenta=cuenta.id_cuenta,
+        numero_tarjeta="1234567890123456",
+        fecha_expiracion="12/31",
+        codigo_seguridad="123",
+        estado="activa",
+    )
+    db.add(tarjeta)
+    db.commit()
+    tarjeta_id = tarjeta.id_tarjeta
+    monkeypatch.setitem(
+        main.app.dependency_overrides,
+        main.token_required,
+        lambda: cliente.id_usuario,
+    )
+
+    response = client.put(
+        f"/tarjetas/{tarjeta_id}/bloquear",
+        json={"documento": cliente.documento},
+    )
+
+    assert response.status_code == 422
+    assert db.query(Tarjeta).filter_by(id_tarjeta=tarjeta_id).one().estado == "activa"
+
+    response = client.put(
+        f"/tarjetas/{tarjeta_id}/bloquear",
+        json={
+            "documento": cliente.documento,
+            "motivo": "Me robaron la tarjeta al salir del trabajo",
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    motivo = "Me robaron la tarjeta al salir del trabajo"
+    assert response.json()["motivo_bloqueo"] == motivo
+    tarjeta_guardada = db.query(Tarjeta).filter_by(id_tarjeta=tarjeta_id).one()
+    assert tarjeta_guardada.motivo_bloqueo == motivo
+
+    administrador = db.query(Administrador).one()
+    monkeypatch.setitem(
+        main.app.dependency_overrides,
+        main.token_required,
+        lambda: administrador.id_usuario,
+    )
+    response = client.get("/administradores/tarjetas")
+
+    assert response.status_code == 200, response.text
+    tarjeta_listada = next(
+        item for item in response.json() if item["id_tarjeta"] == tarjeta_id
+    )
+    assert tarjeta_listada["motivo_bloqueo"] == motivo
+
+    db.close()
+    engine.dispose()
+
+
 def test_administrador_puede_eliminar_tarjeta_de_cliente(monkeypatch):
     client, db, _, engine = crear_contexto_tarjetas(
         monkeypatch,

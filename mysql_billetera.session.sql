@@ -26,7 +26,6 @@ COMMIT;
 -- SQLBook: Code
 CREATE TABLE IF NOT EXISTS asesores_banco (
     id_asesor INT AUTO_INCREMENT PRIMARY KEY,
-    id_usuario INT NULL,
     nombre VARCHAR(100) NOT NULL,
     documento VARCHAR(50),
     email VARCHAR(100),
@@ -54,14 +53,18 @@ SET rol = 'asesor'
 WHERE id_usuario = 9;
 
 INSERT INTO asesores_banco (
-    id_usuario,
+    nombre,
+    documento,
+    email,
     codigo_asesor,
     especialidad,
     estado,
     fecha_ingreso
 )
 SELECT
-    u.id_usuario,
+    u.nombre,
+    u.documento,
+    u.email,
     'asesores2014',
     'Créditos y ahorro',
     'activo',
@@ -87,7 +90,7 @@ SELECT
     a.estado
 FROM usuario u
 INNER JOIN asesores_banco a
-    ON a.id_usuario = u.id_usuario
+    ON LOWER(TRIM(a.email)) = LOWER(TRIM(u.email))
 WHERE a.codigo_asesor = 'asesores2014';
 -- SQLBook: Code
 SET FOREIGN_KEY_CHECKS = 0;
@@ -105,7 +108,9 @@ DELETE FROM administradores
 WHERE id_usuario = 1;
 
 DELETE FROM asesores_banco
-WHERE id_usuario = 1;
+WHERE documento = (
+    SELECT documento FROM usuario WHERE id_usuario = 1
+);
 
 DELETE FROM cuentas
 WHERE id_usuario = 1;
@@ -138,7 +143,7 @@ START TRANSACTION;
 
 UPDATE usuario
 SET rol = 'administrador'
-WHERE id_usuario = 1;
+WHERE id_usuario = 10;
 
 INSERT INTO administradores (
     id_usuario,
@@ -150,7 +155,7 @@ SELECT
     'mateus20452@',
     CURRENT_TIMESTAMP
 FROM usuario AS u
-WHERE u.id_usuario = 1
+WHERE u.id_usuario = 10
 ON DUPLICATE KEY UPDATE
     codigo_administrador = 'mateus20452@';
 
@@ -159,7 +164,9 @@ COMMIT;
 START TRANSACTION;
 
 DELETE FROM asesores_banco
-WHERE id_usuario = 9; -- cambia 9 por el ID correcto
+WHERE documento = (
+    SELECT documento FROM usuario WHERE id_usuario = 9
+); -- cambia 9 por el ID correcto
 
 COMMIT;
 -- SQLBook: Code
@@ -228,7 +235,9 @@ DELETE FROM administradores
 WHERE id_usuario = @id_usuario;
 
 DELETE FROM asesores_banco
-WHERE id_usuario = @id_usuario;
+WHERE documento = (
+    SELECT documento FROM usuario WHERE id_usuario = @id_usuario
+);
 
 DELETE FROM usuario
 WHERE id_usuario = @id_usuario;
@@ -285,7 +294,9 @@ DELETE FROM administradores
 WHERE id_usuario = @id_usuario;
 
 DELETE FROM asesores_banco
-WHERE id_usuario = @id_usuario;
+WHERE documento = (
+    SELECT documento FROM usuario WHERE id_usuario = @id_usuario
+);
 
 DELETE FROM usuario
 WHERE id_usuario = @id_usuario;
@@ -447,146 +458,446 @@ SELECT ciudad, localidad, barrios
 FROM `ubicacionesPorCiudad`
 ORDER BY ciudad, localidad;
 -- SQLBook: Code
-SET @id_usuario = 1010;
+USE billetera;
 
 START TRANSACTION;
 
-DELETE FROM transferencias_breb
-WHERE id_cuenta_origen IN (
-    SELECT id_cuenta FROM cuentas WHERE id_usuario = @id_usuario
-)
-OR id_cuenta_destino IN (
-    SELECT id_cuenta FROM cuentas WHERE id_usuario = @id_usuario
-)
-OR id_llave_destino IN (
-    SELECT l.id_llave
-    FROM llaves_breb AS l
-    INNER JOIN cuentas AS c ON c.id_cuenta = l.id_cuenta
-    WHERE c.id_usuario = @id_usuario
-)
-OR id_transaccion IN (
-    SELECT t.id_transaccion
-    FROM transacciones AS t
-    INNER JOIN cuentas AS c ON c.id_cuenta = t.id_cuenta
-    WHERE c.id_usuario = @id_usuario
-);
-
-DELETE FROM tarjetas
-WHERE id_cuenta IN (
-    SELECT id_cuenta FROM cuentas WHERE id_usuario = @id_usuario
-);
-
-DELETE FROM llaves_breb
-WHERE id_cuenta IN (
-    SELECT id_cuenta FROM cuentas WHERE id_usuario = @id_usuario
-);
-
-DELETE FROM transacciones
-WHERE id_cuenta IN (
-    SELECT id_cuenta FROM cuentas WHERE id_usuario = @id_usuario
-);
-
-DELETE FROM cuentas
-WHERE id_usuario = @id_usuario;
-
-DELETE FROM notificaciones
-WHERE id_usuario = @id_usuario;
-
-DELETE FROM control_topes_breb
-WHERE id_usuario = @id_usuario;
-
-DELETE FROM administradores
-WHERE id_usuario = @id_usuario;
-
-DELETE FROM asesores_banco
-WHERE id_usuario = @id_usuario;
-
-DELETE FROM usuario
-WHERE id_usuario = @id_usuario;
-
-COMMIT;
--- SQLBook: Code
-SET @id_usuario = 1013;
-
-START TRANSACTION;
-
-DELETE FROM transferencias_breb
-WHERE id_cuenta_origen IN (
-    SELECT id_cuenta
-    FROM cuentas
-    WHERE id_usuario = @id_usuario
-)
-OR id_cuenta_destino IN (
-    SELECT id_cuenta
-    FROM cuentas
-    WHERE id_usuario = @id_usuario
-)
-OR id_llave_destino IN (
-    SELECT id_llave
-    FROM llaves_breb
-    WHERE id_usuario = @id_usuario
-)
-OR id_transaccion IN (
-    SELECT id_transaccion
-    FROM transacciones
-    WHERE id_cuenta IN (
-        SELECT id_cuenta
-        FROM cuentas
-        WHERE id_usuario = @id_usuario
-    )
-);
-
-DELETE FROM tarjetas
-WHERE id_cuenta IN (
-    SELECT id_cuenta
-    FROM cuentas
-    WHERE id_usuario = @id_usuario
-);
-
-DELETE FROM llaves_breb
-WHERE id_usuario = @id_usuario
-   OR id_cuenta IN (
-       SELECT id_cuenta
-       FROM cuentas
-       WHERE id_usuario = @id_usuario
-   );
-
-DELETE FROM transacciones
-WHERE id_cuenta IN (
-    SELECT id_cuenta
-    FROM cuentas
-    WHERE id_usuario = @id_usuario
-);
-
-DELETE FROM notificaciones
-WHERE id_usuario = @id_usuario;
-
-DELETE FROM control_topes_breb
-WHERE id_usuario = @id_usuario;
-
-DELETE FROM administradores
-WHERE id_usuario = @id_usuario;
-
-DELETE FROM cuentas
-WHERE id_usuario = @id_usuario;
-
-DELETE FROM usuario
-WHERE id_usuario = @id_usuario;
-
-COMMIT;
--- SQLBook: Code
-START TRANSACTION;
-
-SET @id_usuario = 1014;
-SET @nuevo_email = 'kirogamateus@gmail.com';
-
+-- Cambia el rol únicamente a los usuarios seleccionados.
 UPDATE usuario
-SET email = TRIM(@nuevo_email)
-WHERE id_usuario = @id_usuario
-  AND TRIM(@nuevo_email) <> '';
+SET rol = 'asesor'
+WHERE rol = 'usuario'
+  AND documento IN (
+      'TEST-00000100',
+      'TEST-00000200',
+      'TEST-00000300',
+      'TEST-00000400'
+  );
+
+-- Actualiza los datos del asesor, pero conserva su código generado.
+UPDATE asesores_banco AS a
+INNER JOIN usuario AS u
+    ON LOWER(TRIM(u.email)) = LOWER(TRIM(a.email))
+SET
+    a.nombre = u.nombre,
+    a.documento = u.documento,
+    a.email = u.email,
+    a.especialidad = 'Asesoria bancaria',
+    a.estado = 'activo'
+WHERE u.rol = 'asesor'
+  AND u.documento IN (
+      'TEST-00000100',
+      'TEST-00000200',
+      'TEST-00000300',
+      'TEST-00000400'
+  );
+
+COMMIT;
+
+-- Verifica el rol, el código existente y si falta el registro de asesor.
+SELECT
+    u.nombre,
+    u.documento,
+    u.rol,
+    a.codigo_asesor,
+    a.estado
+FROM usuario AS u
+LEFT JOIN asesores_banco AS a
+    ON LOWER(TRIM(a.email)) = LOWER(TRIM(u.email))
+WHERE u.documento IN (
+    'TEST-00000100',
+    'TEST-00000200',
+    'TEST-00000300',
+    'TEST-00000400'
+)
+ORDER BY u.documento;
+-- SQLBook: Code
+USE billetera;
+
+-- Comprueba cuántos asesores están registrados.
+SELECT COUNT(*) AS total_asesores
+FROM asesores_banco;
+
+START TRANSACTION;
+
+-- Activa los asesores que aparecen como inactivos.
+UPDATE asesores_banco
+SET estado = 'activo'
+WHERE estado = 'inactivo';
+
+COMMIT;
+
+-- Consulta el correo y el código automático de cada asesor.
+SELECT
+    id_asesor,
+    nombre,
+    email,
+    codigo_asesor,
+    estado
+FROM asesores_banco
+ORDER BY id_asesor;
+-- SQLBook: Code
+UPDATE usuario
+SET rol = 'usuario'
+WHERE id_usuario = 2
+  AND rol = 'asesor';
+
+SELECT id_usuario, nombre, rol
+FROM usuario
+WHERE id_usuario = 2;
+-- SQLBook: Code
+UPDATE usuario
+SET email = 'luisssm@gmail.com'
+
+WHERE id_usuario = 25;
 
 SELECT id_usuario, nombre, email
 FROM usuario
+WHERE id_usuario = 25;
+
+WHERE id_usuario = 25;
+
+SELECT id_usuario, nombre, email
+FROM usuario
+WHERE id_usuario = 25;
+-- SQLBook: Code
+USE billetera;
+
+DELETE FROM usuario
+WHERE id_usuario BETWEEN 701 AND 1004;
+-- SQLBook: Code
+
+USE billetera;
+
+SELECT id_usuario, nombre, email, documento
+FROM usuario
+WHERE email = 'luissmate89@gmail.com'
+   OR documento = '1234567890';
+-- SQLBook: Code
+INSERT INTO usuario (
+    nombre, email, `password`, telefono, direccion, documento,
+    rol, tope_ahorros, tope_corriente
+)
+VALUES (
+    'Nombre completo',
+    'luissmate89@gmail.com',
+    'mateus20452@',
+    '3000000000',
+    'calle 87 sur 91-85',
+    '1234567890',
+    'usuario',
+    0,
+    0
+);
+
+SET @id_usuario_nuevo = LAST_INSERT_ID();
+SET @numero_cuenta_nuevo = CONCAT(
+    LPAD(FLOOR(RAND() * 1000000000), 9, '0'),
+    LPAD(FLOOR(RAND() * 10000000), 7, '0')
+);
+
+INSERT INTO cuentas (
+    numero_cuenta, id_usuario, tipo_cuenta, tipo_operacion, saldo, estado
+)
+VALUES (
+    @numero_cuenta_nuevo,
+    @id_usuario_nuevo,
+    'ahorros',
+    'debito',
+    0,
+    'activa'
+);
+
+SELECT id_usuario, nombre, email
+FROM usuario
+WHERE id_usuario = @id_usuario_nuevo;
+
+SELECT id_cuenta, numero_cuenta, id_usuario, tipo_cuenta, saldo, estado
+FROM cuentas
+WHERE id_usuario = @id_usuario_nuevo;
+-- SQLBook: Code
+DELETE FROM asesores_banco
+WHERE id_asesor BETWEEN 2 AND 20;
+-- SQLBook: Code
+-- 1. Eliminar notificaciones
+DELETE FROM notificaciones
+WHERE id_usuario = 3;
+
+<<<<<<< HEAD
+START TRANSACTION;
+
+-- 1. Eliminar las notificaciones del usuario
+DELETE FROM notificaciones
+WHERE id_usuario = 1;
+
+-- 2. Eliminar el usuario
+DELETE FROM usuario
+WHERE id_usuario = 1;
+
+COMMIT;
+-- SQLBook: Code
+USE billetera;
+
+START TRANSACTION;
+
+-- 1. Eliminar notificaciones
+DELETE FROM notificaciones
+WHERE id_usuario = 1;
+
+-- 2. Eliminar cuentas
+DELETE FROM cuentas
+WHERE id_usuario = 1;
+
+-- 3. Eliminar la relación de administrador antes del usuario
+DELETE FROM administradores
+WHERE id_usuario = 1;
+
+-- 4. Eliminar usuario
+DELETE FROM usuario
+WHERE id_usuario = 1;
+
+COMMIT;
+-- SQLBook: Code
+DELETE FROM administradores WHERE id_usuario = 1;
+DELETE FROM usuario WHERE id_usuario = 1;
+-- SQLBook: Code
+DELETE FROM administradores
+WHERE id_administrador = 1;
+-- SQLBook: Code
+DELETE FROM billetera.asesores_banco WHERE id_asesor = 1;
+=======
+ALTER TABLE usuario DROP COLUMN email;
+-- SQLBook: Code
+USE billetera;
+
+ALTER TABLE usuario
+ADD COLUMN email VARCHAR(100) NULL;
+
+CREATE UNIQUE INDEX ix_usuario_email
+ON usuario (email);
+-- SQLBook: Code
+SELECT DATABASE();
+SHOW COLUMNS FROM billetera.usuario LIKE 'email';
+-- SQLBook: Code
+ALTER TABLE billetera.usuario
+MODIFY COLUMN email VARCHAR(100) NULL
+AFTER id_usuario;
+
+-- 2. Eliminar cuentas
+DELETE FROM cuentas
+WHERE id_usuario = 5;
+
+-- 3. Eliminar usuario
+DELETE FROM usuario
+WHERE id_usuario = 5;
+-- SQLBook: Code
+SELECT DATABASE();
+SHOW COLUMNS FROM asesores_banco LIKE 'id_usuario';
+SHOW INDEX FROM asesores_banco;
+-- SQLBook: Code
+ALTER TABLE asesores_banco DROP COLUMN id_usuario;
+
+
+-- SQLBook: Code
+USE billetera;
+
+START TRANSACTION;
+
+INSERT INTO usuario (
+    nombre, email, password, telefono, direccion, codigo_postal,
+    ciudad, localidad, barrio, llave_bre_b, documento, rol,
+    codigo_registro, estado, tope_ahorros, tope_corriente,
+    fecha_creacion, id_tipo_doc
+)
+SELECT
+    datos.nombre,
+    datos.email,
+    datos.password,
+    datos.telefono,
+    datos.direccion,
+    datos.codigo_postal,
+    datos.ciudad,
+    datos.localidad,
+    datos.barrio,
+    datos.llave_bre_b,
+    datos.documento,
+    datos.rol,
+    datos.codigo_registro,
+    datos.estado,
+    datos.tope_ahorros,
+    datos.tope_corriente,
+    CURRENT_TIMESTAMP,
+    datos.id_tipo_doc
+FROM (
+    SELECT
+        'Mateo Alejandro Cardenas Rivas' AS nombre,
+        'luissmate89@gmail.com' AS email,
+        '$argon2id$v=19$m=65536,t=3,p=4$I6T03ntvrZUSIqSU8p6TUg$HsOTH4aIlWXnHKHCHNuPAEUbriAWUFMNwiSDQv6WyS8' AS password,
+        '0000000001' AS telefono,
+        'Calle 10 # 20-01' AS direccion,
+        '110001' AS codigo_postal,
+        'Bogota' AS ciudad,
+        'Usaquen' AS localidad,
+        'Santa Ana' AS barrio,
+        'prueba0001' AS llave_bre_b,
+        'TESTDOC000001' AS documento,
+        'usuario' AS rol,
+        '900001' AS codigo_registro,
+        'activo' AS estado,
+        5000000 AS tope_ahorros,
+        3000000 AS tope_corriente,
+        1 AS id_tipo_doc
+    UNION ALL
+    SELECT
+        'Sebastian Emiliano Torres Beltran',
+        'kirogmateus@gmail.com',
+        '$argon2id$v=19$m=65536,t=3,p=4$I6T03ntvrZUSIqSU8p6TUg$HsOTH4aIlWXnHKHCHNuPAEUbriAWUFMNwiSDQv6WyS8',
+        '0000000002',
+        'Carrera 11 # 21-02',
+        '110002',
+        'Bogota',
+        'Suba',
+        'El Prado',
+        'prueba0002',
+        'TESTDOC000002',
+        'usuario',
+        '900002',
+        'activo',
+        5000000,
+        3000000,
+        1
+    UNION ALL
+    SELECT
+        'Nicolas Esteban Valderrama Cruz',
+        'finaciero2026@gmail.com',
+        '$argon2id$v=19$m=65536,t=3,p=4$I6T03ntvrZUSIqSU8p6TUg$HsOTH4aIlWXnHKHCHNuPAEUbriAWUFMNwiSDQv6WyS8',
+        '0000000003',
+        'Calle 12 # 22-03',
+        '110003',
+        'Bogota',
+        'Kennedy',
+        'Timiza',
+        'prueba0003',
+        'TESTDOC000003',
+        'usuario',
+        '900003',
+        'activo',
+        5000000,
+        3000000,
+        1
+) AS datos
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM usuario AS u
+    WHERE BINARY LOWER(TRIM(u.email)) =
+          BINARY LOWER(TRIM(datos.email))
+);
+
+INSERT INTO cuentas (
+    numero_cuenta, id_usuario, tipo_cuenta, tipo_operacion, saldo, estado
+)
+SELECT
+    CONCAT('9', LPAD(u.id_usuario, 15, '0')),
+    u.id_usuario,
+    'corriente',
+    'debito',
+    0,
+    'inactiva'
+FROM usuario AS u
+WHERE (
+       (BINARY LOWER(TRIM(u.email)) = BINARY 'luissmate89@gmail.com'
+        AND u.nombre = 'Mateo Alejandro Cardenas Rivas')
+    OR (BINARY LOWER(TRIM(u.email)) = BINARY 'kirogmateus@gmail.com'
+        AND u.nombre = 'Sebastian Emiliano Torres Beltran')
+    OR (BINARY LOWER(TRIM(u.email)) = BINARY 'finaciero2026@gmail.com'
+        AND u.nombre = 'Nicolas Esteban Valderrama Cruz')
+)
+AND NOT EXISTS (
+    SELECT 1
+    FROM cuentas AS c
+    WHERE c.id_usuario = u.id_usuario
+      AND c.tipo_cuenta = 'corriente'
+)
+AND NOT EXISTS (
+    SELECT 1
+    FROM cuentas AS c
+    WHERE BINARY c.numero_cuenta =
+          BINARY CONCAT('9', LPAD(u.id_usuario, 15, '0'))
+);
+
+COMMIT;
+-- SQLBook: Code
+USE billetera;
+
+UPDATE usuario
+SET documento = '1043219876'
+WHERE id_usuario = 28;
+-- SQLBook: Code
+USE billetera;
+
+UPDATE usuario
+SET email = 'gitmateus8@gmail.com'
+WHERE id_usuario = 10;
+-- SQLBook: Code
+-- eliminar un usuario y sus datos relacionados
+
+START TRANSACTION;
+
+SET @id_usuario = 1015;
+
+DELETE FROM notificaciones
+WHERE id_usuario = @id_usuario;
+
+DELETE t
+FROM tarjetas AS t
+JOIN cuentas AS c ON c.id_cuenta = t.id_cuenta
+WHERE c.id_usuario = @id_usuario;
+
+DELETE FROM cuentas
+WHERE id_usuario = @id_usuario;
+
+DELETE FROM usuario
 WHERE id_usuario = @id_usuario;
 
 COMMIT;
+-- SQLBook: Code
+USE billetera;
+
+SET @existe := (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'usuario'
+      AND COLUMN_NAME = 'fecha_nacimiento'
+);
+
+SET @sql := IF(
+    @existe = 0,
+    'ALTER TABLE usuario ADD COLUMN fecha_nacimiento DATE NULL',
+    'SELECT ''La columna fecha_nacimiento ya existe'' AS resultado'
+);
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SELECT id_usuario, nombre, fecha_nacimiento
+FROM usuario
+LIMIT 10;
+-- SQLBook: Code
+SELECT DATABASE() AS base_seleccionada;
+
+SHOW COLUMNS FROM usuario LIKE 'fecha_nacimiento';
+
+SELECT id_usuario, nombre, fecha_nacimiento
+FROM usuario
+WHERE id_usuario = 6;
+-- SQLBook: Code
+USE billetera;
+
+UPDATE usuario
+SET fecha_nacimiento = '2004-12-20'
+WHERE id_usuario = 6;
+
+SELECT id_usuario, nombre, fecha_nacimiento
+FROM usuario
+WHERE id_usuario = 6;

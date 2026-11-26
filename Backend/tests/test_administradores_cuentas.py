@@ -9,6 +9,59 @@ from Backend.models import Administrador, AsesorBanco, Cuenta, Usuario
 from Backend.security import hash_password
 
 
+def test_administrador_puede_eliminar_cuenta_usuario(monkeypatch):
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=engine)
+    db = sessionmaker(bind=engine)()
+
+    administrador = Usuario(
+        nombre="Administrador",
+        email="administrador.eliminar@test.com",
+        documento="9000000001",
+        password=hash_password("Segura123"),
+        rol="usuario",
+    )
+    db.add(administrador)
+    db.commit()
+    db.refresh(administrador)
+    db.add(
+        Administrador(
+            id_usuario=administrador.id_usuario,
+            codigo_administrador="ADM-DELETE",
+        )
+    )
+
+    cliente = Usuario(
+        nombre="Cliente eliminar",
+        email="cliente.eliminar@test.com",
+        documento="9000000002",
+        password=hash_password("Segura123"),
+        rol="usuario",
+    )
+    db.add(cliente)
+    db.commit()
+    db.refresh(cliente)
+
+    monkeypatch.setitem(main.app.dependency_overrides, main.get_db, lambda: db)
+    monkeypatch.setitem(
+        main.app.dependency_overrides,
+        main.token_required,
+        lambda: administrador.id_usuario,
+    )
+
+    response = TestClient(main.app).delete(f"/usuarios/{cliente.id_usuario}")
+
+    assert response.status_code == 200
+    assert response.json()["id_usuario"] == cliente.id_usuario
+    assert db.query(Usuario).filter(
+        Usuario.id_usuario == cliente.id_usuario
+    ).first() is None
+
+
 def test_administrador_puede_listar_cuentas(monkeypatch):
     engine = create_engine(
         "sqlite://",
@@ -36,6 +89,12 @@ def test_administrador_puede_listar_cuentas(monkeypatch):
             codigo_administrador="ADM-001",
         )
     )
+    db.add(
+        Administrador(
+            id_usuario=None,
+            codigo_administrador="ADM-SIN-USUARIO",
+        )
+    )
 
     cliente = Usuario(
         nombre="Cliente Uno",
@@ -58,26 +117,26 @@ def test_administrador_puede_listar_cuentas(monkeypatch):
         )
     )
 
-    asesor_como_usuario = Usuario(
-        nombre="Asesor con registro anterior",
-        email="asesor-usuario@test.com",
+    cliente_mismo_documento_asesor = Usuario(
+        nombre="Cliente con documento coincidente",
+        email="cliente-coincidente@test.com",
         documento="5555555555",
         password=hash_password("Segura123"),
         rol="usuario",
     )
-    db.add(asesor_como_usuario)
+    db.add(cliente_mismo_documento_asesor)
     db.commit()
-    db.refresh(asesor_como_usuario)
+    db.refresh(cliente_mismo_documento_asesor)
     db.add(
         AsesorBanco(
-            nombre=asesor_como_usuario.nombre,
-            documento=asesor_como_usuario.documento,
+            nombre="Asesor previo",
+            documento=cliente_mismo_documento_asesor.documento,
             codigo_asesor="ASESOR-001",
         )
     )
     db.add(
         Cuenta(
-            id_usuario=asesor_como_usuario.id_usuario,
+            id_usuario=cliente_mismo_documento_asesor.id_usuario,
             numero_cuenta="5555555555555555",
             tipo_cuenta="ahorros",
             saldo=1000,
@@ -96,10 +155,16 @@ def test_administrador_puede_listar_cuentas(monkeypatch):
     assert response.status_code == 200
     payload = response.json()
     assert "cuentas" in payload
-    assert len(payload["cuentas"]) == 1
-    assert payload["cuentas"][0]["nombre"] == "Cliente Uno"
-    assert payload["cuentas"][0]["numero_cuenta"] == "1234567890123456"
-    assert payload["cuentas"][0]["estado"] == "activo"
+    assert len(payload["cuentas"]) == 2
+    cuentas_por_nombre = {
+        cuenta["nombre"]: cuenta for cuenta in payload["cuentas"]
+    }
+    assert cuentas_por_nombre["Cliente Uno"]["numero_cuenta"] == "1234567890123456"
+    assert cuentas_por_nombre["Cliente Uno"]["estado"] == "activo"
+    assert (
+        cuentas_por_nombre["Cliente con documento coincidente"]["numero_cuenta"]
+        == "5555555555555555"
+    )
 
     app.dependency_overrides.clear()
     db.close()

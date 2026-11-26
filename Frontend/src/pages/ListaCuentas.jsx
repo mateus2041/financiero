@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
+<<<<<<< HEAD
 import {
   groupDigitsByThousands,
   sanitizeLocalText,
@@ -9,6 +10,10 @@ import {
   crearMensajeAdmin,
   leerMensajesAdmin,
 } from "../utils/adminMessages";
+=======
+import { groupDigitsByThousands } from "../utils/helpers";
+import AssistantModal from "../components/AssistantModal";
+>>>>>>> develop
 import "../styles/ListaCuentas.css";
 import logoProyecto from "../assets/images/logo.jpeg";
 
@@ -44,6 +49,16 @@ export default function ListaCuentas() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
+  const [errorBeneficio, setErrorBeneficio] = useState("");
+  const [beneficioCargando, setBeneficioCargando] = useState(null);
+  const [confirmacionesDiscapacidad, setConfirmacionesDiscapacidad] =
+    useState({});
+  const [confirmacionesPensionados, setConfirmacionesPensionados] =
+    useState({});
+  const [cuentaConfirmacionSeleccionada, setCuentaConfirmacionSeleccionada] =
+    useState(null);
+  const [modalConfirmaPensionado, setModalConfirmaPensionado] = useState(false);
+  const [opcionConfirmacionModal, setOpcionConfirmacionModal] = useState("");
   const [cuentaSeleccionada, setCuentaSeleccionada] = useState(null);
   const [cuentaSaldoSeleccionada, setCuentaSaldoSeleccionada] =
     useState(null);
@@ -66,6 +81,8 @@ export default function ListaCuentas() {
   const [mensajeAdmin, setMensajeAdmin] = useState("");
   const [imagenMensaje, setImagenMensaje] = useState(null);
   const [previewImagenMensaje, setPreviewImagenMensaje] = useState("");
+  const [chatIAAbierto, setChatIAAbierto] = useState(false);
+  const [cuentaChatSeleccionada, setCuentaChatSeleccionada] = useState(null);
 
   const [menuAbierto, setMenuAbierto] = useState(true);
   const [esMovil, setEsMovil] = useState(() => window.innerWidth <= 650);
@@ -73,6 +90,22 @@ export default function ListaCuentas() {
   useEffect(() => {
     void cargarCuentas();
   }, []);
+
+  useEffect(() => {
+    if (!cuentaChatSeleccionada) {
+      return;
+    }
+
+    const cuentaActual = cuentas.find(
+      (cuenta) =>
+        cuenta.id_usuario === cuentaChatSeleccionada.id_usuario
+    );
+
+    if (cuentaActual?.beneficio_habilitado !== true) {
+      setChatIAAbierto(false);
+      setCuentaChatSeleccionada(null);
+    }
+  }, [cuentas, cuentaChatSeleccionada]);
 
   useEffect(() => {
     const actualizarEstadoMenu = () => {
@@ -163,6 +196,106 @@ export default function ListaCuentas() {
       );
     } finally {
       setCargando(false);
+    }
+  };
+
+  const cambiarBeneficioUsuario = async (cuenta, habilitado) => {
+    if (!esAsesor) {
+      return;
+    }
+
+    const edad = Number(cuenta.edad);
+    const requiereDiscapacidad = edad < 60;
+    const confirmarDiscapacidad = requiereDiscapacidad
+      ? confirmacionesDiscapacidad[cuenta.id_usuario] ??
+        cuenta.discapacidad_confirmada === true
+      : cuenta.discapacidad_confirmada === true;
+
+    if (habilitado && (!Number.isInteger(edad) || edad < 18)) {
+      setErrorBeneficio(
+        "Se requiere una fecha de nacimiento válida y que el usuario tenga al menos 18 años."
+      );
+      return;
+    }
+
+    if (habilitado && requiereDiscapacidad && !confirmarDiscapacidad) {
+      setErrorBeneficio(
+        "Confirme la discapacidad física o cognitiva antes de habilitar el beneficio."
+      );
+      return;
+    }
+
+    if (
+      habilitado &&
+      edad >= 60 &&
+      confirmacionesPensionados[cuenta.id_usuario] !== true
+    ) {
+      setErrorBeneficio(
+        "Confirme que el usuario está pensionado antes de habilitar el beneficio."
+      );
+      return;
+    }
+
+    try {
+      setBeneficioCargando(cuenta.id_usuario);
+      setErrorBeneficio("");
+      setMensaje("");
+
+      const token = localStorage.getItem("token");
+      const respuesta = await axios.put(
+        `${API_URL}/usuarios/${cuenta.id_usuario}/beneficio`,
+        {
+          habilitado,
+          confirmar_discapacidad: confirmarDiscapacidad,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const usuarioActualizado = respuesta.data?.usuario || {};
+      const beneficioFinal = typeof usuarioActualizado.beneficio_habilitado === "boolean"
+        ? usuarioActualizado.beneficio_habilitado
+        : habilitado;
+
+      setCuentas((cuentasActuales) =>
+        cuentasActuales.map((cuentaActual) =>
+          cuentaActual.id_usuario === cuenta.id_usuario
+            ? {
+                ...cuentaActual,
+                ...usuarioActualizado,
+                beneficio_habilitado: beneficioFinal,
+              }
+            : cuentaActual
+        )
+      );
+      window.dispatchEvent(new Event("beneficio-actualizado"));
+      setConfirmacionesDiscapacidad((actuales) => {
+        const siguientes = { ...actuales };
+        delete siguientes[cuenta.id_usuario];
+        return siguientes;
+      });
+      if (!habilitado &&
+          cuentaChatSeleccionada?.id_usuario === cuenta.id_usuario) {
+        setChatIAAbierto(false);
+        setCuentaChatSeleccionada(null);
+      }
+      setMensaje(
+        respuesta.data?.message ||
+          (habilitado
+            ? "Beneficio habilitado correctamente."
+            : "Beneficio deshabilitado correctamente.")
+      );
+    } catch (error) {
+      setErrorBeneficio(
+        obtenerMensajeError(
+          error,
+          "No se pudo actualizar el beneficio del usuario."
+        )
+      );
+    } finally {
+      setBeneficioCargando(null);
     }
   };
 
@@ -953,6 +1086,12 @@ export default function ListaCuentas() {
             </p>
           )}
 
+          {errorBeneficio && (
+            <p className="mensaje-error" role="alert">
+              {errorBeneficio}
+            </p>
+          )}
+
           {!cargando &&
             !error &&
             cuentas.length === 0 && (
@@ -983,6 +1122,12 @@ export default function ListaCuentas() {
                       <th>Tipo de cuenta</th>
                       <th>Saldo</th>
                       <th>Estado</th>
+                      {esAsesor && (
+                        <>
+                          <th>Edad</th>
+                          <th>Beneficio</th>
+                        </>
+                      )}
                       <th>Acciones</th>
                     </tr>
                   </thead>
@@ -1001,6 +1146,36 @@ export default function ListaCuentas() {
                         : ["inactiva", "inactivo"].includes(estado)
                           ? "inactivo"
                           : "";
+                      const edad = Number.isInteger(cuenta.edad)
+                        ? cuenta.edad
+                        : null;
+                      const beneficioHabilitado =
+                        cuenta.beneficio_habilitado === true;
+                      const discapacidadConfirmada =
+                        confirmacionesDiscapacidad[cuenta.id_usuario] ??
+                        cuenta.discapacidad_confirmada === true;
+                      const pensionadoConfirmado =
+                        confirmacionesPensionados[cuenta.id_usuario];
+                      const tipoBeneficio = edad === null
+                        ? "Sin fecha de nacimiento"
+                        : edad >= 60
+                          ? beneficioHabilitado
+                            ? "Pensionado"
+                            : pensionadoConfirmado === true
+                              ? "Pensionado confirmado"
+                              : pensionadoConfirmado === false
+                                ? "Pensionado: no confirmado"
+                                : "Pensionado: confirmación pendiente"
+                          : edad >= 18
+                            ? discapacidadConfirmada
+                              ? "Joven con discapacidad confirmada"
+                              : "Joven: discapacidad pendiente"
+                            : "No elegible";
+                      const estadoBeneficio = beneficioHabilitado
+                        ? `Habilitado · ${tipoBeneficio}`
+                        : tipoBeneficio;
+                      const cargandoBeneficio =
+                        beneficioCargando === cuenta.id_usuario;
 
                       return (
                         <tr
@@ -1033,7 +1208,110 @@ export default function ListaCuentas() {
                             </span>
                           </td>
 
+                          {esAsesor && (
+                            <>
+                              <td>
+                                {edad === null
+                                  ? "No registrada"
+                                  : `${edad} años`}
+                              </td>
+
+                              <td>
+                                <span
+                                  className={`estado-cuenta ${
+                                    beneficioHabilitado
+                                      ? "activo"
+                                      : ""
+                                  }`}
+                                >
+                                  {estadoBeneficio}
+                                </span>
+                                {edad !== null &&
+                                  edad >= 18 &&
+                                  edad < 60 &&
+                                  !beneficioHabilitado && (
+                                    !discapacidadConfirmada && (
+                                      <button
+                                        type="button"
+                                        className="boton-habilitar"
+                                        aria-haspopup="dialog"
+                                        onClick={() => {
+                                          setCuentaConfirmacionSeleccionada(cuenta);
+                                          setModalConfirmaPensionado(false);
+                                          setOpcionConfirmacionModal("");
+                                        }}
+                                        disabled={cargandoBeneficio}
+                                      >
+                                        Confirmar discapacidad
+                                      </button>
+                                    )
+                                  )}
+                                {edad !== null &&
+                                  edad >= 60 &&
+                                  !beneficioHabilitado &&
+                                  pensionadoConfirmado !== true && (
+                                    <button
+                                      type="button"
+                                      className="boton-habilitar"
+                                      aria-haspopup="dialog"
+                                      onClick={() => {
+                                        setCuentaConfirmacionSeleccionada(cuenta);
+                                        setModalConfirmaPensionado(true);
+                                        setOpcionConfirmacionModal("");
+                                      }}
+                                      disabled={cargandoBeneficio}
+                                    >
+                                      Confirmar pensionado
+                                    </button>
+                                  )}
+                              </td>
+                            </>
+                          )}
+
                           <td className="acciones-cuenta">
+                            {esAsesor && edad !== null && edad >= 18 && (
+                              <button
+                                type="button"
+                                className={
+                                  beneficioHabilitado
+                                    ? "boton-inhabilitar"
+                                    : "boton-habilitar"
+                                }
+                                onClick={() =>
+                                  void cambiarBeneficioUsuario(
+                                    cuenta,
+                                    !beneficioHabilitado
+                                  )
+                                }
+                                disabled={
+                                  cargandoBeneficio ||
+                                  (!beneficioHabilitado &&
+                                    edad >= 60 &&
+                                    pensionadoConfirmado !== true)
+                                }
+                              >
+                                {cargandoBeneficio
+                                  ? "Guardando..."
+                                  : beneficioHabilitado
+                                    ? "Deshabilitar beneficio"
+                                    : "Habilitar beneficio"}
+                              </button>
+                            )}
+
+                            {esAsesor && beneficioHabilitado && (
+                              <button
+                                type="button"
+                                className="boton-chat-ia"
+                                aria-label={`Abrir ChatIA para ${cuenta.nombre}`}
+                                onClick={() => {
+                                  setCuentaChatSeleccionada(cuenta);
+                                  setChatIAAbierto(true);
+                                }}
+                              >
+                                Abrir ChatIA
+                              </button>
+                            )}
+
                             {esAsesor && (
                               <button
                                 type="button"
@@ -1105,6 +1383,95 @@ export default function ListaCuentas() {
           </div>
 
         </main>
+
+        {cuentaConfirmacionSeleccionada && (
+          <div
+            className="modal-edicion-overlay"
+            role="presentation"
+            onMouseDown={(evento) => {
+              if (evento.target === evento.currentTarget) {
+                setCuentaConfirmacionSeleccionada(null);
+              }
+            }}
+          >
+            <section
+              className="modal-edicion-saldo"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="titulo-confirmacion-beneficio"
+            >
+              <h2 id="titulo-confirmacion-beneficio">
+                {modalConfirmaPensionado
+                  ? "Confirmar condición de pensionado"
+                  : "Confirmar discapacidad"}
+              </h2>
+              <p>
+                {modalConfirmaPensionado
+                  ? `¿Confirma que ${cuentaConfirmacionSeleccionada.nombre} está pensionado?`
+                  : `Seleccione la discapacidad de ${cuentaConfirmacionSeleccionada.nombre} para confirmar y continuar con la habilitación del beneficio.`}
+              </p>
+              <label htmlFor="confirmacion-beneficio-select">
+                {modalConfirmaPensionado
+                  ? "¿Está pensionado?"
+                  : "Tipo de discapacidad"}
+              </label>
+              <select
+                id="confirmacion-beneficio-select"
+                value={opcionConfirmacionModal}
+                onChange={(evento) =>
+                  setOpcionConfirmacionModal(evento.target.value)
+                }
+                required
+              >
+                <option value="" disabled>
+                  Seleccione una opción
+                </option>
+                {modalConfirmaPensionado ? (
+                  <>
+                    <option value="si">Sí</option>
+                    <option value="no">No</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="fisica">Discapacidad física</option>
+                    <option value="cognitiva">Discapacidad cognitiva</option>
+                  </>
+                )}
+              </select>
+              <div className="acciones-formulario-saldo">
+                <button
+                  type="button"
+                  className="boton-cancelar-saldo"
+                  onClick={() => setCuentaConfirmacionSeleccionada(null)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="boton-guardar-saldo"
+                  disabled={!opcionConfirmacionModal}
+                  onClick={() => {
+                    if (modalConfirmaPensionado) {
+                      setConfirmacionesPensionados((actuales) => ({
+                        ...actuales,
+                        [cuentaConfirmacionSeleccionada.id_usuario]:
+                          opcionConfirmacionModal === "si",
+                      }));
+                    } else {
+                      setConfirmacionesDiscapacidad((actuales) => ({
+                        ...actuales,
+                        [cuentaConfirmacionSeleccionada.id_usuario]: true,
+                      }));
+                    }
+                    setCuentaConfirmacionSeleccionada(null);
+                  }}
+                >
+                  Confirmar
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
 
         {usuarioNuevaCuenta && (
           <div
@@ -1565,6 +1932,14 @@ export default function ListaCuentas() {
               </div>
             )}
           </div>
+        )}
+        {chatIAAbierto && (
+          <AssistantModal
+            onClose={() => {
+              setChatIAAbierto(false);
+              setCuentaChatSeleccionada(null);
+            }}
+          />
         )}
       </div>
   );

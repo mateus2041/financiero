@@ -1,6 +1,13 @@
 import { Link } from "react-router-dom";
+import useAssistantBenefit from "../hooks/useAssistantBenefit";
 
 function AsistenteMovil({ onClick, to }) {
+  const beneficioHabilitado = useAssistantBenefit();
+
+  if (!beneficioHabilitado) {
+    return null;
+  }
+
   const props = {
     className: "asistente-flotante",
     "aria-label": "Abrir asistente IA",

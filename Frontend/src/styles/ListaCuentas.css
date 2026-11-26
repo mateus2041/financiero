@@ -707,6 +707,41 @@ body {
   color: #0b0f16;
 }
 
+.boton-chat-ia {
+  display: inline-block;
+  margin: 3px;
+  padding: 8px 10px;
+  border: 1px solid #9ec5ff;
+  border-radius: 6px;
+  background: transparent;
+  color: #9ec5ff;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.boton-chat-ia:hover {
+  background: #9ec5ff;
+  color: #0b0f16;
+}
+
+.confirmar-discapacidad-beneficio {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 220px;
+  margin: 10px auto 0;
+  color: var(--texto-secundario);
+  font-size: 12px;
+  text-align: left;
+  white-space: normal;
+}
+
+.confirmar-discapacidad-beneficio input {
+  margin: 2px 0 0;
+}
+
 .modal-cuenta-overlay {
   position: fixed;
   inset: 0;

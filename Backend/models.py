@@ -545,6 +545,11 @@ class Tarjeta(Base):
         default="activa"
     )
 
+    motivo_bloqueo = Column(
+        String(255),
+        nullable=True
+    )
+
     cuenta = relationship(
         "Cuenta",
         back_populates="tarjetas"
