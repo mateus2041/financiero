@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
-<<<<<<< HEAD
 import {
   groupDigitsByThousands,
   sanitizeLocalText,
@@ -10,10 +9,6 @@ import {
   crearMensajeAdmin,
   leerMensajesAdmin,
 } from "../utils/adminMessages";
-=======
-import { groupDigitsByThousands } from "../utils/helpers";
-import AssistantModal from "../components/AssistantModal";
->>>>>>> develop
 import "../styles/ListaCuentas.css";
 import logoProyecto from "../assets/images/logo.jpeg";
 
