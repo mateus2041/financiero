@@ -10,8 +10,9 @@ def test_alembic_migrations_have_a_single_head_and_safe_merge_order():
     script = ScriptDirectory.from_config(config)
     merge = script.get_revision("d3a6f1c890ab")
     final_merge = script.get_revision("a0b7d9e3c241")
+    latest_migration = script.get_revision("ab9146cde207")
 
-    assert script.get_heads() == ["a0b7d9e3c241"]
+    assert script.get_heads() == ["ab9146cde207"]
     assert merge.down_revision == (
         "a8c139d27e4f",
         "91d8b15c4a22",
@@ -20,3 +21,4 @@ def test_alembic_migrations_have_a_single_head_and_safe_merge_order():
         "f14c0a3b8d72",
         "f19b62d3e740",
     )
+    assert latest_migration.down_revision == "6d7a9f2b5c41"

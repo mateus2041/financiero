@@ -47,16 +47,14 @@ function TarjetaAdicional({
                 role="button"
                 tabIndex={0}
                 onKeyDown={manejarTecla}
-                aria-label={`Ver reverso de la tarjeta terminada en ${tarjeta.ultimos_tres}`}
+                aria-label={`Ver reverso de la tarjeta terminada en ${tarjeta.numero_tarjeta?.slice(-4) || "----"}`}
             >
                 {vista === "frontal" ? (
                     <>
                         <div className="tarjeta-marca">BILLETERA</div>
                         <div className="tarjeta-chip">▦</div>
                         <div className="tarjeta-numero">
-                            {(tarjeta.numero_tarjeta || "0000000000000000")
-                                .replace(/(.{4})/g, "$1 ")
-                                .trim()}
+                            {tarjeta.numero_tarjeta || "**** **** **** ----"}
                         </div>
                         <div className="tarjeta-tipo">BILLETERA DIGITAL</div>
                     </>
@@ -65,8 +63,11 @@ function TarjetaAdicional({
                         <div className="tarjeta-trasera-header">FIRMA AUTORIZADA</div>
                         <div className="tarjeta-trasera-licencia">
                             <div className="tarjeta-trasera-firma-box" />
-                            <div className="tarjeta-trasera-codigo-box">
-                                {tarjeta.codigo_seguridad || "---"}
+                            <div
+                                className="tarjeta-trasera-codigo-box"
+                                aria-label="CVV oculto por seguridad"
+                            >
+                                ---
                             </div>
                         </div>
                         <div className="tarjeta-trasera-mensaje">
@@ -74,7 +75,7 @@ function TarjetaAdicional({
                         </div>
                         <div className="tarjeta-trasera-footer">
                             <div className="tarjeta-trasera-campo">
-                                <strong>{tarjeta.ultimos_tres || "---"}</strong>
+                                <strong>{tarjeta.numero_tarjeta?.slice(-4) || "----"}</strong>
                             </div>
                             <div className="tarjeta-trasera-campo">
                                 <strong>{tarjeta.fecha_expiracion || "--/--"}</strong>
@@ -153,10 +154,9 @@ function DesbloquearTarjeta() {
     const [vistaTarjeta, setVistaTarjeta] = useState("trasera");
     const restablecimientosCvvEnProceso = useRef(new Set());
     const [datosSeguridad, setDatosSeguridad] = useState({
-        numeroTarjeta: "0000000000000000",
-        ultimosTres: "000",
-        vencimiento: "--/--",
-        codigoSeguridad: "000"
+        numeroTarjeta: "**** **** **** ----",
+        ultimosDigitos: "----",
+        vencimiento: "--/--"
     });
 
     const [openCertificado, setOpenCertificado] = useState(false);
@@ -213,9 +213,8 @@ function DesbloquearTarjeta() {
             setTarjetasAdicionales(tarjetasOrdenadas.slice(1));
             setDatosSeguridad({
                 numeroTarjeta: tarjetaPrincipal.numero_tarjeta,
-                ultimosTres: tarjetaPrincipal.ultimos_tres,
-                vencimiento: tarjetaPrincipal.fecha_expiracion,
-                codigoSeguridad: tarjetaPrincipal.codigo_seguridad
+                ultimosDigitos: tarjetaPrincipal.numero_tarjeta?.slice(-4) || "----",
+                vencimiento: tarjetaPrincipal.fecha_expiracion
             });
 
         } catch (error) {
@@ -272,18 +271,9 @@ function DesbloquearTarjeta() {
                 throw new Error(datos.detail || "No fue posible restablecer el CVV.");
             }
 
-            if (!/^\d{3}$/.test(datos.codigo_seguridad)) {
-                throw new Error("El CVV recibido no tiene el formato esperado de tres dígitos.");
-            }
-
             if (tarjetaObjetivo.id_tarjeta === tarjeta.id_tarjeta) {
-                setDatosSeguridad((actual) => ({
-                    ...actual,
-                    codigoSeguridad: datos.codigo_seguridad
-                }));
                 setTarjeta((actual) => ({
                     ...actual,
-                    codigo_seguridad: datos.codigo_seguridad,
                     cvv_restablecido: true
                 }));
                 setVistaTarjeta("trasera");
@@ -293,7 +283,6 @@ function DesbloquearTarjeta() {
                         tarjeta.id_tarjeta === tarjetaObjetivo.id_tarjeta
                             ? {
                                 ...tarjeta,
-                                codigo_seguridad: datos.codigo_seguridad,
                                 cvv_restablecido: true
                             }
                             : tarjeta
@@ -439,10 +428,8 @@ function DesbloquearTarjeta() {
 
     const tarjetaActual = tarjeta ?? {
         estado: "bloqueada",
-        numero_tarjeta: "0000000000000000",
-        ultimos_tres: "000",
-        fecha_expiracion: "--/--",
-        codigo_seguridad: "000"
+        numero_tarjeta: "**** **** **** ----",
+        fecha_expiracion: "--/--"
     };
     const tarjetaSeleccionadaBloqueo =
         tarjetaIdBloqueo === tarjeta?.id_tarjeta
@@ -538,9 +525,7 @@ function DesbloquearTarjeta() {
                                 <div className="tarjeta-chip">▦</div>
 
                                 <div className="tarjeta-numero">
-                                    {(datosSeguridad.numeroTarjeta || "0000000000000000")
-                                        .replace(/(.{4})/g, "$1 ")
-                                        .trim()}
+                                    {datosSeguridad.numeroTarjeta || "**** **** **** ----"}
                                 </div>
 
                                 <div className="tarjeta-tipo">
@@ -567,8 +552,11 @@ function DesbloquearTarjeta() {
 
                                 <div className="tarjeta-trasera-licencia">
                                     <div className="tarjeta-trasera-firma-box" />
-                                    <div className="tarjeta-trasera-codigo-box">
-                                        {datosSeguridad.codigoSeguridad || "---"}
+                                    <div
+                                        className="tarjeta-trasera-codigo-box"
+                                        aria-label="CVV oculto por seguridad"
+                                    >
+                                        ---
                                     </div>
                                 </div>
 
@@ -578,7 +566,7 @@ function DesbloquearTarjeta() {
 
                                 <div className="tarjeta-trasera-footer">
                                     <div className="tarjeta-trasera-campo">
-                                        <strong>{datosSeguridad.ultimosTres || "---"}</strong>
+                                        <strong>{datosSeguridad.ultimosDigitos || "----"}</strong>
                                     </div>
                                     <div className="tarjeta-trasera-campo">
                                         <strong>{datosSeguridad.vencimiento || "--/--"}</strong>

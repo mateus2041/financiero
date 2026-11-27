@@ -316,16 +316,12 @@ export default function TarjetasUsuario({ esAsesor = false }) {
           }
         );
 
-        const cvvActualizado = respuestaActualizacion.data?.codigo_seguridad
-          ?? (datosActualizacion.cvv || tarjetaEditando.codigo_seguridad);
-
         setTarjetasPorUsuario((actuales) => ({
           ...actuales,
           [usuarioId]: (actuales[usuarioId] || []).map((tarjeta) =>
             parsePositiveInteger(tarjeta.id_tarjeta) === tarjetaId
               ? {
                   ...tarjeta,
-                  codigo_seguridad: cvvActualizado,
                   fecha_vencimiento:
                     respuestaActualizacion.data?.fecha_vencimiento
                     || tarjeta.fecha_vencimiento,
@@ -473,9 +469,7 @@ export default function TarjetasUsuario({ esAsesor = false }) {
       fecha_vencimiento: mes && anio
         ? `20${anio}-${mes}`
         : generarFechaVencimiento(),
-      cvv: /^\d{3}$/.test(String(tarjeta.ultimos_tres ?? ""))
-        ? String(tarjeta.ultimos_tres)
-        : "",
+      cvv: "",
       primeros_digitos: "",
       ultimos_digitos: "",
     });
@@ -1107,15 +1101,26 @@ export default function TarjetasUsuario({ esAsesor = false }) {
                             if (accion === "anadir") {
                               abrirModalTarjeta(usuario);
                             } else if (accion === "editar") {
-                              editarTarjetaDeUsuario(
+                              void editarTarjetaDeUsuario(
                                 usuario,
                                 tarjetaUsuario?.id_tarjeta
-                              );
+                              ).catch(() => {
+                                setMensaje(
+                                  "No se pudo cargar la tarjeta para editar."
+                                );
+                              });
                             } else if (
                               accion === "inhabilitar" &&
                               tarjetaUsuario
                             ) {
-                              cambiarEstadoTarjeta(usuario, tarjetaUsuario);
+                              void cambiarEstadoTarjeta(
+                                usuario,
+                                tarjetaUsuario
+                              ).catch(() => {
+                                setMensaje(
+                                  "No se pudo cambiar el estado de la tarjeta."
+                                );
+                              });
                             }
                           }}
                         >

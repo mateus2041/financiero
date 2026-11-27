@@ -794,10 +794,6 @@ body {
   border-collapse: collapse;
 }
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
 .tabla-usuarios {
   min-width: 1150px;
 }
@@ -811,9 +807,6 @@ body {
   color: var(--texto-secundario);
   font-size: 12px;
 }
-
->>>>>>> 1d230e60767b7ee8dd388f8bc1c2da18b87a7cc2
->>>>>>> develop
 .tabla-asesores th,
 .tabla-asesores td {
   padding: 15px 16px;

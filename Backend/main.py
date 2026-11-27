@@ -2738,10 +2738,8 @@ def listar_tarjetas_usuario(
         {
             "id_tarjeta": tarjeta.id_tarjeta,
             "numero_tarjeta": f"**** **** **** {str(tarjeta.numero_tarjeta)[-4:]}",
-            "ultimos_tres": str(tarjeta.numero_tarjeta)[-3:],
             "fecha_vencimiento": tarjeta.fecha_expiracion,
             "tipo_tarjeta": "debito",
-            "codigo_seguridad": tarjeta.codigo_seguridad,
             "estado": tarjeta.estado
         }
         for tarjeta in tarjetas
@@ -3040,7 +3038,6 @@ def editar_tarjeta_usuario(
         "mensaje": "Tarjeta actualizada correctamente",
         "id_tarjeta": tarjeta.id_tarjeta,
         "fecha_vencimiento": tarjeta.fecha_expiracion,
-        "codigo_seguridad": tarjeta.codigo_seguridad,
         "estado": tarjeta.estado
     }
 
@@ -3062,10 +3059,12 @@ def listar_tarjetas_propias(
         numero_tarjeta = str(tarjeta.numero_tarjeta or "")
         resultado.append({
             "id_tarjeta": tarjeta.id_tarjeta,
-            "numero_tarjeta": numero_tarjeta,
-            "ultimos_tres": numero_tarjeta[-3:] if numero_tarjeta else "000",
+            "numero_tarjeta": (
+                f"**** **** **** {numero_tarjeta[-4:]}"
+                if numero_tarjeta
+                else "**** **** **** ----"
+            ),
             "fecha_expiracion": tarjeta.fecha_expiracion,
-            "codigo_seguridad": tarjeta.codigo_seguridad,
             "cvv_restablecido": tarjeta.cvv_restablecido,
             "estado": (
                 "bloqueada"
@@ -3134,11 +3133,8 @@ def consultar_tarjeta(
 
     return {
         "id_tarjeta": tarjeta.id_tarjeta,
-        "numero_tarjeta": str(tarjeta.numero_tarjeta),
-        "ultimos_digitos": str(tarjeta.numero_tarjeta)[-6:],
-        "ultimos_tres": str(tarjeta.numero_tarjeta)[-3:],
+        "numero_tarjeta": f"**** **** **** {str(tarjeta.numero_tarjeta)[-4:]}",
         "fecha_expiracion": tarjeta.fecha_expiracion,
-        "codigo_seguridad": tarjeta.codigo_seguridad,
         "cvv_restablecido": tarjeta.cvv_restablecido,
         "numero_cuenta": cuenta.numero_cuenta,
         "tipo_cuenta": cuenta.tipo_cuenta,
@@ -3175,10 +3171,8 @@ def consultar_ultima_tarjeta(
     return {
         "tarjeta": {
             "id_tarjeta": tarjeta.id_tarjeta,
-            "numero_tarjeta": str(tarjeta.numero_tarjeta),
-            "ultimos_tres": str(tarjeta.numero_tarjeta)[-3:],
+            "numero_tarjeta": f"**** **** **** {str(tarjeta.numero_tarjeta)[-4:]}",
             "fecha_expiracion": tarjeta.fecha_expiracion,
-            "codigo_seguridad": tarjeta.codigo_seguridad,
             "cvv_restablecido": tarjeta.cvv_restablecido,
             "estado": (
                 "bloqueada"
@@ -3218,8 +3212,11 @@ def restablecer_cvv_tarjeta_especifica(
     db.refresh(tarjeta)
 
     return {
-        "mensaje": "El CVV de tu tarjeta fue restablecido correctamente.",
-        "codigo_seguridad": tarjeta.codigo_seguridad
+        "mensaje": (
+            "El CVV de tu tarjeta fue restablecido correctamente. "
+            "Por seguridad, no se muestra en la respuesta."
+        ),
+        "cvv_restablecido": True
     }
 
 
@@ -3318,8 +3315,11 @@ def restablecer_cvv_tarjeta(
     db.refresh(tarjeta)
 
     return {
-        "mensaje": "El CVV de tu tarjeta fue restablecido correctamente.",
-        "codigo_seguridad": tarjeta.codigo_seguridad
+        "mensaje": (
+            "El CVV de tu tarjeta fue restablecido correctamente. "
+            "Por seguridad, no se muestra en la respuesta."
+        ),
+        "cvv_restablecido": True
     }
 
 
@@ -3368,9 +3368,19 @@ def bloquear_tarjeta(
 
 @app.put("/tarjeta/desbloquear")
 def desbloquear_tarjeta(
+    datos: ConfirmarContrasena,
     current_user: int = Depends(token_required),
     db: Session = Depends(get_db)
 ):
+    usuario = db.query(Usuario).filter(
+        Usuario.id_usuario == current_user
+    ).first()
+    if not usuario or not check_password(datos.password, usuario.password):
+        raise HTTPException(
+            status_code=401,
+            detail="La contraseña es incorrecta."
+        )
+
     cuenta = db.query(Cuenta).filter(
         Cuenta.id_usuario == current_user,
         Cuenta.tipo_cuenta == "corriente"
@@ -5518,9 +5528,6 @@ def consultar_llave_bre_b(
 
         "nombre":
         usuario.nombre,
-
-        "documento":
-        usuario.documento,
 
         "llave":
         llave_breb.llave,

@@ -89,8 +89,114 @@ def test_usuario_puede_listar_sus_tarjetas(monkeypatch):
     assert response.status_code == 200
     assert len(response.json()) == 1
     assert response.json()[0]["id_tarjeta"] is not None
-    assert response.json()[0]["ultimos_tres"] == "456"
+    assert response.json()[0]["numero_tarjeta"] == "**** **** **** 3456"
+    assert "codigo_seguridad" not in response.json()[0]
+    assert "ultimos_tres" not in response.json()[0]
     assert response.json()[0]["estado"] == "activa"
+
+    db.close()
+    engine.dispose()
+
+
+def test_tarjeta_endpoints_no_exponen_numero_completo_ni_cvv(monkeypatch):
+    client, db, cliente, engine = crear_contexto_tarjetas(
+        monkeypatch,
+        cuenta=("corriente", "activa"),
+    )
+    monkeypatch.setitem(
+        main.app.dependency_overrides,
+        main.token_required,
+        lambda: cliente.id_usuario,
+    )
+    cuenta = db.query(Cuenta).one()
+    tarjeta = Tarjeta(
+        id_cuenta=cuenta.id_cuenta,
+        numero_tarjeta="4000001234567899",
+        fecha_expiracion="12/31",
+        codigo_seguridad="123",
+        estado="activa",
+    )
+    db.add(tarjeta)
+    db.commit()
+    tarjeta_id = tarjeta.id_tarjeta
+
+    responses = [
+        client.get("/tarjetas/mias"),
+        client.get(f"/usuarios/{cliente.id_usuario}/tarjetas"),
+        client.get("/tarjeta"),
+        client.get("/tarjeta/ultima"),
+    ]
+
+    for response in responses:
+        assert response.status_code == 200, response.text
+        tarjeta_respuesta = response.json()
+        if isinstance(tarjeta_respuesta, list):
+            tarjeta_respuesta = tarjeta_respuesta[0]
+        if "tarjeta" in tarjeta_respuesta:
+            tarjeta_respuesta = tarjeta_respuesta["tarjeta"]
+        assert tarjeta_respuesta["numero_tarjeta"] == "**** **** **** 7899"
+        assert "codigo_seguridad" not in tarjeta_respuesta
+        assert "4000001234567899" not in response.text
+
+    response = client.patch(
+        f"/tarjetas/{tarjeta_id}",
+        json={"fecha_vencimiento": "2032-01", "cvv": "987"},
+    )
+    assert response.status_code == 200, response.text
+    assert "codigo_seguridad" not in response.json()
+    assert "4000001234567899" not in response.text
+
+    response = client.put(f"/tarjetas/{tarjeta_id}/restablecer-cvv")
+    assert response.status_code == 200, response.text
+    assert response.json()["cvv_restablecido"] is True
+    assert "codigo_seguridad" not in response.json()
+
+    tarjeta.cvv_restablecido = False
+    db.commit()
+    response = client.put("/tarjeta/restablecer-cvv")
+    assert response.status_code == 200, response.text
+    assert "codigo_seguridad" not in response.json()
+
+    db.close()
+    engine.dispose()
+
+
+def test_desbloquear_tarjeta_exige_contrasena_actual(monkeypatch):
+    client, db, cliente, engine = crear_contexto_tarjetas(
+        monkeypatch,
+        cuenta=("corriente", "bloqueada"),
+    )
+    monkeypatch.setitem(
+        main.app.dependency_overrides,
+        main.token_required,
+        lambda: cliente.id_usuario,
+    )
+    cuenta = db.query(Cuenta).one()
+    tarjeta = Tarjeta(
+        id_cuenta=cuenta.id_cuenta,
+        numero_tarjeta="1234567890123456",
+        fecha_expiracion="12/31",
+        codigo_seguridad="123",
+        estado="bloqueada",
+    )
+    db.add(tarjeta)
+    db.commit()
+
+    response = client.put(
+        "/tarjeta/desbloquear",
+        json={"password": "incorrecta"},
+    )
+    assert response.status_code == 401
+    assert db.query(Cuenta).one().estado == "bloqueada"
+    assert db.query(Tarjeta).one().estado == "bloqueada"
+
+    response = client.put(
+        "/tarjeta/desbloquear",
+        json={"password": "Segura123"},
+    )
+    assert response.status_code == 200, response.text
+    assert db.query(Cuenta).one().estado == "activa"
+    assert db.query(Tarjeta).one().estado == "activa"
 
     db.close()
     engine.dispose()
